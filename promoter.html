@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VelvetOS — Promoter</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#C9A84C;--gold-light:#E8D08A;--gold-dim:#7a6230;
+    --black:#080808;--dark:#111111;--dark2:#191919;
+    --white:#F5F0E8;--gray:#888880;
+    --paid:#4CAF82;--cash:#E8A838;--free:#9B8EC4;--unpaid:#CF4444;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--black);color:var(--white);font-family:'Montserrat',sans-serif;font-weight:300;min-height:100vh;}
+
+  /* LOGIN */
+  #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;}
+  .bg-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 60% at 70% 50%,rgba(201,168,76,0.05) 0%,transparent 70%);}
+  .login-box{position:relative;z-index:2;width:100%;max-width:400px;padding:56px 40px;border:1px solid rgba(201,168,76,0.15);background:rgba(17,17,17,0.8);}
+  .login-logo{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:var(--gold);letter-spacing:0.3em;margin-bottom:4px;}
+  .login-sub{font-size:0.55rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin-bottom:36px;}
+  .form-label{display:block;font-size:0.58rem;letter-spacing:0.25em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;}
+  .form-input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:12px 0;color:var(--white);font-family:'Montserrat',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.3s;}
+  .form-input:focus{border-bottom-color:var(--gold);}
+  .form-input::placeholder{color:rgba(255,255,255,0.2);}
+  .form-select{width:100%;background:var(--dark2);border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:12px 4px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:0.85rem;outline:none;cursor:pointer;}
+  .form-select option{background:var(--dark2);}
+  .btn-login{width:100%;margin-top:24px;background:var(--gold);border:none;cursor:pointer;padding:16px;color:var(--black);font-family:'Montserrat',sans-serif;font-size:0.62rem;font-weight:600;letter-spacing:0.25em;text-transform:uppercase;transition:all 0.3s;}
+  .btn-login:hover{background:var(--gold-light);}
+  .login-error{color:#CF4444;font-size:0.68rem;margin-top:12px;display:none;}
+  .form-group{margin-bottom:20px;}
+
+  /* APP */
+  #app{display:none;}
+  #nav{position:sticky;top:0;z-index:100;background:rgba(8,8,8,0.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(201,168,76,0.2);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:58px;}
+  .nav-logo{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--gold);letter-spacing:0.3em;}
+  .nav-promoter{font-size:0.6rem;letter-spacing:0.15em;color:var(--gold-dim);}
+  .btn-logout{background:none;border:none;cursor:pointer;font-size:0.58rem;letter-spacing:0.15em;color:var(--gray);font-family:'Montserrat',sans-serif;transition:color 0.2s;}
+  .btn-logout:hover{color:var(--white);}
+
+  /* DASHBOARD */
+  .dash{padding:32px;}
+  .page-eyebrow{font-size:0.55rem;letter-spacing:0.35em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;}
+  .page-title{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:var(--white);margin-bottom:28px;}
+  .page-title span{color:var(--gold);font-style:italic;}
+
+  /* STATS */
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,0.06);margin-bottom:28px;}
+  .stat-card{background:var(--dark);padding:20px 22px;position:relative;}
+  .stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity 0.3s;}
+  .stat-card:hover::after{opacity:1;}
+  .stat-label{font-size:0.5rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:8px;}
+  .stat-value{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;line-height:1;}
+  .sv-gold{color:var(--gold);} .sv-paid{color:var(--paid);}
+
+  /* INVITE URL */
+  .invite-section{background:var(--dark);border:1px solid rgba(201,168,76,0.15);padding:24px 28px;margin-bottom:28px;}
+  .invite-title{font-size:0.58rem;letter-spacing:0.25em;color:var(--gold);text-transform:uppercase;margin-bottom:12px;}
+  .invite-url{font-size:0.72rem;color:var(--white);word-break:break-all;margin-bottom:12px;line-height:1.6;opacity:0.8;}
+  .btn-copy{background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:8px 20px;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;transition:all 0.3s;}
+  .btn-copy:hover{background:rgba(201,168,76,0.08);border-color:var(--gold);}
+
+  /* FILTER BAR */
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .search-wrap{position:relative;flex:1;min-width:160px;max-width:260px;}
+  .search-input{width:100%;background:var(--dark2);border:1px solid rgba(255,255,255,0.08);padding:9px 10px 9px 32px;color:var(--white);font-family:'Montserrat',sans-serif;font-size:0.7rem;outline:none;transition:border-color 0.3s;}
+  .search-input:focus{border-color:rgba(201,168,76,0.4);}
+  .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray);font-size:0.7rem;}
+  .filter-select{background:var(--dark2);border:1px solid rgba(255,255,255,0.08);color:var(--gray);padding:9px 10px;font-family:'Montserrat',sans-serif;font-size:0.65rem;outline:none;cursor:pointer;}
+  .spacer{flex:1;}
+  .btn-refresh{background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:9px 16px;cursor:pointer;font-family:'Montserrat',sans-serif;font-size:0.58rem;letter-spacing:0.15em;transition:all 0.3s;}
+  .btn-refresh:hover{border-color:rgba(201,168,76,0.4);color:var(--gold);}
+
+  /* TABLE */
+  table{width:100%;border-collapse:collapse;}
+  thead tr{border-bottom:1px solid rgba(201,168,76,0.2);}
+  th{text-align:left;padding:10px 12px;font-size:0.5rem;font-weight:500;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;}
+  tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.2s;}
+  tbody tr:hover{background:rgba(255,255,255,0.02);}
+  td{padding:12px;font-size:0.7rem;color:var(--white);}
+  td.muted{color:var(--gray);font-size:0.65rem;}
+  .badge{display:inline-block;padding:3px 9px;font-size:0.5rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;}
+  .badge-arrived{background:rgba(76,175,130,0.1);color:var(--paid);border:1px solid rgba(76,175,130,0.3);}
+  .badge-pending{background:rgba(255,255,255,0.04);color:var(--gray);border:1px solid rgba(255,255,255,0.1);}
+
+  /* PROGRESS BAR */
+  .progress-section{margin-bottom:28px;}
+  .progress-label{display:flex;justify-content:space-between;font-size:0.6rem;color:var(--gray);letter-spacing:0.1em;margin-bottom:8px;}
+  .progress-bar{height:3px;background:rgba(255,255,255,0.08);}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width 0.8s;}
+
+  .toast{position:fixed;bottom:24px;right:24px;z-index:500;background:var(--dark2);border:1px solid rgba(201,168,76,0.3);padding:12px 18px;font-size:0.68rem;color:var(--white);display:none;animation:fadeUp 0.4s ease both;}
+  .toast.show{display:block;}
+  .loading{text-align:center;padding:60px;color:var(--gray);font-size:0.72rem;letter-spacing:0.1em;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @media(max-width:600px){.stats-row{grid-template-columns:repeat(2,1fr);}.dash{padding:20px;}#nav{padding:0 16px;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="bg-glow"></div>
+  <div class="login-box">
+    <div class="login-logo">VelvetOS</div>
+    <div class="login-sub">Promoter Dashboard</div>
+
+    <div class="form-group">
+      <label class="form-label">イベント / Event</label>
+      <select class="form-select" id="login-event">
+        <option value="">読み込み中…</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">パスワード / Password</label>
+      <input class="form-input" id="login-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-login" onclick="doLogin()">ログイン / Login</button>
+    <div class="login-error" id="login-error">パスワードが違います</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav id="nav">
+    <div>
+      <div class="nav-logo">VelvetOS</div>
+      <div class="nav-promoter" id="nav-promoter-name"></div>
+    </div>
+    <button class="btn-logout" onclick="logout()">ログアウト</button>
+  </nav>
+
+  <div class="dash" id="dash-content">
+    <div class="loading">読み込み中…</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbzqNk2YEdEhwto3K84_w5O4Fpmb77oem29cpyN_4J-em8c9SRaDe9fvThIMM8kFO8g/exec';
+
+let currentPromoter = null;
+let currentEventId  = null;
+let myGuests        = [];
+
+async function apiGet(p)  { const r = await fetch(API+'?'+new URLSearchParams(p).toString()); return r.json(); }
+
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3000); }
+
+// URLパラメータからevent_idを取得
+async function initLogin() {
+  const params  = new URLSearchParams(location.search);
+  const eventId = params.get('e') || '';
+
+  const data = await apiGet({ action:'getEvents' });
+  const sel  = document.getElementById('login-event');
+  sel.innerHTML = '';
+
+  if (data.ok && data.events.length > 0) {
+    const active = data.events.filter(e => e.status === 'active');
+    active.forEach(ev => {
+      const o = document.createElement('option');
+      o.value = ev.event_id;
+      o.textContent = ev.name + ' — ' + ev.date;
+      if (ev.event_id === eventId) o.selected = true;
+      sel.appendChild(o);
+    });
+  } else {
+    sel.innerHTML = '<option value="">開催中のイベントがありません</option>';
+  }
+}
+
+async function doLogin() {
+  const eventId  = document.getElementById('login-event').value;
+  const password = document.getElementById('login-pw').value.trim();
+  if (!eventId)  { document.getElementById('login-error').style.display='block'; return; }
+
+  const data = await apiGet({ action:'auth', role:'promoter', password, event_id:eventId });
+  if (data.ok) {
+    currentPromoter = data.promoter;
+    currentEventId  = eventId;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('nav-promoter-name').textContent = data.promoter.name;
+    await loadDashboard();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+
+function logout() { location.reload(); }
+
+async function loadDashboard() {
+  const data = await apiGet({
+    action:       'getMyGuests',
+    promoter_id:  currentPromoter.promoter_id,
+    event_id:     currentEventId
+  });
+  if (!data.ok) { document.getElementById('dash-content').innerHTML = '<div class="loading">データを取得できませんでした</div>'; return; }
+  myGuests = data.guests;
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const total   = myGuests.length;
+  const arrived = myGuests.filter(g => String(g.arrived).toUpperCase() === 'TRUE').length;
+  const pct     = total ? Math.round(arrived/total*100) : 0;
+
+  // 招待URL
+  const inviteUrl = location.origin + location.pathname.replace('promoter.html','index.html')
+    + '?p=' + currentPromoter.slug + '&e=' + currentEventId;
+
+  // イベント名
+  const eventLabel = document.getElementById('login-event')?.options[0]?.text || '';
+
+  document.getElementById('dash-content').innerHTML = `
+    <div class="page-eyebrow">プロモーターダッシュボード</div>
+    <h1 class="page-title">${currentPromoter.name} <span>の実績</span></h1>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">招待登録数</div>
+        <div class="stat-value sv-gold">${total}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">来場済み</div>
+        <div class="stat-value sv-paid">${arrived}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">未来場</div>
+        <div class="stat-value sv-gold">${total-arrived}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">来場率</div>
+        <div class="stat-value sv-gold" style="font-size:1.6rem">${pct}%</div>
+      </div>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-label"><span>来場進捗</span><span>${arrived} / ${total}</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+
+    <div class="invite-section">
+      <div class="invite-title">📋 あなたの招待URL（お客様にシェア）</div>
+      <div class="invite-url">${inviteUrl}</div>
+      <button class="btn-copy" onclick="copyInvite('${inviteUrl}')">URLをコピー</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="g-search" placeholder="名前 / メールで検索…" oninput="renderTable()">
+      </div>
+      <select class="filter-select" id="g-filter" onchange="renderTable()">
+        <option value="all">すべて</option>
+        <option value="arrived">来場済み</option>
+        <option value="pending">未来場</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="btn-refresh" onclick="loadDashboard()">🔄 更新</button>
+    </div>
+
+    <table>
+      <thead><tr>
+        <th>ID</th><th>氏名</th><th>メール</th><th>登録日時</th><th>来場</th>
+      </tr></thead>
+      <tbody id="guest-tbody"></tbody>
+    </table>
+  `;
+
+  renderTable();
+}
+
+function renderTable() {
+  const q   = (document.getElementById('g-search')?.value || '').toLowerCase();
+  const st  = document.getElementById('g-filter')?.value || 'all';
+
+  const filtered = myGuests.filter(g => {
+    const mQ  = g.name.toLowerCase().includes(q) || g.email.toLowerCase().includes(q) || g.guest_id.toLowerCase().includes(q);
+    const arr = String(g.arrived).toUpperCase() === 'TRUE';
+    const mS  = st==='all' || (st==='arrived'&&arr) || (st==='pending'&&!arr);
+    return mQ && mS;
+  });
+
+  const tbody = document.getElementById('guest-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:32px;font-size:0.7rem;letter-spacing:0.1em">該当するゲストがいません</td></tr>`;
+    return;
+  }
+
+  filtered.forEach(g => {
+    const arr = String(g.arrived).toUpperCase() === 'TRUE';
+    const tr  = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="muted" style="font-family:'Cormorant Garamond',serif;color:var(--gold-dim)">${g.guest_id}</td>
+      <td>${g.name}</td>
+      <td class="muted">${g.email}</td>
+      <td class="muted">${g.registered_at}</td>
+      <td>${arr
+        ? '<span class="badge badge-arrived">来場済</span>'
+        : '<span class="badge badge-pending">未来場</span>'}
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function copyInvite(url) {
+  navigator.clipboard.writeText(url).then(() => toast('✦ 招待URLをコピーしました'));
+}
+
+// 初期化
+initLogin();
+</script>
+</body>
+</html>
