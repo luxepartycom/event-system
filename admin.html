@@ -327,21 +327,12 @@
       <input class="form-input" id="mp-password" placeholder="例: alex2025">
     </div>
     <div class="modal-group">
-      <label class="form-label">招待客の種別</label>
-      <select class="modal-select" id="mp-paytype" onchange="togglePriceFields()">
-        <option value="paid">有料招待</option>
-        <option value="free">無料招待</option>
-      </select>
-      <div class="modal-note">このプロモーターから申し込んだお客様全員に自動適用されます。</div>
-    </div>
-    <div id="mp-price-fields">
-      <div class="modal-group">
-        <label class="form-label">入場料（性別別）</label>
-        <div class="price-grid">
-          <div class="price-item"><label>男性 (¥)</label><input class="form-input" id="mp-price-male" type="number" placeholder="5000" value="5000"></div>
-          <div class="price-item"><label>女性 (¥)</label><input class="form-input" id="mp-price-female" type="number" placeholder="3000" value="3000"></div>
-        </div>
+      <label class="form-label">有料招待の入場料（性別別）</label>
+      <div class="price-grid">
+        <div class="price-item"><label>男性 (¥)</label><input class="form-input" id="mp-price-male" type="number" placeholder="5000" value="5000"></div>
+        <div class="price-item"><label>女性 (¥)</label><input class="form-input" id="mp-price-female" type="number" placeholder="3000" value="3000"></div>
       </div>
+      <div class="modal-note">無料招待URLと有料招待URLを同時に2本発行します。</div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-promoter')">キャンセル</button>
@@ -584,31 +575,52 @@ async function loadPromoters() {
 
 function renderPromoterGrid() {
   const grid=document.getElementById('promoter-grid'); grid.innerHTML='';
-  const maxA=Math.max(...allPromoters.map(p=>allGuests.filter(g=>g.promoter_id===p.promoter_id&&String(g.arrived).toUpperCase()==='TRUE').length),1);
+
+  // ★ 同名プロモーターを名前でグループ化（無料・有料ペア表示）
+  const groups={};
   allPromoters.forEach(p=>{
-    const invited=allGuests.filter(g=>g.promoter_id===p.promoter_id).length;
-    const arrived=allGuests.filter(g=>g.promoter_id===p.promoter_id&&String(g.arrived).toUpperCase()==='TRUE').length;
+    const key=p.name+'__'+p.event_id;
+    if(!groups[key]) groups[key]={name:p.name,free:null,paid:null};
+    if(p.pay_type==='free') groups[key].free=p;
+    else groups[key].paid=p;
+  });
+
+  const maxA=Math.max(...allPromoters.map(p=>allGuests.filter(g=>g.promoter_id===p.promoter_id&&String(g.arrived).toUpperCase()==='TRUE').length),1);
+
+  Object.values(groups).forEach(grp=>{
+    // 統計は両方合算
+    const ids=[grp.free?.promoter_id,grp.paid?.promoter_id].filter(Boolean);
+    const invited=allGuests.filter(g=>ids.includes(g.promoter_id)).length;
+    const arrived=allGuests.filter(g=>ids.includes(g.promoter_id)&&String(g.arrived).toUpperCase()==='TRUE').length;
     const pct=invited?Math.round(arrived/invited*100):0;
-    const rev=allGuests.filter(g=>g.promoter_id===p.promoter_id&&String(g.arrived).toUpperCase()==='TRUE'&&String(g.pay_confirmed).toUpperCase()==='TRUE').reduce((s,g)=>s+Number(g.amount),0);
-    const barW=Math.round(arrived/maxA*100);
-    const regUrl =BASE_URL+'index.html?p='+p.slug+'&e='+currentEventId;
-    const promUrl=BASE_URL+'promoter.html?e='+currentEventId;
-    const payTypeLabel=p.pay_type==='free'?'無料招待':'有料招待';
-    const priceInfo=p.pay_type==='paid'?` (男¥${Number(p.price_male||0).toLocaleString()} / 女¥${Number(p.price_female||0).toLocaleString()})`:'' ;
+    const rev=allGuests.filter(g=>ids.includes(g.promoter_id)&&String(g.arrived).toUpperCase()==='TRUE'&&String(g.pay_confirmed).toUpperCase()==='TRUE').reduce((s,g)=>s+Number(g.amount),0);
+    const barW=Math.round(arrived/Math.max(maxA,1)*100);
+    const promUrl=BASE_URL+'promoter.html?e='+currentEventId+'&p='+(grp.free||grp.paid).promoter_id;
+
+    // URL行を生成
+    const freeUrlHtml=grp.free?`
+      <div class="p-url-block">
+        <div class="p-url-label" style="color:var(--free)">🎟 無料招待URL</div>
+        <div class="p-url-row"><div class="p-url-text">${BASE_URL+'index.html?p='+grp.free.slug+'&e='+currentEventId}</div><button class="copy-btn" onclick="copyText('${BASE_URL+'index.html?p='+grp.free.slug+'&e='+currentEventId}',this)">📋</button></div>
+      </div>`:'';
+    const paidUrlHtml=grp.paid?`
+      <div class="p-url-block">
+        <div class="p-url-label" style="color:var(--cash)">💴 有料招待URL (男¥${Number(grp.paid.price_male||0).toLocaleString()} / 女¥${Number(grp.paid.price_female||0).toLocaleString()})</div>
+        <div class="p-url-row"><div class="p-url-text">${BASE_URL+'index.html?p='+grp.paid.slug+'&e='+currentEventId}</div><button class="copy-btn" onclick="copyText('${BASE_URL+'index.html?p='+grp.paid.slug+'&e='+currentEventId}',this)">📋</button></div>
+      </div>`:'';
+
     const card=document.createElement('div'); card.className='promoter-card';
     card.innerHTML=`
-      <div class="p-name">${p.name}</div>
+      <div class="p-name">${grp.name}</div>
       <div class="p-stats">
-        <div><div class="p-stat-val">${invited}</div><div class="p-stat-label">招待</div></div>
+        <div><div class="p-stat-val">${invited}</div><div class="p-stat-label">招待計</div></div>
         <div><div class="p-stat-val">${arrived}</div><div class="p-stat-label">来場</div></div>
         <div><div class="p-stat-val" style="color:var(--white)">${pct}%</div><div class="p-stat-label">来場率</div></div>
       </div>
       <div class="p-bar"><div class="p-bar-fill" style="width:${barW}%"></div></div>
-      <div class="p-meta">来場収益: <strong>¥${rev.toLocaleString()}</strong><br>種別: <strong>${payTypeLabel}${priceInfo}</strong></div>
-      <div class="p-url-block">
-        <div class="p-url-label">📋 招待URL（お客様にシェア）</div>
-        <div class="p-url-row"><div class="p-url-text">${regUrl}</div><button class="copy-btn" onclick="copyText('${regUrl}',this)">📋</button></div>
-      </div>
+      <div class="p-meta">来場収益: <strong>¥${rev.toLocaleString()}</strong></div>
+      ${freeUrlHtml}
+      ${paidUrlHtml}
       <div class="p-url-block">
         <div class="p-url-label">📊 プロモーターダッシュボード</div>
         <div class="p-url-row"><div class="p-url-text">${promUrl}</div><button class="copy-btn" onclick="copyText('${promUrl}',this)">📋</button></div>
@@ -625,18 +637,24 @@ async function addPromoter() {
   const eventId    =document.getElementById('mp-event').value;
   const name       =document.getElementById('mp-name').value.trim();
   const password   =document.getElementById('mp-password').value.trim();
-  const payType    =document.getElementById('mp-paytype').value;
-  const priceMale  =payType==='free'?0:parseInt(document.getElementById('mp-price-male').value)||0;
-  const priceFemale=payType==='free'?0:parseInt(document.getElementById('mp-price-female').value)||0;
+  const priceMale  =parseInt(document.getElementById('mp-price-male').value)||0;
+  const priceFemale=parseInt(document.getElementById('mp-price-female').value)||0;
   if(!name||!password){ toast('名前とパスワードを入力してください'); return; }
-  const data=await apiPost({action:'addPromoter',event_id:eventId,name,password,pay_type:payType,price_male:priceMale,price_female:priceFemale});
-  if(data.ok){ closeModal('modal-promoter'); await loadPromoters(); toast('✦ '+name+' を追加しました — URL発行済み'); }
-  else toast('エラー: '+data.message);
+  // ★ 無料・有料を同時に2本発行
+  const [free, paid] = await Promise.all([
+    apiPost({action:'addPromoter',event_id:eventId,name,password,pay_type:'free',price_male:0,price_female:0}),
+    apiPost({action:'addPromoter',event_id:eventId,name,password,pay_type:'paid',price_male:priceMale,price_female:priceFemale})
+  ]);
+  if(free.ok && paid.ok){
+    closeModal('modal-promoter');
+    await loadPromoters();
+    toast('✦ '+name+' — 無料・有料URLを2本発行しました');
+  } else {
+    toast('エラーが発生しました');
+  }
 }
 
-function togglePriceFields(){
-  document.getElementById('mp-price-fields').style.display=document.getElementById('mp-paytype').value==='free'?'none':'';
-}
+function togglePriceFields(){} // 廃止
 function openAddPromoterModal(){
   document.getElementById('modal-promoter').classList.add('active');
   document.getElementById('mp-name').value='';
