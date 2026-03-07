@@ -558,7 +558,21 @@ function onScanEventChange() {
 async function startScanManual() {
   stopScan();
   try {
-    scanStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} } });
+    // iOSではシンプルな制約の方が安定する
+    const constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+    scanStream = await navigator.mediaDevices.getUserMedia(constraints);
+    // iOSでvideoが再生開始されるまで待つ
+    await new Promise(resolve => {
+      const v = document.getElementById('scan-video');
+      if (v.readyState >= 2) return resolve();
+      v.addEventListener('canplay', resolve, { once: true });
+    });
     document.getElementById('scan-video').srcObject = scanStream;
     document.getElementById('video-container').style.display = 'block';
     document.getElementById('btn-start-scan').textContent = '⏹ カメラを停止';
@@ -593,27 +607,54 @@ function stopScan() {
 
 function scanLoop() {
   const video = document.getElementById('scan-video');
-  const SIZE  = 400;
-  const canvas= document.createElement('canvas');
-  canvas.width=SIZE; canvas.height=SIZE;
+
+  // BarcodeDetector API（iOS17+ Safari / Android Chrome対応）
+  if ('BarcodeDetector' in window) {
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+
+    async function tickBarcode() {
+      if (!scanStream) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        try {
+          const barcodes = await detector.detect(video);
+          for (const barcode of barcodes) {
+            const val = barcode.rawValue;
+            if (val && val !== lastScanned && !checkinBusy) {
+              lastScanned = val;
+              processCheckIn(val);
+              setTimeout(() => { lastScanned = ''; }, 3000);
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+      scanTimer = setTimeout(tickBarcode, 200);
+    }
+    tickBarcode();
+    return;
+  }
+
+  // フォールバック: jsQR（canvas経由）
+  const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
   function tick() {
-    if(!scanStream) return;
-    if(video.readyState===video.HAVE_ENOUGH_DATA) {
-      const scale = Math.min(1, SIZE/Math.max(video.videoWidth, video.videoHeight));
-      const w=Math.round(video.videoWidth*scale), h=Math.round(video.videoHeight*scale);
-      canvas.width=w; canvas.height=h;
-      ctx.drawImage(video,0,0,w,h);
-      const img = ctx.getImageData(0,0,w,h);
-      const code= jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
-      if(code && code.data !== lastScanned && !checkinBusy) {
-        lastScanned = code.data;
-        processCheckIn(code.data);
-        setTimeout(()=>{ lastScanned=''; },3000);
-      }
+    if (!scanStream) return;
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      try {
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
+        if (code && code.data && code.data !== lastScanned && !checkinBusy) {
+          lastScanned = code.data;
+          processCheckIn(code.data);
+          setTimeout(() => { lastScanned = ''; }, 3000);
+        }
+      } catch(e) {}
     }
-    scanTimer = setTimeout(tick, 150);
+    scanTimer = setTimeout(tick, 200);
   }
   tick();
 }
