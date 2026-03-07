@@ -558,22 +558,14 @@ function onScanEventChange() {
 async function startScanManual() {
   stopScan();
   try {
-    // iOSではシンプルな制約の方が安定する
-    const constraints = {
-      video: {
-        facingMode: { ideal: 'environment' },
-        width:  { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    };
-    scanStream = await navigator.mediaDevices.getUserMedia(constraints);
-    // iOSでvideoが再生開始されるまで待つ
-    await new Promise(resolve => {
-      const v = document.getElementById('scan-video');
-      if (v.readyState >= 2) return resolve();
-      v.addEventListener('canplay', resolve, { once: true });
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
     });
-    document.getElementById('scan-video').srcObject = scanStream;
+    const video = document.getElementById('scan-video');
+    video.srcObject = scanStream;             // 先にsrcObjectをセット
+    video.setAttribute('playsinline', true);  // iOS必須
+    await video.play().catch(()=>{});         // 明示的にplay()
+
     document.getElementById('video-container').style.display = 'block';
     document.getElementById('btn-start-scan').textContent = '⏹ カメラを停止';
     document.getElementById('btn-start-scan').onclick = stopScanManual;
