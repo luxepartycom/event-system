@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QRスキャン テスト</title>
+<style>
+body { background:#000; color:#fff; font-family:sans-serif; padding:20px; }
+video { width:100%; max-width:400px; display:block; margin:10px auto; }
+button { display:block; width:100%; max-width:400px; margin:10px auto; padding:16px;
+  background:#C9A84C; color:#000; font-size:1rem; font-weight:bold; border:none; border-radius:4px; }
+#log { background:#111; border:1px solid #333; padding:12px; margin-top:10px;
+  max-width:400px; margin-left:auto; margin-right:auto;
+  font-family:monospace; font-size:0.8rem; white-space:pre-wrap; min-height:120px; }
+#result { font-size:1.5rem; color:#C9A84C; text-align:center; margin:10px 0; min-height:40px; }
+</style>
+</head>
+<body>
+<h2 style="text-align:center">QRスキャン デバッグ</h2>
+<video id="video" autoplay playsinline muted></video>
+<div id="result">— スキャン結果 —</div>
+<button onclick="startTest()">📷 カメラ起動</button>
+<button onclick="stopTest()" style="background:#333;color:#fff">⏹ 停止</button>
+<div id="log">ログ:\n</div>
+
+<script>
+function log(msg) {
+  const el = document.getElementById('log');
+  el.textContent += new Date().toLocaleTimeString() + ' ' + msg + '\n';
+  el.scrollTop = el.scrollHeight;
+  console.log(msg);
+}
+
+log('ページ読み込み完了');
+log('BarcodeDetector対応: ' + ('BarcodeDetector' in window));
+log('getUserMedia対応: ' + !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+
+let stream = null;
+let scanTimer = null;
+let canvas = document.createElement('canvas');
+let ctx = canvas.getContext('2d');
+
+async function startTest() {
+  stopTest();
+  log('カメラ起動開始...');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } }
+    });
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    await video.play();
+    log('カメラ起動成功 ' + video.videoWidth + 'x' + video.videoHeight);
+
+    // 方法1: BarcodeDetector
+    if ('BarcodeDetector' in window) {
+      log('→ BarcodeDetector を使用');
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      function tick() {
+        if (!stream) return;
+        detector.detect(video).then(barcodes => {
+          if (barcodes.length > 0) {
+            const val = barcodes[0].rawValue;
+            log('✅ BarcodeDetector 検出: ' + val);
+            document.getElementById('result').textContent = val;
+          }
+          scanTimer = setTimeout(tick, 100);
+        }).catch(e => { scanTimer = setTimeout(tick, 200); });
+      }
+      tick();
+      return;
+    }
+
+    // 方法2: jsQR
+    log('→ jsQR を使用 (canvas経由)');
+    function tickJsQR() {
+      if (!stream) return;
+      const video = document.getElementById('video');
+      if (video.readyState >= 2 && video.videoWidth > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        try {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          if (typeof jsQR !== 'undefined') {
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            if (code) {
+              log('✅ jsQR 検出: ' + code.data);
+              document.getElementById('result').textContent = code.data;
+            }
+          } else {
+            log('jsQR未ロード');
+          }
+        } catch(e) {
+          log('canvas getImageData エラー: ' + e.message);
+        }
+      } else {
+        log('video readyState: ' + video.readyState + ' size: ' + video.videoWidth + 'x' + video.videoHeight);
+      }
+      scanTimer = setTimeout(tickJsQR, 150);
+    }
+    tickJsQR();
+
+  } catch(e) {
+    log('❌ カメラエラー: ' + e.name + ' ' + e.message);
+  }
+}
+
+function stopTest() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  clearTimeout(scanTimer);
+  log('停止');
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"
+  onload="log('jsQR ロード完了')"
+  onerror="log('jsQR ロード失敗')"></script>
+</body>
+</html>
