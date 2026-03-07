@@ -126,8 +126,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .btn-confirm-cash{width:100%;margin-top:14px;background:var(--cash);border:none;cursor:pointer;padding:14px;color:var(--black);font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;}
 
 /* MODAL */
-.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:24px;}
-.modal-overlay.active{display:flex;}
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:24px;pointer-events:none;}
+.modal-overlay.active{display:flex;pointer-events:auto;}
 .modal{background:var(--dark);border:1px solid rgba(201,168,76,0.2);padding:36px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;}
 .modal-title{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.1rem;color:var(--gold);margin-bottom:24px;}
 .modal-group{margin-bottom:18px;}
