@@ -15,7 +15,6 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .bg-glow{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 60% at 60% 40%,rgba(201,168,76,0.05) 0%,transparent 70%);}
 .wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:48px 24px 80px;}
 
-/* HEADER */
 .header{text-align:center;margin-bottom:48px;}
 .logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.5rem;color:var(--gold);letter-spacing:0.4em;margin-bottom:6px;}
 .logo-sub{font-size:0.52rem;letter-spacing:0.35em;color:var(--gray);text-transform:uppercase;}
@@ -26,27 +25,26 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .type-free{color:#9B8EC4;border-color:rgba(155,142,196,0.5);background:rgba(155,142,196,0.08);}
 .type-paid{color:var(--gold);border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.06);}
 
-/* FORM */
 .form-section{margin-bottom:28px;}
 .form-label{display:block;font-size:0.55rem;letter-spacing:0.25em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;}
 .form-input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:12px 0;color:var(--white);font-family:-apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif;font-size:1rem;outline:none;transition:border-color 0.3s;}
 .form-input:focus{border-bottom-color:var(--gold);}
 .form-input::placeholder{color:rgba(255,255,255,0.2);}
 .gender-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,0.06);}
-.gender-btn{background:var(--dark);padding:14px;text-align:center;cursor:pointer;font-size:0.65rem;letter-spacing:0.15em;color:var(--gray);transition:all 0.2s;border:none;color:var(--gray);}
+.gender-btn{background:var(--dark);padding:14px;text-align:center;cursor:pointer;font-size:0.65rem;letter-spacing:0.15em;color:var(--gray);transition:all 0.2s;border:none;}
 .gender-btn.active{background:rgba(201,168,76,0.1);color:var(--gold);}
 .btn-submit{width:100%;margin-top:8px;background:var(--gold);border:none;cursor:pointer;padding:18px;color:var(--black);font-family:-apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;transition:all 0.3s;}
 .btn-submit:hover{background:var(--gold-light);}
 .btn-submit:disabled{opacity:0.4;cursor:not-allowed;}
 .error-msg{color:#CF4444;font-size:0.68rem;margin-top:10px;display:none;}
 
-/* QR RESULT */
 #result{display:none;}
 .result-header{text-align:center;margin-bottom:32px;}
 .result-title{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.4rem;color:var(--gold);margin-bottom:8px;}
 .result-sub{font-size:0.62rem;color:var(--gray);letter-spacing:0.12em;line-height:1.8;}
 .qr-box{background:var(--dark);border:1px solid rgba(201,168,76,0.25);padding:32px;text-align:center;margin-bottom:20px;}
-.qr-canvas{display:block;margin:0 auto 20px;image-rendering:pixelated;}
+.qr-inner{background:#fff;display:inline-block;padding:16px;margin-bottom:20px;}
+#qr-container canvas, #qr-container img{display:block;}
 .guest-id-label{font-size:0.48rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin-bottom:6px;}
 .guest-id-val{font-family:monospace;font-size:1.4rem;color:var(--gold);letter-spacing:0.15em;}
 .info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.7rem;}
@@ -55,7 +53,6 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .info-val{color:var(--white);}
 .mail-notice{margin-top:20px;padding:14px 16px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gray);line-height:1.8;text-align:center;}
 
-/* LOADING / ERROR */
 #loading-screen{text-align:center;padding:80px 24px;}
 .loading-logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.4rem;color:var(--gold);letter-spacing:0.4em;margin-bottom:8px;}
 .loading-txt{font-size:0.6rem;color:var(--gray);letter-spacing:0.2em;}
@@ -67,19 +64,16 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 <body>
 <div class="bg-glow"></div>
 
-<!-- ロード中 -->
 <div id="loading-screen">
   <div class="loading-logo">LUXE PARTY TOKYO</div>
   <div class="loading-txt">読み込み中…</div>
 </div>
 
-<!-- エラー -->
 <div id="error-screen">
   <div class="error-title">Invalid URL</div>
   <div class="error-body">招待URLが正しくありません。<br>プロモーターから受け取ったURLをご確認ください。</div>
 </div>
 
-<!-- 申し込みフォーム -->
 <div class="wrap" id="form-screen" style="display:none;">
   <div class="header">
     <div class="logo">LUXE PARTY TOKYO</div>
@@ -115,14 +109,15 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
   <div class="error-msg" id="form-error">入力内容をご確認ください</div>
 </div>
 
-<!-- 完了・QR表示 -->
 <div class="wrap" id="result">
   <div class="result-header">
     <div class="result-title">ご登録ありがとうございます</div>
     <div class="result-sub">当日は下記のQRコードをスタッフにご提示ください<br>このページのスクリーンショットを保存しておくと安心です</div>
   </div>
   <div class="qr-box">
-    <canvas id="qr-canvas" class="qr-canvas" width="240" height="240"></canvas>
+    <div class="qr-inner">
+      <div id="qr-container"></div>
+    </div>
     <div class="guest-id-label">Guest ID</div>
     <div class="guest-id-val" id="res-guest-id">—</div>
   </div>
@@ -133,23 +128,20 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
     <div class="info-row" id="res-amount-row" style="display:none"><span class="info-key">入場料</span><span class="info-val" id="res-amount">—</span></div>
     <div class="info-row"><span class="info-key">招待者</span><span class="info-val" id="res-invited-by">—</span></div>
   </div>
-  <div class="mail-notice" id="mail-notice">📧 登録メールアドレスにQRコードを送信しました</div>
+  <div class="mail-notice">📧 登録メールアドレスにQRコードを送信しました</div>
 </div>
 
+<!-- 信頼性の高いQRライブラリ (qrcode.js) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-// ══ 設定 ══════════════════════════════════════════════
 const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
 const BASE_URL = 'https://luxepartycom.github.io/event-system/';
 
-// ══ 状態 ══════════════════════════════════════════════
 let currentEvent   = null;
 let currentPayType = 'paid';
 let selectedGender = '';
 
-// ══ API ═══════════════════════════════════════════════
 async function apiGet(p)  { const r=await fetch(API+'?'+new URLSearchParams(p)); return r.json(); }
-
-// ★ 修正箇所: Content-Type を text/plain に変更してプリフライトを回避
 async function apiPost(b) {
   const r = await fetch(API, {
     method: 'POST',
@@ -159,7 +151,6 @@ async function apiPost(b) {
   return r.json();
 }
 
-// ══ 初期化 ════════════════════════════════════════════
 window.addEventListener('load', async () => {
   fetch(API + '?action=ping').catch(()=>{});
   const params  = new URLSearchParams(location.search);
@@ -203,14 +194,12 @@ function showError(msg) {
   document.querySelector('#error-screen .error-body').innerHTML = msg;
 }
 
-// ══ 性別選択 ══════════════════════════════════════════
 function selectGender(g) {
   selectedGender = g;
   document.getElementById('g-male').classList.toggle('active',   g === 'male');
   document.getElementById('g-female').classList.toggle('active', g === 'female');
 }
 
-// ══ 送信 ══════════════════════════════════════════════
 async function submitForm() {
   const name      = document.getElementById('f-name').value.trim();
   const email     = document.getElementById('f-email').value.trim();
@@ -270,14 +259,13 @@ async function submitForm() {
   }
 }
 
-// ══ 完了表示 ══════════════════════════════════════════
 function showResult(data, name, email, invitedBy) {
   document.getElementById('form-screen').style.display = 'none';
   document.getElementById('result').style.display      = 'block';
 
-  document.getElementById('res-guest-id').textContent  = data.guest_id;
-  document.getElementById('res-name').textContent      = name;
-  document.getElementById('res-event').textContent     = currentEvent.name;
+  document.getElementById('res-guest-id').textContent   = data.guest_id;
+  document.getElementById('res-name').textContent       = name;
+  document.getElementById('res-event').textContent      = currentEvent.name;
   document.getElementById('res-invited-by').textContent = invitedBy;
 
   if (data.pay_type === 'free') {
@@ -290,284 +278,17 @@ function showResult(data, name, email, invitedBy) {
     }
   }
 
-  generateQR(data.guest_id);
-}
-
-// ══ QR生成（完全インライン実装）═══════════════════════
-function generateQR(text) {
-  const canvas = document.getElementById('qr-canvas');
-  const size   = 240;
-  try {
-    const qr = createQRCode(text, 'M');
-    drawQR(canvas, qr, size);
-  } catch(e) {
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0,0,size,size);
-    ctx.fillStyle = '#C9A84C';
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(text, size/2, size/2);
-  }
-}
-
-function drawQR(canvas, modules, size) {
-  const N   = modules.length;
-  const ctx = canvas.getContext('2d');
-  const cell = size / N;
-  canvas.width  = size;
-  canvas.height = size;
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = '#000000';
-  for (let r = 0; r < N; r++) {
-    for (let c = 0; c < N; c++) {
-      if (modules[r][c]) {
-        ctx.fillRect(Math.floor(c*cell), Math.floor(r*cell), Math.ceil(cell), Math.ceil(cell));
-      }
-    }
-  }
-}
-
-// ══ QRコード生成エンジン（ISO 18004準拠） ════════════
-function createQRCode(text, ecLevel) {
-  const EC = {L:1,M:0,Q:3,H:2};
-  const ecl = EC[ecLevel]||0;
-  const data = encodeData(text);
-  const ver  = getVersion(data.length, ecl);
-  const codewords = buildCodewords(data, ver, ecl);
-  const mat = buildMatrix(ver, codewords, ecl);
-  return mat;
-}
-function encodeData(text) {
-  const bytes = [];
-  for (let i=0;i<text.length;i++) {
-    const c = text.charCodeAt(i);
-    if (c < 128) bytes.push(c);
-    else if (c < 2048) { bytes.push(0xC0|(c>>6)); bytes.push(0x80|(c&63)); }
-    else { bytes.push(0xE0|(c>>12)); bytes.push(0x80|((c>>6)&63)); bytes.push(0x80|(c&63)); }
-  }
-  return bytes;
-}
-const EC_CAP = [
-  null,
-  [[41,25,17,10],[34,20,14,8],[27,16,11,7],[17,10,7,4]],
-  [[77,47,32,20],[63,38,26,16],[48,29,20,12],[34,20,14,10]],
-  [[127,77,53,32],[101,61,42,26],[77,47,32,20],[58,35,24,15]],
-  [[187,114,78,48],[149,90,62,38],[111,67,46,28],[82,50,34,21]],
-  [[255,154,106,65],[202,122,84,52],[144,87,60,37],[106,64,44,27]],
-  [[322,195,134,82],[255,154,106,65],[178,108,74,45],[139,84,58,36]],
-  [[370,224,154,95],[293,178,122,75],[207,125,86,53],[154,93,64,39]],
-  [[461,279,192,118],[365,221,152,93],[259,157,108,66],[202,122,84,52]],
-  [[552,335,230,141],[432,262,180,111],[312,189,130,80],[235,154,105,64]],
-  [[652,395,271,167],[513,314,217,131],[364,221,151,93],[288,174,120,74]],
-];
-function getVersion(len, ecl) {
-  for (let v=1;v<=10;v++) {
-    if (EC_CAP[v] && len+3 <= EC_CAP[v][ecl][0]) return v;
-  }
-  return 10;
-}
-const EC_INFO = [
-  null,
-  [[7,1,19,0],[10,1,16,0],[13,1,13,0],[17,1,9,0]],
-  [[10,1,34,0],[16,1,28,0],[22,1,22,0],[28,1,16,0]],
-  [[15,1,55,0],[26,1,44,0],[18,2,17,0],[22,2,13,0]],
-  [[20,1,80,0],[18,2,32,0],[26,2,24,0],[16,4,9,0]],
-  [[26,1,108,0],[24,2,43,0],[18,2,15,2],[22,2,11,2]],
-  [[18,2,68,0],[16,4,27,0],[24,4,19,0],[28,4,15,0]],
-  [[20,2,78,0],[18,4,31,0],[18,2,14,4],[26,4,13,1]],
-  [[24,2,97,0],[22,2,38,2],[22,4,18,2],[26,4,14,2]],
-  [[30,2,116,0],[22,3,36,2],[20,4,16,4],[24,4,12,4]],
-  [[18,2,68,2],[26,4,43,1],[24,6,19,2],[28,6,15,2]],
-];
-function buildCodewords(data, ver, ecl) {
-  const info = EC_INFO[ver][ecl];
-  const [ecw, b1, dc1, b2] = info;
-  const dc2 = dc1 + (b2 > 0 ? 1 : 0);
-  const totalBlocks = b1 + b2;
-  const totalDC = b1*dc1 + b2*(b2>0?dc2:0);
-  const totalCW  = totalDC + totalBlocks*ecw;
-
-  const bits = [];
-  const push = (v,n) => { for(let i=n-1;i>=0;i--) bits.push((v>>i)&1); };
-  push(4,4);
-  push(data.length, ver<10?8:16);
-  data.forEach(b => push(b,8));
-  push(0, Math.min(4, totalDC*8 - bits.length));
-  while(bits.length%8) bits.push(0);
-  const pad = [0xEC,0x11];
-  let pi=0; while(bits.length < totalDC*8) { push(pad[pi%2],8); pi++; }
-
-  const dcBytes = [];
-  for(let i=0;i<bits.length;i+=8) {
-    let v=0; for(let j=0;j<8;j++) v=(v<<1)|bits[i+j];
-    dcBytes.push(v);
-  }
-
-  const blocks = [];
-  let pos=0;
-  for(let i=0;i<b1;i++) { blocks.push(dcBytes.slice(pos,pos+dc1)); pos+=dc1; }
-  for(let i=0;i<b2;i++) { blocks.push(dcBytes.slice(pos,pos+dc2)); pos+=dc2; }
-
-  const ecBlocks = blocks.map(b => rsEncode(b, ecw));
-
-  const out = [];
-  const maxDC = Math.max(dc1, b2>0?dc2:0);
-  for(let i=0;i<maxDC;i++) blocks.forEach(b => { if(i<b.length) out.push(b[i]); });
-  for(let i=0;i<ecw;i++)   ecBlocks.forEach(b => out.push(b[i]));
-  return out;
-}
-function rsEncode(data, nec) {
-  const poly = generatorPoly(nec);
-  let rem = [...data];
-  for(let i=0;i<nec;i++) rem.push(0);
-  for(let i=0;i<data.length;i++) {
-    const c = rem[i];
-    if(c===0) continue;
-    const la = GF_LOG[c];
-    for(let j=0;j<poly.length;j++) rem[i+j] ^= GF_EXP[(la+poly[j])%255];
-  }
-  return rem.slice(data.length);
-}
-const GF_EXP = new Uint8Array(512);
-const GF_LOG = new Uint8Array(256);
-(()=>{ let x=1; for(let i=0;i<255;i++){ GF_EXP[i]=x; GF_LOG[x]=i; x<<=1; if(x&256) x^=285; } for(let i=255;i<512;i++) GF_EXP[i]=GF_EXP[i-255]; })();
-function gfMul(a,b){ if(!a||!b) return 0; return GF_EXP[(GF_LOG[a]+GF_LOG[b])%255]; }
-function generatorPoly(n) {
-  let p=[0];
-  for(let i=0;i<n;i++){
-    const q=[0,...p.map(x=>(GF_LOG[GF_EXP[i]]+ x)%255)];
-    p=[0,...p];
-    for(let j=0;j<q.length;j++){
-      if(j<p.length) p[j]^=GF_EXP[q[j]];
-      else p.push(GF_EXP[q[j]]);
-    }
-    p.shift();
-  }
-  let g = [1];
-  for(let i=0;i<n;i++){
-    const r = GF_EXP[i];
-    const ng = new Array(g.length+1).fill(0);
-    for(let j=0;j<g.length;j++){
-      ng[j]   ^= g[j];
-      ng[j+1] ^= gfMul(g[j],r);
-    }
-    g = ng;
-  }
-  return g.slice(1).map(v => GF_LOG[v]||0);
-}
-function buildMatrix(ver, cw, ecl) {
-  const N = ver*4+17;
-  const mat = Array.from({length:N},()=>new Array(N).fill(null));
-  const used= Array.from({length:N},()=>new Array(N).fill(false));
-  const set = (r,c,v) => { mat[r][c]=v; used[r][c]=true; };
-
-  [[0,0],[0,N-7],[N-7,0]].forEach(([rr,cc])=>{
-    for(let r=0;r<7;r++) for(let c=0;c<7;c++){
-      const v=(r===0||r===6||c===0||c===6)||( r>=2&&r<=4&&c>=2&&c<=4);
-      set(rr+r,cc+c,v?1:0);
-    }
-    for(let i=-1;i<=7;i++){
-      if(rr+i>=0&&rr+i<N){if(cc-1>=0) set(rr+i,cc-1,0); if(cc+7<N) set(rr+i,cc+7,0);}
-      if(cc+i>=0&&cc+i<N){if(rr-1>=0) set(rr-1,cc+i,0); if(rr+7<N) set(rr+7,cc+i,0);}
-    }
+  // qrcode.js で確実にQR生成
+  const container = document.getElementById('qr-container');
+  container.innerHTML = '';
+  new QRCode(container, {
+    text:         data.guest_id,
+    width:        240,
+    height:       240,
+    colorDark:    '#000000',
+    colorLight:   '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
   });
-
-  for(let i=8;i<N-8;i++){set(6,i,(i%2===0)?1:0);set(i,6,(i%2===0)?1:0);}
-
-  const AP = getAlignmentPositions(ver);
-  AP.forEach(r=>AP.forEach(c=>{
-    if(used[r][c]) return;
-    for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++){
-      const v=(dr===2||dr===-2||dc===2||dc===-2)||(dr===0&&dc===0);
-      set(r+dr,c+dc,v?1:0);
-    }
-  }));
-
-  set(4*ver+9,8,1);
-
-  const FI_POS=[[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[7,8],[8,8],[8,7],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
-                [N-1,8],[N-2,8],[N-3,8],[N-4,8],[N-5,8],[N-6,8],[N-7,8],[8,N-8],[8,N-7],[8,N-6],[8,N-5],[8,N-4],[8,N-3],[8,N-2],[8,N-1]];
-  FI_POS.forEach(([r,c])=>used[r][c]=true);
-
-  const bits=[];
-  cw.forEach(b=>{for(let i=7;i>=0;i--) bits.push((b>>i)&1);});
-  let bi=0, dir=-1, col=N-1;
-  while(col>0){
-    if(col===6) col--;
-    for(let row=dir===-1?N-1:0; dir===-1?row>=0:row<N; row+=dir){
-      for(let dc=0;dc<2;dc++){
-        const c=col-dc;
-        if(!used[row][c]){
-          mat[row][c]=bits[bi]||0;
-          bi++;
-        }
-      }
-    }
-    dir=-dir; col-=2;
-  }
-
-  let bestScore=Infinity, bestMask=0, bestMat=null;
-  for(let m=0;m<8;m++){
-    const mm=applyMask(mat,used,m,N);
-    applyFormatInfo(mm,ecl,m,N);
-    const s=penaltyScore(mm,N);
-    if(s<bestScore){bestScore=s;bestMask=m;bestMat=mm;}
-  }
-  return bestMat;
-}
-function getAlignmentPositions(ver){
-  const TABLE=[[],[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
-  return TABLE[ver]||[];
-}
-function applyMask(mat,used,mask,N){
-  const m=mat.map(r=>[...r]);
-  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
-    if(used[r][c]) continue;
-    const cond=[
-      (r+c)%2===0,(r)%2===0,(c)%3===0,(r+c)%3===0,
-      (Math.floor(r/2)+Math.floor(c/3))%2===0,(r*c)%2+(r*c)%3===0,
-      ((r*c)%2+(r*c)%3)%2===0,((r+c)%2+(r*c)%3)%2===0
-    ][mask];
-    if(cond) m[r][c]^=1;
-  }
-  return m;
-}
-function applyFormatInfo(mat,ecl,mask,N){
-  const EC_BITS=[1,0,3,2];
-  const raw=(EC_BITS[ecl]<<3)|mask;
-  const g=0x537;
-  let rem=raw<<10;
-  for(let i=14;i>=10;i--) if((rem>>i)&1) rem^=(g<<(i-10));
-  const fi=((raw<<10)|rem)^0x5412;
-  const pos1=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
-  const pos2=[[N-1,8],[N-2,8],[N-3,8],[N-4,8],[N-5,8],[N-6,8],[N-7,8],[8,N-8],[8,N-7],[8,N-6],[8,N-5],[8,N-4],[8,N-3],[8,N-2],[8,N-1]];
-  for(let i=0;i<15;i++){
-    const b=(fi>>(14-i))&1;
-    mat[pos1[i][0]][pos1[i][1]]=b;
-    mat[pos2[i][0]][pos2[i][1]]=b;
-  }
-}
-function penaltyScore(mat,N){
-  let s=0;
-  for(let r=0;r<N;r++){
-    for(let c=0;c<N-4;c++){
-      let run=1; while(c+run<N&&mat[r][c+run]===mat[r][c]) run++;
-      if(run>=5) s+=run-2; c+=run-1;
-    }
-  }
-  for(let c=0;c<N;c++){
-    for(let r=0;r<N-4;r++){
-      let run=1; while(r+run<N&&mat[r+run][c]===mat[r][c]) run++;
-      if(run>=5) s+=run-2; r+=run-1;
-    }
-  }
-  let dark=0;
-  for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(mat[r][c]) dark++;
-  const pct=dark/(N*N)*100;
-  s+=Math.floor(Math.abs(pct-50)/5)*10;
-  return s;
 }
 </script>
 </body>
