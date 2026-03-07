@@ -131,8 +131,65 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
   <div class="mail-notice">📧 登録メールアドレスにQRコードを送信しました</div>
 </div>
 
-<!-- 信頼性の高いQRライブラリ (qrcode.js) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- QRコードSVG生成（外部ライブラリ不使用） -->
+<script>
+const GF_EXP=new Array(512),GF_LOG=new Array(256);
+(()=>{let x=1;for(let i=0;i<256;i++){GF_EXP[i]=x;GF_LOG[x]=i;x<<=1;if(x>=256)x^=0x11d;}for(let i=255;i<512;i++)GF_EXP[i]=GF_EXP[i-255];})();
+function gfMul(a,b){return(a&&b)?GF_EXP[GF_LOG[a]+GF_LOG[b]]:0;}
+function rsEncode(data,nec){let gen=[1];for(let i=0;i<nec;i++){const ng=new Array(gen.length+1).fill(0);for(let j=0;j<gen.length;j++){ng[j]^=gen[j];ng[j+1]^=gfMul(gen[j],GF_EXP[i]);}gen=ng;}const rem=[...data,...new Array(nec).fill(0)];for(let m=0;m<data.length;m++){const c=rem[m];if(c)for(let p=0;p<gen.length;p++)rem[m+p]^=gfMul(c,gen[p]);}return rem.slice(data.length);}
+function buildQRMatrix(ver,cw,ecl){
+  const N=ver*4+17;
+  const mat=Array.from({length:N},()=>new Uint8Array(N));
+  const used=Array.from({length:N},()=>new Uint8Array(N));
+  function set(r,c,v){mat[r][c]=v?1:0;used[r][c]=1;}
+  [[0,0],[0,N-7],[N-7,0]].forEach(([rr,cc])=>{
+    for(let r=0;r<7;r++)for(let c=0;c<7;c++)set(rr+r,cc+c,(r===0||r===6||c===0||c===6)||(r>=2&&r<=4&&c>=2&&c<=4)?1:0);
+    for(let i=-1;i<=7;i++){if(rr+i>=0&&rr+i<N){if(cc-1>=0)set(rr+i,cc-1,0);if(cc+7<N)set(rr+i,cc+7,0);}if(cc+i>=0&&cc+i<N){if(rr-1>=0)set(rr-1,cc+i,0);if(rr+7<N)set(rr+7,cc+i,0);}}
+  });
+  for(let i=8;i<N-8;i++){set(6,i,i%2===0?1:0);set(i,6,i%2===0?1:0);}
+  const AP=[[],[],[6,18],[6,22],[6,26],[6,30]];
+  (AP[ver]||[]).forEach(ar=>(AP[ver]||[]).forEach(ac=>{if(!used[ar][ac])for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++)set(ar+dr,ac+dc,(Math.abs(dr)===2||Math.abs(dc)===2||(!dr&&!dc))?1:0);}));
+  set(4*ver+9,8,1);
+  [[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[7,8],[8,8],[8,7],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[N-1,8],[N-2,8],[N-3,8],[N-4,8],[N-5,8],[N-6,8],[N-7,8],[8,N-8],[8,N-7],[8,N-6],[8,N-5],[8,N-4],[8,N-3],[8,N-2],[8,N-1]].forEach(([r,c])=>used[r][c]=1);
+  const dataBits=[];for(const b of cw)for(let i=7;i>=0;i--)dataBits.push((b>>i)&1);
+  let bi=0,dir=-1,col=N-1;
+  while(col>0){if(col===6)col--;const rs=dir===-1?N-1:0,re=dir===-1?-1:N;for(let row=rs;row!==re;row+=dir)for(let dc2=0;dc2<2;dc2++){const c=col-dc2;if(!used[row][c]){mat[row][c]=dataBits[bi]||0;bi++;}}dir=-dir;col-=2;}
+  let best=null,bestS=Infinity;
+  for(let m=0;m<8;m++){
+    const mm=mat.map(r=>new Uint8Array(r));
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){if(used[r][c])continue;const cond=[(r+c)%2===0,r%2===0,c%3===0,(r+c)%3===0,(Math.floor(r/2)+Math.floor(c/3))%2===0,(r*c)%2+(r*c)%3===0,((r*c)%2+(r*c)%3)%2===0,((r+c)%2+(r*c)%3)%2===0][m];if(cond)mm[r][c]^=1;}
+    const ecB=[1,0,3,2],raw=(ecB[ecl]<<3)|m;let rem2=raw<<10;for(let fi=14;fi>=10;fi--)if((rem2>>fi)&1)rem2^=(0x537<<(fi-10));const fmt=((raw<<10)|rem2)^0x5412;
+    const p1=[[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[7,8],[8,8],[8,7],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0]];
+    const p2=[[N-1,8],[N-2,8],[N-3,8],[N-4,8],[N-5,8],[N-6,8],[N-7,8],[8,N-8],[8,N-7],[8,N-6],[8,N-5],[8,N-4],[8,N-3],[8,N-2],[8,N-1]];
+    for(let fi=0;fi<15;fi++){const b=(fmt>>(14-fi))&1;mm[p1[fi][0]][p1[fi][1]]=b;mm[p2[fi][0]][p2[fi][1]]=b;}
+    let dark=0;for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(mm[r][c])dark++;
+    const s=Math.floor(Math.abs(dark/(N*N)*100-50)/5)*10;
+    if(s<bestS){bestS=s;best=mm;}
+  }
+  return best;
+}
+function makeQRSvg(text){
+  const bytes=[];
+  for(let i=0;i<text.length;i++){const c=text.charCodeAt(i);if(c<128)bytes.push(c);else if(c<2048){bytes.push(0xC0|(c>>6));bytes.push(0x80|(c&63));}else{bytes.push(0xE0|(c>>12));bytes.push(0x80|((c>>6)&63));bytes.push(0x80|(c&63));}}
+  const caps=[[0,0],[34,28,22,16],[63,47,37,28],[101,77,61,50],[149,111,87,74],[202,154,118,97]];
+  let ver=2;for(let v=1;v<=5;v++){if(bytes.length+3<=caps[v][0]){ver=v;break;}}
+  const ecInfo=[null,{dc:16,ec:10},{dc:28,ec:16},{dc:44,ec:26},{dc:64,ec:18},{dc:86,ec:24}];
+  const info=ecInfo[ver];
+  const bits=[];
+  function push(v,n){for(let i=n-1;i>=0;i--)bits.push((v>>i)&1);}
+  push(4,4);push(bytes.length,8);for(const b of bytes)push(b,8);
+  const total=info.dc*8;const term=Math.min(4,total-bits.length);for(let i=0;i<term;i++)bits.push(0);
+  while(bits.length%8)bits.push(0);const pad=[0xEC,0x11];let pi=0;while(bits.length<total){push(pad[pi%2],8);pi++;}
+  const dcBytes=[];for(let i=0;i<bits.length;i+=8){let v=0;for(let j=0;j<8;j++)v=(v<<1)|bits[i+j];dcBytes.push(v);}
+  const ec=rsEncode(dcBytes,info.ec);
+  const out=[...dcBytes,...ec];
+  const mx=buildQRMatrix(ver,out,0);
+  const N2=mx.length,cell=10,margin=4,size=(N2+margin*2)*cell;
+  let rects='';
+  for(let r=0;r<N2;r++)for(let c=0;c<N2;c++)if(mx[r][c])rects+=`<rect x="${(c+margin)*cell}" y="${(r+margin)*cell}" width="${cell}" height="${cell}"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><rect width="${size}" height="${size}" fill="#fff"/><g fill="#000">${rects}</g></svg>`;
+}
+</script>
 <script>
 const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
 const BASE_URL = 'https://luxepartycom.github.io/event-system/';
@@ -278,17 +335,15 @@ function showResult(data, name, email, invitedBy) {
     }
   }
 
-  // qrcode.js で確実にQR生成
+  // SVGでQR生成（外部ライブラリ不使用・iOS Safari対応）
   const container = document.getElementById('qr-container');
   container.innerHTML = '';
-  new QRCode(container, {
-    text:         data.guest_id,
-    width:        240,
-    height:       240,
-    colorDark:    '#000000',
-    colorLight:   '#ffffff',
-    correctLevel: QRCode.CorrectLevel.M
-  });
+  try {
+    const svg = makeQRSvg(data.guest_id);
+    container.innerHTML = svg;
+  } catch(e) {
+    container.innerHTML = '<div style="padding:16px;font-family:monospace;font-size:14px;color:#000;word-break:break-all;">' + data.guest_id + '</div>';
+  }
 }
 </script>
 </body>
