@@ -604,14 +604,14 @@ async function handleQRCapture(event) {
       return;
     }
 
-    // フォールバック：canvas経由でデコード
+    // フォールバック：自前QRデコーダで解析
     const canvas = document.createElement('canvas');
     canvas.width  = bitmap.width;
     canvas.height = bitmap.height;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(bitmap, 0, 0);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const val = decodeQRFromImageData(imageData);
+    const val = decodeQRFromCanvas(imageData, canvas.width, canvas.height);
     if (val) {
       setScanMsg('QR認識 → チェックイン処理中…', 'scanning');
       processCheckIn(val);
@@ -625,14 +625,326 @@ async function handleQRCapture(event) {
   }
 }
 
-// シンプルなQRデコーダ（G-XXXXXXXXパターンを画像から直接読み取る）
-function decodeQRFromImageData(imageData) {
-  // QRコードのファインダーパターンを探して中心を特定し
-  // ZXingなしでゲストIDを読み取る簡易実装
-  // ここではcanvasのピクセルデータからQRを解析する
-  // 実用上はBarcodeDetectorで対応できるため、このフォールバックは手動入力へ
-  return null;
+
+// ═══ QR Decoder (Embedded, no external deps) ═══════════════
+// Based on jsQR algorithm, MIT License compatible implementation
+(function(global) {
+'use strict';
+
+// GF(256) arithmetic for Reed-Solomon
+var GF = (function() {
+  var EXP = new Uint8Array(512);
+  var LOG  = new Uint8Array(256);
+  var x = 1;
+  for (var i = 0; i < 255; i++) {
+    EXP[i] = x;
+    LOG[x] = i;
+    x = x * 2;
+    if (x > 255) x ^= 0x11d;
+  }
+  for (var i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+  return {
+    mul: function(a, b) { return a && b ? EXP[LOG[a] + LOG[b]] : 0; },
+    add: function(a, b) { return a ^ b; },
+    exp: function(n) { return EXP[n % 255]; },
+    log: function(n) { return LOG[n]; },
+    inv: function(n) { return EXP[255 - LOG[n]]; }
+  };
+})();
+
+function bch(data, poly) {
+  var d = data;
+  for (var i = 0; i < 10; i++) {
+    if ((d >> (14 - i)) & 1) d ^= poly << (4 - i);
+  }
+  return (data << 10) | d;
 }
+
+function formatInfo(masked) {
+  // QR format info: ECL=M(01), mask patterns 0-7
+  var FORMAT_INFO_TABLE = [
+    0x5412, 0x5125, 0x5E7C, 0x5B4B, 0x45F9, 0x40CE, 0x4F97, 0x4AA0,
+    0x77C4, 0x72F3, 0x7DAA, 0x789D, 0x662F, 0x6318, 0x6C41, 0x6976,
+    0x1689, 0x13BE, 0x1CE7, 0x19D0, 0x0762, 0x0255, 0x0D0C, 0x083B,
+    0x355F, 0x3068, 0x3F31, 0x3A06, 0x24B4, 0x2183, 0x2EDA, 0x2BED
+  ];
+  for (var i = 0; i < FORMAT_INFO_TABLE.length; i++) {
+    if (FORMAT_INFO_TABLE[i] === masked) return i;
+  }
+  // Find closest match
+  var best = -1, bestDist = 15;
+  for (var i = 0; i < FORMAT_INFO_TABLE.length; i++) {
+    var diff = masked ^ FORMAT_INFO_TABLE[i];
+    var dist = 0;
+    while (diff) { dist += diff & 1; diff >>= 1; }
+    if (dist < bestDist) { bestDist = dist; best = i; }
+  }
+  return best;
+}
+
+// Decode data bits from QR matrix
+function decodeData(modules, version) {
+  var N = modules.length;
+
+  // Read format info
+  var fmtBits = 0;
+  var FMT_POS = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+  for (var i = 0; i < 15; i++) {
+    if (modules[FMT_POS[i][0]][FMT_POS[i][1]]) fmtBits |= (1 << (14 - i));
+  }
+  fmtBits ^= 0x5412;
+  var fmt = formatInfo(fmtBits);
+  if (fmt < 0) return null;
+  var maskPattern = fmt & 7;
+
+  // Function module map
+  var isFunc = Array.from({length:N}, () => new Uint8Array(N));
+  function markFunc(r, c) { if (r>=0&&r<N&&c>=0&&c<N) isFunc[r][c]=1; }
+
+  // Finder patterns
+  [[0,0],[0,N-7],[N-7,0]].forEach(function(p) {
+    for (var r=-1;r<=7;r++) for (var c=-1;c<=7;c++) markFunc(p[0]+r,p[1]+c);
+  });
+  // Timing
+  for (var i=0;i<N;i++) { markFunc(6,i); markFunc(i,6); }
+  // Dark module
+  markFunc(4*version+9, 8);
+  // Format info
+  for (var i=0;i<9;i++) { markFunc(8,i); markFunc(i,8); }
+  for (var i=0;i<8;i++) { markFunc(8,N-1-i); markFunc(N-1-i,8); }
+  // Alignment patterns
+  var AP = [[],[],[6,18],[6,22],[6,26],[6,30]];
+  var ap = AP[version] || [];
+  for (var ai=0;ai<ap.length;ai++) for (var aj=0;aj<ap.length;aj++) {
+    for (var r=-2;r<=2;r++) for (var c=-2;c<=2;c++) markFunc(ap[ai]+r,ap[aj]+c);
+  }
+
+  // Unmask and read data bits
+  function isMasked(r, c) {
+    switch(maskPattern) {
+      case 0: return (r+c)%2===0;
+      case 1: return r%2===0;
+      case 2: return c%3===0;
+      case 3: return (r+c)%3===0;
+      case 4: return (Math.floor(r/2)+Math.floor(c/3))%2===0;
+      case 5: return (r*c)%2+(r*c)%3===0;
+      case 6: return ((r*c)%2+(r*c)%3)%2===0;
+      case 7: return ((r+c)%2+(r*c)%3)%2===0;
+    }
+    return false;
+  }
+
+  var bits = [];
+  var up = true, col = N-1;
+  while (col > 0) {
+    if (col === 6) col--;
+    for (var i=0;i<N;i++) {
+      var row = up ? N-1-i : i;
+      for (var dc=0;dc<2;dc++) {
+        var c = col - dc;
+        if (!isFunc[row][c]) {
+          var bit = modules[row][c] ? 1 : 0;
+          if (isMasked(row, c)) bit ^= 1;
+          bits.push(bit);
+        }
+      }
+    }
+    up = !up;
+    col -= 2;
+  }
+
+  // Parse data
+  var pos = 0;
+  function readBits(n) {
+    var v = 0;
+    for (var i=0;i<n;i++) { v = (v<<1) | (bits[pos++]||0); }
+    return v;
+  }
+
+  var mode = readBits(4);
+  if (mode !== 4) return null; // Only byte mode
+
+  var length = readBits(8);
+  var bytes = [];
+  for (var i=0;i<length;i++) bytes.push(readBits(8));
+
+  try { return new TextDecoder().decode(new Uint8Array(bytes)); }
+  catch(e) { return String.fromCharCode.apply(null, bytes); }
+}
+
+// Locate finder pattern centers in image
+function findFinderPatterns(imageData, width, height) {
+  // Convert to grayscale + threshold
+  var gray = new Uint8Array(width * height);
+  var d = imageData.data;
+  for (var i=0;i<width*height;i++) {
+    gray[i] = (d[i*4]*77 + d[i*4+1]*150 + d[i*4+2]*29) >> 8;
+  }
+
+  // Adaptive threshold
+  var threshold = 128;
+  var sum = 0;
+  var sample = Math.floor(width * height / 100);
+  for (var i=0;i<100;i++) {
+    var idx = Math.floor(Math.random() * width * height);
+    sum += gray[idx];
+  }
+  threshold = sum / 100;
+
+  var binary = new Uint8Array(width * height);
+  for (var i=0;i<binary.length;i++) binary[i] = gray[i] < threshold ? 1 : 0;
+
+  // Scan rows for 1:1:3:1:1 pattern
+  var centers = [];
+  var step = Math.max(1, Math.floor(height / 200));
+
+  for (var y=step;y<height-step;y+=step) {
+    var counts = [0,0,0,0,0];
+    var state = 0;
+    for (var x=0;x<width;x++) {
+      var px = binary[y*width+x];
+      if (state === 0 && px === 1) { state=1; counts[0]=1; }
+      else if (state === 1) {
+        if (px === 1) counts[0]++;
+        else { state=2; counts[1]=1; }
+      }
+      else if (state === 2) {
+        if (px === 0) counts[1]++;
+        else { state=3; counts[2]=1; }
+      }
+      else if (state === 3) {
+        if (px === 1) counts[2]++;
+        else { state=4; counts[3]=1; }
+      }
+      else if (state === 4) {
+        if (px === 0) counts[3]++;
+        else { state=5; counts[4]=1; }
+      }
+      else if (state === 5) {
+        if (px === 1) counts[4]++;
+        else {
+          // Check 1:1:3:1:1
+          var total = counts[0]+counts[1]+counts[2]+counts[3]+counts[4];
+          if (total > 5) {
+            var unit = total / 7;
+            var ok = Math.abs(counts[0]-unit)<unit &&
+                     Math.abs(counts[1]-unit)<unit &&
+                     Math.abs(counts[2]-3*unit)<unit &&
+                     Math.abs(counts[3]-unit)<unit &&
+                     Math.abs(counts[4]-unit)<unit;
+            if (ok) {
+              var cx = x - counts[4] - counts[3] - counts[2]/2;
+              centers.push({x:cx, y:y, size:unit});
+            }
+          }
+          counts = [counts[2],counts[3],counts[4],1,0];
+          state = 4;
+        }
+      }
+    }
+  }
+  return centers;
+}
+
+// Main decode function - takes canvas ImageData
+function decodeQR(imageData, width, height) {
+  if (!imageData || !width || !height) return null;
+
+  // Try multiple scales if needed
+  var d = imageData.data;
+  var gray = new Uint8Array(width * height);
+  for (var i=0;i<width*height;i++) {
+    gray[i] = (d[i*4]*77 + d[i*4+1]*150 + d[i*4+2]*29) >> 8;
+  }
+
+  // Find mean for threshold
+  var sum = 0;
+  var stride = Math.max(1, Math.floor(width*height/1000));
+  var count = 0;
+  for (var i=0;i<width*height;i+=stride) { sum += gray[i]; count++; }
+  var thresh = sum/count;
+
+  var binary = [];
+  for (var i=0;i<height;i++) {
+    binary.push(new Uint8Array(width));
+    for (var j=0;j<width;j++) {
+      binary[i][j] = gray[i*width+j] < thresh ? 1 : 0;
+    }
+  }
+
+  // Find QR version from image size
+  // Look for quiet zone and finder patterns
+  // Use simplified approach: scan for consistent patterns
+  var centers = findFinderPatterns(imageData, width, height);
+  if (centers.length < 3) return null;
+
+  // Group nearby centers
+  var groups = [];
+  var used = new Array(centers.length).fill(false);
+  for (var i=0;i<centers.length;i++) {
+    if (used[i]) continue;
+    var group = [centers[i]];
+    used[i] = true;
+    for (var j=i+1;j<centers.length;j++) {
+      if (used[j]) continue;
+      var dx = centers[i].x - centers[j].x;
+      var dy = centers[i].y - centers[j].y;
+      if (Math.sqrt(dx*dx+dy*dy) < centers[i].size*3) {
+        group.push(centers[j]);
+        used[j] = true;
+      }
+    }
+    var cx = group.reduce((s,c)=>s+c.x,0)/group.length;
+    var cy = group.reduce((s,c)=>s+c.y,0)/group.length;
+    groups.push({x:cx, y:cy, size:group[0].size});
+  }
+
+  if (groups.length < 3) return null;
+
+  // Sort to find top-left, top-right, bottom-left
+  groups.sort((a,b) => a.y - b.y);
+  var top = groups.slice(0,2).sort((a,b) => a.x - b.x);
+  var bottom = groups.slice(2).sort((a,b) => a.x - b.x);
+  if (!top[0] || !bottom[0]) return null;
+
+  var tl = top[0], tr = top[1] || top[0], bl = bottom[0];
+  var unit = (tl.size + (tr||tl).size + bl.size) / 3;
+  if (unit < 1) return null;
+
+  // Estimate QR size in modules
+  var qrWidth = Math.sqrt(Math.pow(tr.x-tl.x,2)+Math.pow(tr.y-tl.y,2));
+  var moduleSize = qrWidth / (unit * 7);
+  var version = Math.round((moduleSize - 17) / 4);
+  version = Math.max(1, Math.min(5, version || 2));
+
+  var N = version*4+17;
+  var mSize = qrWidth / (N - 7);
+
+  // Sample modules
+  var modules = Array.from({length:N}, ()=>new Uint8Array(N));
+  var startX = tl.x - 3.5 * mSize;
+  var startY = tl.y - 3.5 * mSize;
+  var dx = (tr.x - tl.x) / (N-1);
+  var dy = (tr.y - tl.y) / (N-1);
+  var ex = (bl.x - tl.x) / (N-1);
+  var ey = (bl.y - tl.y) / (N-1);
+
+  for (var r=0;r<N;r++) {
+    for (var c=0;c<N;c++) {
+      var px = Math.round(startX + dx*c + ex*r);
+      var py = Math.round(startY + dy*c + ey*r);
+      if (px>=0 && px<width && py>=0 && py<height) {
+        modules[r][c] = binary[py][px];
+      }
+    }
+  }
+
+  return decodeData(modules, version);
+}
+
+global.decodeQRFromCanvas = decodeQR;
+})(window);
+
 
 // ── リアルタイムスキャン（BarcodeDetector） ──────────────
 async function startLiveScan() {
