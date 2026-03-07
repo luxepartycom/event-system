@@ -46,8 +46,17 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .page-title span{color:var(--gold);font-style:italic;}
 
 /* STATS ROW */
-.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:24px;}
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:8px;}
+.stats-row-sales{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:24px;}
 .stat-card{background:var(--dark);padding:18px 20px;}
+.stat-card-sales{background:var(--dark);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.stat-card-sales .sc-left{}
+.stat-card-sales .sc-label{font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:6px;}
+.stat-card-sales .sc-value{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:2rem;font-weight:300;line-height:1;color:var(--gold);}
+.stat-card-sales .sc-value.sv-green{color:var(--arrived);}
+.stat-card-sales .sc-sub{font-size:0.55rem;color:var(--gray);margin-top:5px;}
+.stat-card-sales .sc-badge{font-size:0.48rem;letter-spacing:0.12em;padding:3px 10px;border:1px solid rgba(201,168,76,0.3);color:var(--gold-dim);text-transform:uppercase;align-self:flex-start;}
+.stat-card-sales .sc-badge.green{border-color:rgba(76,175,130,0.3);color:var(--arrived);}
 .stat-label{font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:7px;}
 .stat-value{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.8rem;font-weight:300;line-height:1;}
 .sv-gold{color:var(--gold);}.sv-green{color:var(--arrived);}.sv-free{color:var(--free);}
@@ -127,6 +136,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .cr-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.68rem;}
 .cr-key{color:var(--gray);}
 .btn-confirm-cash{width:100%;margin-top:14px;background:var(--cash);border:none;cursor:pointer;padding:14px;color:var(--black);font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;}
+.btn-confirm-free{width:100%;margin-top:14px;background:var(--arrived);border:none;cursor:pointer;padding:14px;color:var(--black);font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:24px;pointer-events:none;}
@@ -220,6 +230,24 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <div class="stat-card"><div class="stat-label">有料招待</div><div class="stat-value sv-gold" id="gs-paid">0</div></div>
       <div class="stat-card"><div class="stat-label">支払確認済</div><div class="stat-value sv-gold" id="gs-confirmed">0</div></div>
     </div>
+    <div class="stats-row-sales" id="sales-stats" style="display:none;">
+      <div class="stat-card-sales">
+        <div class="sc-left">
+          <div class="sc-label">見込み売上（有料招待 全員来場時）</div>
+          <div class="sc-value" id="gs-expected">¥0</div>
+          <div class="sc-sub" id="gs-expected-sub">有料 0名 × 平均 ¥0</div>
+        </div>
+        <div class="sc-badge">Expected</div>
+      </div>
+      <div class="stat-card-sales">
+        <div class="sc-left">
+          <div class="sc-label">実売上（来場済み有料ゲスト）</div>
+          <div class="sc-value sv-green" id="gs-actual">¥0</div>
+          <div class="sc-sub" id="gs-actual-sub">来場済み有料 0名</div>
+        </div>
+        <div class="sc-badge green">Actual</div>
+      </div>
+    </div>
     <div class="toolbar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
@@ -307,6 +335,11 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <div class="cr-row"><span class="cr-key">招待者</span><span id="cr-invited-by">—</span></div>
         <div class="cr-row"><span class="cr-key">種別</span><span id="cr-type">—</span></div>
         <div class="cr-row" id="cr-amount-row"><span class="cr-key">入場料</span><span id="cr-amount">—</span></div>
+        <!-- 無料招待 チェックインボタン -->
+        <button class="btn-confirm-free" id="btn-confirm-free" onclick="confirmFree()" style="display:none;">
+          ✅ チェックイン
+        </button>
+        <!-- 有料招待 現金確認ボタン -->
         <button class="btn-confirm-cash" id="btn-confirm-cash" onclick="confirmCash()" style="display:none;">
           💴 現金受取確認 → チェックイン
         </button>
@@ -497,12 +530,30 @@ function updateGuestStats() {
   const free      = allGuests.filter(g => g.pay_type === 'free').length;
   const paid      = allGuests.filter(g => g.pay_type === 'paid').length;
   const confirmed = allGuests.filter(g => String(g.pay_confirmed).toUpperCase() === 'TRUE').length;
+
+  // 売上計算
+  const paidGuests        = allGuests.filter(g => g.pay_type === 'paid');
+  const expectedTotal     = paidGuests.reduce((sum, g) => sum + Number(g.amount || 0), 0);
+  const avgAmount         = paid > 0 ? Math.round(expectedTotal / paid) : 0;
+
+  const arrivedPaidGuests = allGuests.filter(g =>
+    g.pay_type === 'paid' && String(g.arrived).toUpperCase() === 'TRUE'
+  );
+  const actualTotal       = arrivedPaidGuests.reduce((sum, g) => sum + Number(g.amount || 0), 0);
+
   document.getElementById('gs-total').textContent     = total;
   document.getElementById('gs-arrived').textContent   = arrived;
   document.getElementById('gs-free').textContent      = free;
   document.getElementById('gs-paid').textContent      = paid;
   document.getElementById('gs-confirmed').textContent = confirmed;
-  document.getElementById('guest-stats').style.display = total ? 'grid' : 'none';
+
+  document.getElementById('gs-expected').textContent     = '¥' + expectedTotal.toLocaleString();
+  document.getElementById('gs-expected-sub').textContent = `有料 ${paid}名 × 平均 ¥${avgAmount.toLocaleString()}`;
+  document.getElementById('gs-actual').textContent       = '¥' + actualTotal.toLocaleString();
+  document.getElementById('gs-actual-sub').textContent   = `来場済み有料 ${arrivedPaidGuests.length}名`;
+
+  document.getElementById('guest-stats').style.display  = total ? 'grid' : 'none';
+  document.getElementById('sales-stats').style.display  = total ? 'grid' : 'none';
 }
 
 function renderGuestTable() {
@@ -784,6 +835,14 @@ async function processCheckIn(guestId) {
       showCheckinResult(local, 'duplicate');
       checkinBusy = false; return;
     }
+    // 無料招待 → 確認ボタンを表示して待機
+    if (local.pay_type === 'free') {
+      setScanMsg('✅ 確認してチェックインしてください — ' + local.name, 'warn');
+      pendingGuest = guestId;
+      showCheckinResult(local, 'free_confirm');
+      checkinBusy = false; return;
+    }
+    // 有料招待・未確認 → 現金確認ボタンを表示
     if (local.pay_type === 'paid' && String(local.pay_confirmed).toUpperCase() !== 'TRUE') {
       setScanMsg('💴 現金支払い確認が必要です — ' + local.name, 'warn');
       pendingGuest = guestId;
@@ -806,10 +865,32 @@ async function processCheckIn(guestId) {
   } else if (d.status === 'duplicate') {
     setScanMsg('⚠️ 入場済みです — ' + d.name, 'err');
     showCheckinResult(d, 'duplicate');
+  } else if (d.status === 'free_confirm') {
+    // APIからfree_confirmが返った場合（ローカルキャッシュにない無料ゲスト）
+    setScanMsg('✅ 確認してチェックインしてください — ' + d.name, 'warn');
+    pendingGuest = guestId;
+    showCheckinResult(d, 'free_confirm');
   } else if (d.status === 'cash_required') {
     setScanMsg('💴 現金支払い確認が必要です — ' + d.name, 'warn');
     pendingGuest = guestId;
     showCheckinResult(d, 'cash_required');
+  } else {
+    setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
+  }
+  checkinBusy = false;
+}
+
+async function confirmFree() {
+  if (!pendingGuest) return;
+  checkinBusy = true;
+  const eventId = document.getElementById('scan-event-sel').value;
+  const d = await apiPost({ action: 'checkIn', guest_id: pendingGuest, event_id: eventId });
+  if (d.ok) {
+    setScanMsg('✅ チェックイン完了 — ' + d.name, 'ok');
+    showCheckinResult(d, 'ok');
+    const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
+    if (idx >= 0) allGuests[idx].arrived = 'TRUE';
+    pendingGuest = null;
   } else {
     setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
   }
@@ -844,12 +925,17 @@ function showCheckinResult(d, status) {
   } else {
     amountRow.style.display = 'none';
   }
+  // ボタン表示制御
+  document.getElementById('btn-confirm-free').style.display = status === 'free_confirm' ? 'block' : 'none';
   document.getElementById('btn-confirm-cash').style.display = status === 'cash_required' ? 'block' : 'none';
+  // ボーダー色
   el.style.borderColor = status === 'ok'
     ? 'rgba(76,175,130,0.4)'
-    : status === 'cash_required'
-      ? 'rgba(106,171,255,0.4)'
-      : 'rgba(207,68,68,0.4)';
+    : status === 'free_confirm'
+      ? 'rgba(76,175,130,0.25)'
+      : status === 'cash_required'
+        ? 'rgba(106,171,255,0.4)'
+        : 'rgba(207,68,68,0.4)';
 }
 
 function setScanMsg(msg, type) {
