@@ -247,17 +247,18 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   <div class="page" id="page-scan">
     <div class="page-eyebrow">Check-in</div>
     <h1 class="page-title">QR <span>スキャン</span></h1>
-    <select class="event-selector" id="scan-event-sel">
+    <select class="event-selector" id="scan-event-sel" onchange="onScanEventChange()">
       <option value="">イベントを選択…</option>
     </select>
     <div class="scan-wrap">
-      <div class="video-container">
+      <div class="video-container" id="video-container" style="display:none;">
         <video id="scan-video" autoplay playsinline muted></video>
         <div class="scan-overlay"><div class="scan-frame"></div></div>
       </div>
+      <button class="btn-action" id="btn-start-scan" onclick="startScanManual()" style="display:none;width:100%;margin-bottom:12px;">📷 カメラを起動してスキャン開始</button>
       <div class="scan-status" id="scan-status">
         <div class="scan-dot dot-scanning" id="scan-dot"></div>
-        <span id="scan-msg">スキャン待機中…</span>
+        <span id="scan-msg">① イベントを選択 → ② カメラを起動</span>
       </div>
       <div class="checkin-result" id="checkin-result">
         <div class="cr-name" id="cr-name">—</div>
@@ -543,16 +544,45 @@ async function loadGuestsForEvent(eventId) {
 }
 
 // ── QRスキャン ───────────────────────────────────────
-async function startScan() {
+function onScanEventChange() {
   const sel = document.getElementById('scan-event-sel');
-  if(!sel.value) { setScanMsg('イベントを選択してスキャンを開始してください', 'scanning'); return; }
+  if(sel.value) {
+    document.getElementById('btn-start-scan').style.display = 'block';
+    setScanMsg('「カメラを起動」ボタンを押してください', 'scanning');
+  } else {
+    document.getElementById('btn-start-scan').style.display = 'none';
+    setScanMsg('① イベントを選択 → ② カメラを起動', 'scanning');
+  }
+}
+
+async function startScanManual() {
+  stopScan();
   try {
-    scanStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+    scanStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} } });
     document.getElementById('scan-video').srcObject = scanStream;
+    document.getElementById('video-container').style.display = 'block';
+    document.getElementById('btn-start-scan').textContent = '⏹ カメラを停止';
+    document.getElementById('btn-start-scan').onclick = stopScanManual;
     setScanMsg('QRコードをスキャンしてください', 'scanning');
     scanLoop();
   } catch(e) {
-    setScanMsg('カメラにアクセスできません: '+e.message, 'err');
+    setScanMsg('カメラにアクセスできません: ' + e.message, 'err');
+  }
+}
+
+function stopScanManual() {
+  stopScan();
+  document.getElementById('video-container').style.display = 'none';
+  document.getElementById('btn-start-scan').textContent = '📷 カメラを起動してスキャン開始';
+  document.getElementById('btn-start-scan').onclick = startScanManual;
+  setScanMsg('カメラを停止しました', 'scanning');
+}
+
+async function startScan() {
+  // タブ切り替え時はボタン表示のみ（自動起動しない）
+  const sel = document.getElementById('scan-event-sel');
+  if(sel && sel.value) {
+    document.getElementById('btn-start-scan').style.display = 'block';
   }
 }
 
