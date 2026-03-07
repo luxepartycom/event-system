@@ -827,53 +827,59 @@ async function processCheckIn(guestId) {
   const eventId = document.getElementById('scan-event-sel').value;
   if (!eventId) { setScanMsg('イベントを選択してください', 'err'); checkinBusy = false; return; }
 
-  // ローカルキャッシュで先に判定
-  const local = allGuests.find(g => String(g.guest_id) === String(guestId) && String(g.event_id) === String(eventId));
-  if (local) {
-    if (String(local.arrived).toUpperCase() === 'TRUE') {
-      setScanMsg('⚠️ 入場済みです — ' + local.name, 'err');
-      showCheckinResult(local, 'duplicate');
-      checkinBusy = false; return;
-    }
-    // 無料招待 → 確認ボタンを表示して待機
-    if (local.pay_type === 'free') {
-      setScanMsg('✅ 確認してチェックインしてください — ' + local.name, 'warn');
-      pendingGuest = guestId;
-      showCheckinResult(local, 'free_confirm');
-      checkinBusy = false; return;
-    }
-    // 有料招待・未確認 → 現金確認ボタンを表示
-    if (local.pay_type === 'paid' && String(local.pay_confirmed).toUpperCase() !== 'TRUE') {
-      setScanMsg('💴 現金支払い確認が必要です — ' + local.name, 'warn');
-      pendingGuest = guestId;
-      showCheckinResult(local, 'cash_required');
-      checkinBusy = false; return;
-    }
-    setScanMsg('✅ チェックイン処理中…', 'scanning');
-    showCheckinResult(local, 'checking');
-  } else {
+  // ローカルキャッシュで照合
+  let guest = allGuests.find(g => String(g.guest_id) === String(guestId) && String(g.event_id) === String(eventId));
+
+  // キャッシュにない場合はAPIから取得
+  if (!guest) {
     setScanMsg('🔍 照会中… ' + guestId, 'scanning');
+    const res = await apiGet({ action: 'getGuests', event_id: eventId });
+    const fetched = (res.guests || []).find(g => String(g.guest_id) === String(guestId));
+    if (fetched) {
+      // キャッシュに追加
+      allGuests.push(fetched);
+      guest = fetched;
+    }
   }
 
-  const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: eventId });
+  // ゲストが見つからない
+  if (!guest) {
+    setScanMsg('❌ このQRコードは登録されていません: ' + guestId, 'err');
+    checkinBusy = false; return;
+  }
 
+  // 入場済み
+  if (String(guest.arrived).toUpperCase() === 'TRUE') {
+    setScanMsg('⚠️ 入場済みです — ' + guest.name, 'err');
+    showCheckinResult(guest, 'duplicate');
+    checkinBusy = false; return;
+  }
+
+  // 無料招待 → 確認ボタンを表示して待機
+  if (guest.pay_type === 'free') {
+    setScanMsg('確認してチェックインしてください — ' + guest.name, 'warn');
+    pendingGuest = guestId;
+    showCheckinResult(guest, 'free_confirm');
+    checkinBusy = false; return;
+  }
+
+  // 有料招待・未払い → 現金確認ボタンを表示
+  if (guest.pay_type === 'paid' && String(guest.pay_confirmed).toUpperCase() !== 'TRUE') {
+    setScanMsg('💴 現金支払い確認が必要です — ' + guest.name, 'warn');
+    pendingGuest = guestId;
+    showCheckinResult(guest, 'cash_required');
+    checkinBusy = false; return;
+  }
+
+  // 有料・支払済み → そのままチェックイン
+  setScanMsg('✅ チェックイン処理中…', 'scanning');
+  showCheckinResult(guest, 'checking');
+  const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: eventId });
   if (d.ok) {
     setScanMsg('✅ チェックイン完了 — ' + d.name, 'ok');
     showCheckinResult(d, 'ok');
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(guestId));
     if (idx >= 0) allGuests[idx].arrived = 'TRUE';
-  } else if (d.status === 'duplicate') {
-    setScanMsg('⚠️ 入場済みです — ' + d.name, 'err');
-    showCheckinResult(d, 'duplicate');
-  } else if (d.status === 'free_confirm') {
-    // APIからfree_confirmが返った場合（ローカルキャッシュにない無料ゲスト）
-    setScanMsg('✅ 確認してチェックインしてください — ' + d.name, 'warn');
-    pendingGuest = guestId;
-    showCheckinResult(d, 'free_confirm');
-  } else if (d.status === 'cash_required') {
-    setScanMsg('💴 現金支払い確認が必要です — ' + d.name, 'warn');
-    pendingGuest = guestId;
-    showCheckinResult(d, 'cash_required');
   } else {
     setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
   }
