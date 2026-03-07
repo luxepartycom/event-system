@@ -251,14 +251,24 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <option value="">イベントを選択…</option>
     </select>
     <div class="scan-wrap">
+      <!-- iOSネイティブQRスキャン用 hidden input -->
+      <input type="file" id="qr-file-input" accept="image/*" capture="environment"
+             style="display:none;" onchange="handleQRCapture(event)">
+
+      <!-- カメラプレビュー（BarcodeDetector対応環境用） -->
       <div class="video-container" id="video-container" style="display:none;">
         <video id="scan-video" autoplay playsinline muted></video>
         <div class="scan-overlay"><div class="scan-frame"></div></div>
       </div>
-      <button class="btn-action" id="btn-start-scan" onclick="startScanManual()" style="display:none;width:100%;margin-bottom:12px;">📷 カメラを起動してスキャン開始</button>
+
+      <!-- スキャンボタン -->
+      <button class="btn-action" id="btn-start-scan" onclick="startScanManual()" style="display:none;width:100%;margin-bottom:12px;font-size:1.1rem;padding:20px;">
+        📷 QRコードをスキャン
+      </button>
+
       <div class="scan-status" id="scan-status">
         <div class="scan-dot dot-scanning" id="scan-dot"></div>
-        <span id="scan-msg">① イベントを選択 → ② カメラを起動</span>
+        <span id="scan-msg">① イベントを選択 → ② スキャンボタンを押す</span>
       </div>
       <div class="checkin-result" id="checkin-result">
         <div class="cr-name" id="cr-name">—</div>
@@ -303,7 +313,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script>
 const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
 const BASE_URL = 'https://luxepartycom.github.io/event-system/';
@@ -546,30 +556,75 @@ async function loadGuestsForEvent(eventId) {
 // ── QRスキャン ───────────────────────────────────────
 function onScanEventChange() {
   const sel = document.getElementById('scan-event-sel');
-  if(sel.value) {
-    document.getElementById('btn-start-scan').style.display = 'block';
-    setScanMsg('「カメラを起動」ボタンを押してください', 'scanning');
+  const btn = document.getElementById('btn-start-scan');
+  if (sel.value) {
+    btn.style.display = 'block';
+    setScanMsg('スキャンボタンを押してQRを読み取ってください', 'scanning');
   } else {
-    document.getElementById('btn-start-scan').style.display = 'none';
-    setScanMsg('① イベントを選択 → ② カメラを起動', 'scanning');
+    btn.style.display = 'none';
+    setScanMsg('① イベントを選択 → ② スキャンボタンを押す', 'scanning');
   }
 }
 
 async function startScanManual() {
+  const sel = document.getElementById('scan-event-sel');
+  if (!sel.value) { setScanMsg('イベントを選択してください', 'err'); return; }
+
+  // BarcodeDetector対応環境（Android Chrome等）はリアルタイムスキャン
+  if ('BarcodeDetector' in window) {
+    await startLiveScan();
+    return;
+  }
+
+  // iOS Safari: ネイティブカメラ経由でQR画像取得
+  document.getElementById('qr-file-input').click();
+}
+
+// ── iOS: カメラ撮影画像からQR読み取り ─────────────────────
+async function handleQRCapture(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = ''; // 次回も同じボタンで起動できるようリセット
+
+  setScanMsg('QRコードを認識中…', 'scanning');
+
+  // jsQRで画像を解析
+  const img = new Image();
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    canvas.width  = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'attemptBoth'
+    });
+    if (code && code.data) {
+      setScanMsg('QR認識 → チェックイン処理中…', 'scanning');
+      processCheckIn(code.data);
+    } else {
+      setScanMsg('❌ QRコードを認識できませんでした。再度お試しください', 'err');
+    }
+    URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+// ── リアルタイムスキャン（BarcodeDetector対応環境） ──────
+async function startLiveScan() {
   stopScan();
   try {
     scanStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: 'environment' } }
     });
     const video = document.getElementById('scan-video');
-    video.srcObject = scanStream;             // 先にsrcObjectをセット
-    video.setAttribute('playsinline', true);  // iOS必須
-    await video.play().catch(()=>{});         // 明示的にplay()
-
+    video.srcObject = scanStream;
+    await video.play().catch(()=>{});
     document.getElementById('video-container').style.display = 'block';
-    document.getElementById('btn-start-scan').textContent = '⏹ カメラを停止';
+    document.getElementById('btn-start-scan').textContent = '⏹ スキャン停止';
     document.getElementById('btn-start-scan').onclick = stopScanManual;
-    setScanMsg('QRコードをスキャンしてください', 'scanning');
+    setScanMsg('QRコードをかざしてください', 'scanning');
     scanLoop();
   } catch(e) {
     setScanMsg('カメラにアクセスできません: ' + e.message, 'err');
@@ -579,41 +634,35 @@ async function startScanManual() {
 function stopScanManual() {
   stopScan();
   document.getElementById('video-container').style.display = 'none';
-  document.getElementById('btn-start-scan').textContent = '📷 カメラを起動してスキャン開始';
+  document.getElementById('btn-start-scan').textContent = '📷 QRコードをスキャン';
   document.getElementById('btn-start-scan').onclick = startScanManual;
-  setScanMsg('カメラを停止しました', 'scanning');
-}
-
-async function startScan() {
-  // タブ切り替え時はボタン表示のみ（自動起動しない）
-  const sel = document.getElementById('scan-event-sel');
-  if(sel && sel.value) {
-    document.getElementById('btn-start-scan').style.display = 'block';
-  }
+  setScanMsg('スキャンを停止しました', 'scanning');
 }
 
 function stopScan() {
-  if(scanStream) { scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
   clearTimeout(scanTimer);
+}
+
+async function startScan() {
+  const sel = document.getElementById('scan-event-sel');
+  if (sel && sel.value) document.getElementById('btn-start-scan').style.display = 'block';
 }
 
 function scanLoop() {
   const video = document.getElementById('scan-video');
 
-  // BarcodeDetector API（iOS17+ Safari / Android Chrome対応）
   if ('BarcodeDetector' in window) {
     const detector = new BarcodeDetector({ formats: ['qr_code'] });
-
     async function tickBarcode() {
       if (!scanStream) return;
       if (video.readyState === video.HAVE_ENOUGH_DATA) {
         try {
           const barcodes = await detector.detect(video);
-          for (const barcode of barcodes) {
-            const val = barcode.rawValue;
-            if (val && val !== lastScanned && !checkinBusy) {
-              lastScanned = val;
-              processCheckIn(val);
+          for (const b of barcodes) {
+            if (b.rawValue && b.rawValue !== lastScanned && !checkinBusy) {
+              lastScanned = b.rawValue;
+              processCheckIn(b.rawValue);
               setTimeout(() => { lastScanned = ''; }, 3000);
               break;
             }
@@ -626,15 +675,14 @@ function scanLoop() {
     return;
   }
 
-  // フォールバック: jsQR（canvas経由）
+  // jsQR fallback
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-
   function tick() {
     if (!scanStream) return;
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       try {
-        canvas.width  = video.videoWidth;
+        canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0);
         const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
