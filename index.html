@@ -148,14 +148,23 @@ let selectedGender = '';
 
 // ══ API ═══════════════════════════════════════════════
 async function apiGet(p)  { const r=await fetch(API+'?'+new URLSearchParams(p)); return r.json(); }
-async function apiPost(b) { const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}); return r.json(); }
+
+// ★ 修正箇所: Content-Type を text/plain に変更してプリフライトを回避
+async function apiPost(b) {
+  const r = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(b)
+  });
+  return r.json();
+}
 
 // ══ 初期化 ════════════════════════════════════════════
 window.addEventListener('load', async () => {
-  fetch(API + '?action=ping').catch(()=>{});  // ウォームアップ
+  fetch(API + '?action=ping').catch(()=>{});
   const params  = new URLSearchParams(location.search);
   const eventId = params.get('e') || '';
-  const type    = params.get('type') || 'paid'; // free or paid
+  const type    = params.get('type') || 'paid';
 
   if (!eventId) { showError('URLにイベントIDが含まれていません'); return; }
 
@@ -242,10 +251,8 @@ async function submitForm() {
       return;
     }
 
-    // 完了画面表示
     showResult(data, name, email, invitedBy);
 
-    // メール送信（バックグラウンド）
     apiPost({
       action:     'sendQREmail',
       guest_id:   data.guest_id,
@@ -294,7 +301,6 @@ function generateQR(text) {
     const qr = createQRCode(text, 'M');
     drawQR(canvas, qr, size);
   } catch(e) {
-    // フォールバック: テキスト表示
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#111';
     ctx.fillRect(0,0,size,size);
@@ -334,7 +340,6 @@ function createQRCode(text, ecLevel) {
   return mat;
 }
 function encodeData(text) {
-  // Byte mode
   const bytes = [];
   for (let i=0;i<text.length;i++) {
     const c = text.charCodeAt(i);
@@ -384,10 +389,9 @@ function buildCodewords(data, ver, ecl) {
   const totalDC = b1*dc1 + b2*(b2>0?dc2:0);
   const totalCW  = totalDC + totalBlocks*ecw;
 
-  // Build bit stream
   const bits = [];
   const push = (v,n) => { for(let i=n-1;i>=0;i--) bits.push((v>>i)&1); };
-  push(4,4); // byte mode
+  push(4,4);
   push(data.length, ver<10?8:16);
   data.forEach(b => push(b,8));
   push(0, Math.min(4, totalDC*8 - bits.length));
@@ -395,23 +399,19 @@ function buildCodewords(data, ver, ecl) {
   const pad = [0xEC,0x11];
   let pi=0; while(bits.length < totalDC*8) { push(pad[pi%2],8); pi++; }
 
-  // Split into bytes
   const dcBytes = [];
   for(let i=0;i<bits.length;i+=8) {
     let v=0; for(let j=0;j<8;j++) v=(v<<1)|bits[i+j];
     dcBytes.push(v);
   }
 
-  // Split into blocks
   const blocks = [];
   let pos=0;
   for(let i=0;i<b1;i++) { blocks.push(dcBytes.slice(pos,pos+dc1)); pos+=dc1; }
   for(let i=0;i<b2;i++) { blocks.push(dcBytes.slice(pos,pos+dc2)); pos+=dc2; }
 
-  // EC for each block
   const ecBlocks = blocks.map(b => rsEncode(b, ecw));
 
-  // Interleave data
   const out = [];
   const maxDC = Math.max(dc1, b2>0?dc2:0);
   for(let i=0;i<maxDC;i++) blocks.forEach(b => { if(i<b.length) out.push(b[i]); });
@@ -437,7 +437,7 @@ function gfMul(a,b){ if(!a||!b) return 0; return GF_EXP[(GF_LOG[a]+GF_LOG[b])%25
 function generatorPoly(n) {
   let p=[0];
   for(let i=0;i<n;i++){
-    const q=[0,...p.map(x=>(GF_LOG[GF_EXP[i]]+ x)%255)]; // simplified
+    const q=[0,...p.map(x=>(GF_LOG[GF_EXP[i]]+ x)%255)];
     p=[0,...p];
     for(let j=0;j<q.length;j++){
       if(j<p.length) p[j]^=GF_EXP[q[j]];
@@ -445,7 +445,6 @@ function generatorPoly(n) {
     }
     p.shift();
   }
-  // Use standard generator polynomial via direct computation
   let g = [1];
   for(let i=0;i<n;i++){
     const r = GF_EXP[i];
@@ -464,7 +463,6 @@ function buildMatrix(ver, cw, ecl) {
   const used= Array.from({length:N},()=>new Array(N).fill(false));
   const set = (r,c,v) => { mat[r][c]=v; used[r][c]=true; };
 
-  // Finder patterns
   [[0,0],[0,N-7],[N-7,0]].forEach(([rr,cc])=>{
     for(let r=0;r<7;r++) for(let c=0;c<7;c++){
       const v=(r===0||r===6||c===0||c===6)||( r>=2&&r<=4&&c>=2&&c<=4);
@@ -476,10 +474,8 @@ function buildMatrix(ver, cw, ecl) {
     }
   });
 
-  // Timing
   for(let i=8;i<N-8;i++){set(6,i,(i%2===0)?1:0);set(i,6,(i%2===0)?1:0);}
 
-  // Alignment (ver>=2)
   const AP = getAlignmentPositions(ver);
   AP.forEach(r=>AP.forEach(c=>{
     if(used[r][c]) return;
@@ -489,15 +485,12 @@ function buildMatrix(ver, cw, ecl) {
     }
   }));
 
-  // Dark module
   set(4*ver+9,8,1);
 
-  // Format info placeholders
   const FI_POS=[[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[7,8],[8,8],[8,7],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
                 [N-1,8],[N-2,8],[N-3,8],[N-4,8],[N-5,8],[N-6,8],[N-7,8],[8,N-8],[8,N-7],[8,N-6],[8,N-5],[8,N-4],[8,N-3],[8,N-2],[8,N-1]];
   FI_POS.forEach(([r,c])=>used[r][c]=true);
 
-  // Place data bits
   const bits=[];
   cw.forEach(b=>{for(let i=7;i>=0;i--) bits.push((b>>i)&1);});
   let bi=0, dir=-1, col=N-1;
@@ -515,7 +508,6 @@ function buildMatrix(ver, cw, ecl) {
     dir=-dir; col-=2;
   }
 
-  // Apply best mask
   let bestScore=Infinity, bestMask=0, bestMat=null;
   for(let m=0;m<8;m++){
     const mm=applyMask(mat,used,m,N);
