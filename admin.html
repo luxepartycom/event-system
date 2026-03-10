@@ -138,7 +138,36 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .btn-confirm-cash{width:100%;margin-top:14px;background:var(--cash);border:none;cursor:pointer;padding:14px;color:var(--black);font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;}
 .btn-confirm-free{width:100%;margin-top:14px;background:var(--arrived);border:none;cursor:pointer;padding:14px;color:var(--black);font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;}
 
-/* MODAL */
+/* 支払い方法選択ボタン */
+.payment-select-area{margin-top:14px;display:none;}
+.payment-select-label{font-size:0.52rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;}
+.payment-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.btn-payment{background:var(--dark2);border:1px solid rgba(255,255,255,0.12);cursor:pointer;padding:13px 6px;color:var(--white);font-family:inherit;font-size:0.68rem;font-weight:600;letter-spacing:0.06em;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.btn-payment:hover{border-color:var(--gold);color:var(--gold);}
+.btn-payment .pay-icon{font-size:1.3rem;}
+
+/* 売上内訳 */
+.stats-row-pay{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:8px;}
+.stat-card-pay{background:var(--dark);padding:14px 16px;}
+.stat-card-pay .sc-label{font-size:0.44rem;letter-spacing:0.15em;color:var(--gray);text-transform:uppercase;margin-bottom:5px;}
+.stat-card-pay .sc-value{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.3rem;font-weight:300;line-height:1;}
+.stat-card-pay .sc-sub{font-size:0.5rem;color:var(--gray);margin-top:4px;}
+
+/* プロモーター指定URLリスト */
+.ev-promo-section{margin-top:14px;border-top:1px solid rgba(255,255,255,0.05);padding-top:12px;}
+.ev-promo-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.ev-promo-title{font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;}
+.ev-promo-empty{font-size:0.58rem;color:rgba(255,255,255,0.18);padding:6px 0;}
+.promo-url-item{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--dark2);margin-bottom:4px;}
+.promo-url-name{font-size:0.65rem;color:var(--white);min-width:60px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
+.promo-url-type{font-size:0.44rem;letter-spacing:0.1em;padding:2px 6px;flex-shrink:0;}
+.promo-url-type.type-free{color:var(--free);border:1px solid rgba(155,142,196,0.4);}
+.promo-url-type.type-paid{color:var(--gold);border:1px solid rgba(201,168,76,0.35);}
+.promo-url-spacer{flex:1;}
+.promo-url-copy{background:none;border:1px solid rgba(201,168,76,0.25);color:var(--gold);padding:3px 7px;cursor:pointer;font-size:0.55rem;flex-shrink:0;transition:all 0.2s;}
+.promo-url-copy:hover{background:rgba(201,168,76,0.08);}
+.promo-url-del{background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;font-size:0.75rem;padding:2px 4px;flex-shrink:0;transition:color 0.2s;}
+.promo-url-del:hover{color:#CF4444;}
 .modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:24px;pointer-events:none;}
 .modal-overlay.active{display:flex;pointer-events:auto;}
 .modal{background:var(--dark);border:1px solid rgba(201,168,76,0.2);padding:36px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;}
@@ -213,6 +242,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     <div class="page-eyebrow">Event Management</div>
     <h1 class="page-title">イベント <span>管理</span></h1>
     <button class="btn-action" onclick="openAddEventModal()">＋ イベント追加</button>
+    <button class="btn-action" onclick="openCustomUrlModal()">🔗 指定URLを生成</button>
     <div id="event-grid" class="event-grid"><div class="loading">読み込み中…</div></div>
   </div>
 
@@ -246,6 +276,24 @@ td.muted{color:var(--gray);font-size:0.62rem;}
           <div class="sc-sub" id="gs-actual-sub">来場済み有料 0名</div>
         </div>
         <div class="sc-badge green">Actual</div>
+      </div>
+    </div>
+    <!-- 支払い方法別内訳 -->
+    <div class="stats-row-pay" id="pay-breakdown" style="display:none;">
+      <div class="stat-card-pay">
+        <div class="sc-label">💵 現金</div>
+        <div class="sc-value sv-gold" id="gs-pay-cash">¥0</div>
+        <div class="sc-sub" id="gs-pay-cash-sub">0名</div>
+      </div>
+      <div class="stat-card-pay">
+        <div class="sc-label">💳 カード</div>
+        <div class="sc-value" style="color:var(--cash)" id="gs-pay-card">¥0</div>
+        <div class="sc-sub" id="gs-pay-card-sub">0名</div>
+      </div>
+      <div class="stat-card-pay">
+        <div class="sc-label">📱 PayPay</div>
+        <div class="sc-value" style="color:var(--free)" id="gs-pay-paypay">¥0</div>
+        <div class="sc-sub" id="gs-pay-paypay-sub">0名</div>
       </div>
     </div>
     <div class="toolbar">
@@ -339,8 +387,23 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <button class="btn-confirm-free" id="btn-confirm-free" onclick="confirmFree()" style="display:none;">
           ✅ チェックイン
         </button>
-        <!-- 有料招待 現金確認ボタン -->
-        <button class="btn-confirm-cash" id="btn-confirm-cash" onclick="confirmCash()" style="display:none;">
+        <!-- 有料招待 支払い方法選択 -->
+        <div class="payment-select-area" id="payment-select-area">
+          <div class="payment-select-label">支払い方法を選択してチェックイン</div>
+          <div class="payment-btns">
+            <button class="btn-payment" onclick="confirmPayment('cash')">
+              <span class="pay-icon">💵</span>現金
+            </button>
+            <button class="btn-payment" onclick="confirmPayment('card')">
+              <span class="pay-icon">💳</span>カード
+            </button>
+            <button class="btn-payment" onclick="confirmPayment('paypay')">
+              <span class="pay-icon">📱</span>PayPay
+            </button>
+          </div>
+        </div>
+        <!-- 有料招待 現金確認ボタン（後方互換用 — 非表示） -->
+        <button class="btn-confirm-cash" id="btn-confirm-cash" onclick="confirmPayment('cash')" style="display:none;">
           💴 現金受取確認 → チェックイン
         </button>
       </div>
@@ -371,6 +434,43 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     <div class="modal-actions">
       <button class="btn-cancel"  onclick="closeModal('modal-event')">キャンセル</button>
       <button class="btn-confirm" onclick="addEvent()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- モーダル: 指定URL生成 -->
+<div class="modal-overlay" id="modal-custom-url">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-title">プロモーター指定URLを生成</div>
+    <div class="modal-group">
+      <label class="form-label">対象イベント</label>
+      <select class="modal-select" id="cu-event-sel">
+        <option value="">選択してください…</option>
+      </select>
+    </div>
+    <div class="modal-group">
+      <label class="form-label">招待種別</label>
+      <select class="modal-select" id="cu-type">
+        <option value="free">無料招待</option>
+        <option value="paid">有料招待</option>
+      </select>
+    </div>
+    <div class="modal-group">
+      <label class="form-label">招待者名（プロモーター）</label>
+      <input class="form-input" id="cu-promoter" placeholder="例：たかし">
+      <div class="modal-note">ゲストには表示されません。スプレッドシートの「invited_by」列に自動記録されます。</div>
+    </div>
+    <div class="modal-group" id="cu-url-result" style="display:none;">
+      <label class="form-label">生成されたURL</label>
+      <div class="ev-url-row" style="margin-top:8px;">
+        <div class="ev-url-text" id="cu-url-text" style="font-size:0.55rem;word-break:break-all;white-space:normal;"></div>
+        <button class="copy-btn" onclick="copyCustomUrl()">📋</button>
+      </div>
+      <div class="modal-note" style="margin-top:8px;">このURLを開いたゲストは、招待者名を入力する欄が表示されません。<br>管理画面・スプレッドシートでのみ確認できます。</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-custom-url')">閉じる</button>
+      <button class="btn-confirm" onclick="generateCustomUrl()">URLを生成</button>
     </div>
   </div>
 </div>
@@ -427,7 +527,8 @@ function logout() { location.reload(); }
 // ── 初期化 ───────────────────────────────────────────
 async function init() {
   fetch(API + '?action=ping').catch(() => {});
-  await loadEvents();
+  await Promise.all([loadEvents(), loadAllPromoUrls()]);
+  renderEventGrid(); // プロモーターURLロード後に再描画
 }
 
 // ── タブ切替 ─────────────────────────────────────────
@@ -464,16 +565,45 @@ function populateEventSelectors() {
   });
 }
 
+// ── プロモーターURL — GAS連携 ────────────────────────────
+let allPromoUrls = [];  // 全イベント分をキャッシュ
+
+async function loadAllPromoUrls() {
+  try {
+    const d = await apiGet({ action: 'getPromoUrls' });
+    allPromoUrls = d.urls || [];
+  } catch(e) { allPromoUrls = []; }
+}
+
+function getPromoUrls(eventId) {
+  return allPromoUrls.filter(u => String(u.event_id) === String(eventId));
+}
+
+async function deletePromoUrl(eventId, promoter, type) {
+  await apiPost({ action: 'deletePromoUrl', event_id: eventId, promoter, type });
+  allPromoUrls = allPromoUrls.filter(u =>
+    !(String(u.event_id) === String(eventId) && u.promoter === promoter && u.type === type)
+  );
+  renderEventGrid();
+  toast('✦ 削除しました');
+}
+
 function renderEventGrid() {
   const grid = document.getElementById('event-grid');
   grid.innerHTML = '';
   if (!allEvents.length) { grid.innerHTML = '<div class="loading">イベントがありません</div>'; return; }
 
   allEvents.forEach(ev => {
-    const freeUrl = BASE_URL + 'index.html?e=' + ev.event_id + '&type=free';
-    const paidUrl = BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid';
-    const card    = document.createElement('div');
+    const freeUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=free';
+    const paidUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid';
+    const promoList = getPromoUrls(ev.event_id);
+    const promoHtml = promoList.length
+      ? promoList.map(u => buildPromoItem(ev.event_id, u)).join('')
+      : `<div class="ev-promo-empty">まだ指定URLはありません</div>`;
+
+    const card = document.createElement('div');
     card.className = 'event-card';
+    card.id = 'ev-card-' + ev.event_id;
     card.innerHTML = `
       <div class="ev-name">${ev.name}</div>
       <div class="ev-date">${ev.date}</div>
@@ -486,12 +616,28 @@ function renderEventGrid() {
         <div class="ev-url-label" style="color:var(--gold)">💴 有料招待URL (男¥${Number(ev.price_male||0).toLocaleString()} / 女¥${Number(ev.price_female||0).toLocaleString()})</div>
         <div class="ev-url-row"><div class="ev-url-text">${paidUrl}</div><button class="copy-btn" onclick="copyText('${paidUrl}',this)">📋</button></div>
       </div>
+      <div class="ev-promo-section">
+        <div class="ev-promo-header">
+          <div class="ev-promo-title">📣 プロモーター指定URL</div>
+        </div>
+        <div id="promo-list-${ev.event_id}">${promoHtml}</div>
+      </div>
       <div class="ev-actions">
         ${ev.status === 'active'
           ? `<button class="btn-close-ev" onclick="closeEvent('${ev.event_id}')">受付終了にする</button>`
           : `<button class="btn-close-ev" onclick="reopenEvent('${ev.event_id}')">再開する</button>`}
       </div>`;
     grid.appendChild(card);
+  });
+}
+
+function copyPromoUrl(eventId, promoter, type, btn) {
+  const url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type + '&promoter=' + encodeURIComponent(promoter);
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ コピー済';
+    setTimeout(() => btn.textContent = orig, 1500);
+    toast('✦ ' + promoter + ' のURLをコピーしました');
   });
 }
 
@@ -539,7 +685,14 @@ function updateGuestStats() {
   const arrivedPaidGuests = allGuests.filter(g =>
     g.pay_type === 'paid' && String(g.arrived).toUpperCase() === 'TRUE'
   );
-  const actualTotal       = arrivedPaidGuests.reduce((sum, g) => sum + Number(g.amount || 0), 0);
+  const actualTotal = arrivedPaidGuests.reduce((sum, g) => sum + Number(g.amount || 0), 0);
+
+  // 支払い方法別集計
+  const byMethod = { cash: { count:0, total:0 }, card: { count:0, total:0 }, paypay: { count:0, total:0 } };
+  arrivedPaidGuests.forEach(g => {
+    const m = (g.payment_method || '').toLowerCase();
+    if (byMethod[m]) { byMethod[m].count++; byMethod[m].total += Number(g.amount || 0); }
+  });
 
   document.getElementById('gs-total').textContent     = total;
   document.getElementById('gs-arrived').textContent   = arrived;
@@ -552,8 +705,16 @@ function updateGuestStats() {
   document.getElementById('gs-actual').textContent       = '¥' + actualTotal.toLocaleString();
   document.getElementById('gs-actual-sub').textContent   = `来場済み有料 ${arrivedPaidGuests.length}名`;
 
+  // 支払い方法別
+  ['cash','card','paypay'].forEach(m => {
+    const el = { cash:'gs-pay-cash', card:'gs-pay-card', paypay:'gs-pay-paypay' }[m];
+    document.getElementById(el).textContent = '¥' + byMethod[m].total.toLocaleString();
+    document.getElementById(el + '-sub').textContent = byMethod[m].count + '名';
+  });
+
   document.getElementById('guest-stats').style.display  = total ? 'grid' : 'none';
   document.getElementById('sales-stats').style.display  = total ? 'grid' : 'none';
+  document.getElementById('pay-breakdown').style.display = total ? 'grid' : 'none';
 }
 
 function renderGuestTable() {
@@ -863,11 +1024,11 @@ async function processCheckIn(guestId) {
     checkinBusy = false; return;
   }
 
-  // 有料招待・未払い → 現金確認ボタンを表示
+  // 有料招待・未払い → 支払い方法選択ボタンを表示
   if (guest.pay_type === 'paid' && String(guest.pay_confirmed).toUpperCase() !== 'TRUE') {
-    setScanMsg('💴 現金支払い確認が必要です — ' + guest.name, 'warn');
+    setScanMsg('💳 支払い方法を選択してチェックインしてください — ' + guest.name, 'warn');
     pendingGuest = guestId;
-    showCheckinResult(guest, 'cash_required');
+    showCheckinResult(guest, 'payment_required');
     checkinBusy = false; return;
   }
 
@@ -903,16 +1064,26 @@ async function confirmFree() {
   checkinBusy = false;
 }
 
-async function confirmCash() {
+async function confirmPayment(method) {
   if (!pendingGuest) return;
   checkinBusy = true;
-  const d = await apiPost({ action: 'checkIn', guest_id: pendingGuest, confirm_cash: true });
+  const eventId = document.getElementById('scan-event-sel').value;
+  const methodLabel = { cash:'現金', card:'カード', paypay:'PayPay' }[method] || method;
+  const d = await apiPost({ action: 'checkIn', guest_id: pendingGuest, event_id: eventId, payment_method: method });
   if (d.ok) {
-    setScanMsg('✅ チェックイン完了（現金確認済）— ' + d.name, 'ok');
+    setScanMsg(`✅ チェックイン完了（${methodLabel}）— ` + d.name, 'ok');
     showCheckinResult(d, 'ok');
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
-    if (idx >= 0) { allGuests[idx].arrived = 'TRUE'; allGuests[idx].pay_confirmed = 'TRUE'; }
+    if (idx >= 0) {
+      allGuests[idx].arrived = 'TRUE';
+      allGuests[idx].pay_confirmed = 'TRUE';
+      allGuests[idx].payment_method = method;
+    }
     pendingGuest = null;
+    // ゲスト一覧が開いていたら再集計
+    if (currentEventId) updateGuestStats();
+  } else {
+    setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
   }
   checkinBusy = false;
 }
@@ -932,14 +1103,15 @@ function showCheckinResult(d, status) {
     amountRow.style.display = 'none';
   }
   // ボタン表示制御
-  document.getElementById('btn-confirm-free').style.display = status === 'free_confirm' ? 'block' : 'none';
-  document.getElementById('btn-confirm-cash').style.display = status === 'cash_required' ? 'block' : 'none';
+  document.getElementById('btn-confirm-free').style.display       = status === 'free_confirm' ? 'block' : 'none';
+  document.getElementById('payment-select-area').style.display    = status === 'payment_required' ? 'block' : 'none';
+  document.getElementById('btn-confirm-cash').style.display       = 'none'; // 非表示（後方互換のみ）
   // ボーダー色
   el.style.borderColor = status === 'ok'
     ? 'rgba(76,175,130,0.4)'
     : status === 'free_confirm'
       ? 'rgba(76,175,130,0.25)'
-      : status === 'cash_required'
+      : status === 'payment_required'
         ? 'rgba(106,171,255,0.4)'
         : 'rgba(207,68,68,0.4)';
 }
@@ -964,6 +1136,73 @@ function copyText(text, btn) {
   });
 }
 function openAddEventModal() { document.getElementById('modal-event').classList.add('active'); }
+
+function openCustomUrlModal() {
+  const sel = document.getElementById('cu-event-sel');
+  sel.innerHTML = '<option value="">選択してください…</option>';
+  allEvents.forEach(ev => {
+    const o = document.createElement('option');
+    o.value = ev.event_id;
+    o.textContent = ev.name + ' — ' + ev.date;
+    sel.appendChild(o);
+  });
+  document.getElementById('cu-url-result').style.display = 'none';
+  document.getElementById('cu-promoter').value = '';
+  document.getElementById('modal-custom-url').classList.add('active');
+}
+
+async function generateCustomUrl() {
+  const eventId  = document.getElementById('cu-event-sel').value;
+  const type     = document.getElementById('cu-type').value;
+  const promoter = document.getElementById('cu-promoter').value.trim();
+  if (!eventId)  { toast('イベントを選択してください'); return; }
+  if (!promoter) { toast('招待者名を入力してください'); return; }
+
+  const url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type + '&promoter=' + encodeURIComponent(promoter);
+  document.getElementById('cu-url-text').textContent = url;
+  document.getElementById('cu-url-result').style.display = 'block';
+
+  // GASに保存
+  const d = await apiPost({ action: 'savePromoUrl', event_id: eventId, promoter, type });
+  if (d.ok) {
+    // キャッシュに追加（already_existsの場合は重複しない）
+    if (d.message !== 'already_exists') {
+      allPromoUrls.push({ event_id: eventId, promoter, type });
+    }
+    // イベントカードのリストだけ即時再描画
+    refreshPromoList(eventId);
+    toast('✦ ' + promoter + ' のURLを保存しました');
+  } else {
+    toast('保存エラー: ' + (d.message || ''));
+  }
+}
+
+function refreshPromoList(eventId) {
+  const listEl = document.getElementById('promo-list-' + eventId);
+  if (!listEl) return;
+  const promoList = getPromoUrls(eventId);
+  listEl.innerHTML = promoList.length
+    ? promoList.map(u => buildPromoItem(eventId, u)).join('')
+    : `<div class="ev-promo-empty">まだ指定URLはありません</div>`;
+}
+
+function buildPromoItem(eventId, u) {
+  const label = u.type === 'free' ? '無料' : '有料';
+  const cls   = u.type === 'free' ? 'type-free' : 'type-paid';
+  const esc   = u.promoter.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return `<div class="promo-url-item">
+    <span class="promo-url-name" title="${u.promoter}">${u.promoter}</span>
+    <span class="promo-url-type ${cls}">${label}</span>
+    <span class="promo-url-spacer"></span>
+    <button class="promo-url-copy" onclick="copyPromoUrl('${eventId}','${esc}','${u.type}',this)">📋 コピー</button>
+    <button class="promo-url-del"  onclick="deletePromoUrl('${eventId}','${esc}','${u.type}')" title="削除">✕</button>
+  </div>`;
+}
+
+function copyCustomUrl() {
+  const url = document.getElementById('cu-url-text').textContent;
+  navigator.clipboard.writeText(url).then(() => toast('✦ URLをコピーしました'));
+}
 function closeModal(id)      { document.getElementById(id).classList.remove('active'); }
 document.querySelectorAll('.modal-overlay').forEach(o =>
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); })
