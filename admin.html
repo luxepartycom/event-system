@@ -317,7 +317,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     <div class="table-scroll">
       <table>
         <thead><tr>
-          <th>ID</th><th>氏名</th><th>性別</th><th>招待者</th><th>種別</th><th>金額</th><th>来場</th>
+          <th>ID</th><th>氏名</th><th>性別</th><th>招待者</th><th>種別</th><th>支払方法</th><th>金額</th><th>来場</th>
         </tr></thead>
         <tbody id="guest-tbody"></tbody>
       </table>
@@ -733,20 +733,24 @@ function renderGuestTable() {
   const tbody = document.getElementById('guest-tbody');
   tbody.innerHTML = '';
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:32px;font-size:0.7rem;">該当するゲストがいません</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:32px;font-size:0.7rem;">該当するゲストがいません</td></tr>`;
     return;
   }
   filtered.forEach(g => {
-    const arr  = String(g.arrived).toUpperCase() === 'TRUE';
-    const conf = String(g.pay_confirmed).toUpperCase() === 'TRUE';
-    const tr   = document.createElement('tr');
+    const arr    = String(g.arrived).toUpperCase() === 'TRUE';
+    const conf   = String(g.pay_confirmed).toUpperCase() === 'TRUE';
+    const method = (g.payment_method || '').toLowerCase();
+    const methodLabel = { cash:'💵 現金', card:'💳 カード', paypay:'📱 PayPay' }[method] || '';
+    const methodColor = { cash:'var(--gold)', card:'var(--cash)', paypay:'var(--free)' }[method] || 'var(--gray)';
+    const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="muted" style="color:var(--gold-dim)">${g.guest_id}</td>
       <td>${g.name}</td>
       <td><span class="gender-badge">${g.gender === 'female' ? '女' : '男'}</span></td>
       <td class="muted">${g.invited_by || '—'}</td>
       <td><span class="badge ${g.pay_type === 'free' ? 'badge-free' : 'badge-paid'}">${g.pay_type === 'free' ? '無料' : '有料'}</span></td>
-      <td class="muted">${g.pay_type === 'paid' ? (conf ? '<span class="badge badge-confirmed">確認済</span>' : '¥' + Number(g.amount || 0).toLocaleString()) : '—'}</td>
+      <td class="muted" style="font-size:0.62rem;color:${methodColor}">${g.pay_type === 'paid' ? (methodLabel || (conf ? '確認済' : '—')) : '—'}</td>
+      <td class="muted">${g.pay_type === 'paid' ? '¥' + Number(g.amount || 0).toLocaleString() : '—'}</td>
       <td>${arr ? '<span class="badge badge-arrived">来場済</span>' : '<span class="badge badge-pending">未来場</span>'}</td>`;
     tbody.appendChild(tr);
   });
@@ -1058,8 +1062,14 @@ async function confirmFree() {
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
     if (idx >= 0) allGuests[idx].arrived = 'TRUE';
     pendingGuest = null;
+    if (currentEventId === eventId) {
+      updateGuestStats();
+      renderGuestTable();
+    }
+    toast('✅ ' + d.name + ' チェックイン完了');
   } else {
-    setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
+    setScanMsg('❌ ' + (d.message || 'チェックインに失敗しました'), 'err');
+    toast('❌ ' + (d.message || 'チェックインに失敗しました'));
   }
   checkinBusy = false;
 }
@@ -1067,23 +1077,29 @@ async function confirmFree() {
 async function confirmPayment(method) {
   if (!pendingGuest) return;
   checkinBusy = true;
-  const eventId = document.getElementById('scan-event-sel').value;
+  const eventId     = document.getElementById('scan-event-sel').value;
   const methodLabel = { cash:'現金', card:'カード', paypay:'PayPay' }[method] || method;
   const d = await apiPost({ action: 'checkIn', guest_id: pendingGuest, event_id: eventId, payment_method: method });
   if (d.ok) {
     setScanMsg(`✅ チェックイン完了（${methodLabel}）— ` + d.name, 'ok');
     showCheckinResult(d, 'ok');
+    // ローカルキャッシュを更新
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
     if (idx >= 0) {
-      allGuests[idx].arrived = 'TRUE';
-      allGuests[idx].pay_confirmed = 'TRUE';
+      allGuests[idx].arrived        = 'TRUE';
+      allGuests[idx].pay_confirmed  = 'TRUE';
       allGuests[idx].payment_method = method;
     }
     pendingGuest = null;
-    // ゲスト一覧が開いていたら再集計
-    if (currentEventId) updateGuestStats();
+    // ゲスト一覧タブのイベントが同じなら統計を再描画
+    if (currentEventId === eventId) {
+      updateGuestStats();
+      renderGuestTable();
+    }
+    toast(`✅ ${d.name}（${methodLabel}）チェックイン完了`);
   } else {
-    setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
+    setScanMsg('❌ ' + (d.message || 'チェックインに失敗しました'), 'err');
+    toast('❌ ' + (d.message || 'チェックインに失敗しました'));
   }
   checkinBusy = false;
 }
