@@ -138,10 +138,13 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
       <button class="gender-btn" id="g-female" onclick="selectGender('female')">女性</button>
     </div>
   </div>
-  <div class="form-section">
+  <!-- promoterパラメータがない場合のみ表示 -->
+  <div class="form-section" id="f-invited-by-section">
     <label class="form-label">招待者名（プロモーター名）</label>
     <input class="form-input" id="f-invited-by" placeholder="紹介してくれた方のお名前">
   </div>
+  <!-- promoterパラメータがある場合の隠しフィールド（ゲストには見えない） -->
+  <input type="hidden" id="f-invited-by-hidden" value="">
 
   <!-- 利用規約 -->
   <div class="terms-section">
@@ -206,7 +209,7 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
       <div class="ah-label">当日の入場料</div>
       <div class="ah-value" id="res-amount-val">—</div>
     </div>
-    <div class="amount-note">※ 入場時にスタッフへ現金でお支払いください</div>
+    <div class="amount-note">※ 入場時にスタッフが支払い方法をご案内します</div>
   </div>
 
   <div>
@@ -292,6 +295,7 @@ let currentEvent   = null;
 let currentPayType = 'paid';
 let selectedGender = '';
 let termsAgreed    = false;
+let hiddenPromoter = '';  // ゲストには見えないプロモーター名
 
 async function apiGet(p)  { const r = await fetch(API + '?' + new URLSearchParams(p)); return r.json(); }
 async function apiPost(b) {
@@ -305,14 +309,15 @@ async function apiPost(b) {
 
 window.addEventListener('load', async () => {
   fetch(API + '?action=ping').catch(() => {});
-  const params  = new URLSearchParams(location.search);
-  const eventId = params.get('e')    || '';
-  const type    = params.get('type') || 'paid';
+  const params   = new URLSearchParams(location.search);
+  const eventId  = params.get('e')        || '';
+  const type     = params.get('type')     || 'paid';
+  const promoter = params.get('promoter') || '';
   if (!eventId) { showError('URLにイベントIDが含まれていません'); return; }
   try {
     const data = await apiGet({ action: 'getEvents' });
     const ev   = (data.events || []).find(e => e.event_id === eventId);
-    if (!ev)                         { showError('イベントが見つかりません'); return; }
+    if (!ev)                            { showError('イベントが見つかりません'); return; }
     if (String(ev.status) === 'closed') { showError('このイベントの受付は終了しました'); return; }
     currentEvent   = ev;
     currentPayType = type === 'free' ? 'free' : 'paid';
@@ -328,6 +333,14 @@ window.addEventListener('load', async () => {
       badge.textContent = `有料招待 男¥${pm} / 女¥${pf}`;
       badge.className   = 'invite-type type-paid';
     }
+
+    // promoterパラメータがある場合 → 招待者欄を完全に非表示にして隠しフィールドに保存
+    if (promoter) {
+      hiddenPromoter = promoter;
+      document.getElementById('f-invited-by-section').style.display = 'none';
+      document.getElementById('f-invited-by-hidden').value = promoter;
+    }
+
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('form-screen').style.display    = 'block';
   } catch(err) {
@@ -368,12 +381,16 @@ function toggleAgree() {
 }
 
 async function submitForm() {
-  const name      = document.getElementById('f-name').value.trim();
-  const email     = document.getElementById('f-email').value.trim();
-  const invitedBy = document.getElementById('f-invited-by').value.trim();
-  const errEl     = document.getElementById('form-error');
+  const name  = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  // promoterパラメータがある場合は隠し変数を使用、ない場合はフォームから取得
+  const invitedBy = hiddenPromoter
+    ? hiddenPromoter
+    : document.getElementById('f-invited-by').value.trim();
+  const errEl = document.getElementById('form-error');
 
-  if (!name || !email || !selectedGender || !invitedBy) {
+  // 招待者欄が非表示の場合は invitedBy のチェックをスキップ
+  if (!name || !email || !selectedGender || (!hiddenPromoter && !invitedBy)) {
     errEl.textContent   = 'すべての項目を入力してください';
     errEl.style.display = 'block';
     return;
