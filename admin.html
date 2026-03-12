@@ -562,8 +562,7 @@ async function loadGuestsForEvent(eventId) {
 
 // ── QRスキャン ───────────────────────────────────────
 function manualInput() {
-  const id = prompt('ゲストIDを入力してください
-例: G-XXXXXXXX');
+  const id = prompt('ゲストIDを入力してください\n例: G-XXXXXXXX');
   if (id && id.trim()) {
     processCheckIn(id.trim().toUpperCase());
   }
