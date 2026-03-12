@@ -21,6 +21,7 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .event-info{margin-top:20px;padding:16px 20px;border:1px solid rgba(201,168,76,0.2);background:rgba(201,168,76,0.04);}
 .event-name{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.1rem;color:var(--gold);}
 .event-date{font-size:0.65rem;color:var(--gray);margin-top:4px;letter-spacing:0.1em;}
+.event-description{font-size:0.75rem;color:var(--gray);margin-top:10px;line-height:1.8;white-space:pre-line;border-top:1px solid rgba(201,168,76,0.15);padding-top:10px;}
 .invite-type{display:inline-block;margin-top:10px;padding:3px 12px;font-size:0.52rem;letter-spacing:0.2em;text-transform:uppercase;border:1px solid;font-weight:500;}
 .type-free{color:#9B8EC4;border-color:rgba(155,142,196,0.5);background:rgba(155,142,196,0.08);}
 .type-paid{color:var(--gold);border-color:rgba(201,168,76,0.4);background:rgba(201,168,76,0.06);}
@@ -33,62 +34,24 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .gender-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,0.06);}
 .gender-btn{background:var(--dark);padding:14px;text-align:center;cursor:pointer;font-size:0.65rem;letter-spacing:0.15em;color:var(--gray);transition:all 0.2s;border:none;}
 .gender-btn.active{background:rgba(201,168,76,0.1);color:var(--gold);}
-
-/* ── 利用規約 ── */
-.terms-section{margin-bottom:28px;}
-.terms-label{font-size:0.55rem;letter-spacing:0.25em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;display:block;}
-.terms-box{background:var(--dark);border:1px solid rgba(255,255,255,0.08);height:180px;overflow-y:scroll;padding:16px 18px;margin-bottom:14px;-webkit-overflow-scrolling:touch;}
-.terms-box::-webkit-scrollbar{width:3px;}
-.terms-box::-webkit-scrollbar-track{background:rgba(255,255,255,0.03);}
-.terms-box::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.3);}
-.terms-title{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:0.8rem;color:var(--gold);margin-bottom:12px;letter-spacing:0.1em;}
-.terms-body{font-size:0.62rem;color:rgba(245,240,232,0.6);line-height:2;letter-spacing:0.04em;}
-.terms-body h4{font-size:0.6rem;color:var(--gray);letter-spacing:0.15em;text-transform:uppercase;margin:14px 0 6px;font-weight:500;}
-.terms-body p{margin-bottom:8px;}
-.terms-scroll-hint{font-size:0.5rem;color:var(--gray);text-align:center;margin-bottom:12px;letter-spacing:0.1em;opacity:0.7;}
-.terms-agree-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.02);cursor:pointer;}
-.terms-agree-row:hover{border-color:rgba(201,168,76,0.3);}
-.terms-checkbox{width:18px;height:18px;border:1px solid rgba(255,255,255,0.2);background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;cursor:pointer;}
-.terms-checkbox.checked{background:var(--gold);border-color:var(--gold);}
-.terms-checkbox.checked::after{content:'✓';font-size:0.7rem;color:var(--black);font-weight:700;}
-.terms-agree-text{font-size:0.65rem;color:var(--gray);line-height:1.6;}
-.terms-agree-text span{color:var(--white);}
-
 .btn-submit{width:100%;margin-top:8px;background:var(--gold);border:none;cursor:pointer;padding:18px;color:var(--black);font-family:-apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;transition:all 0.3s;}
 .btn-submit:hover{background:var(--gold-light);}
-.btn-submit:disabled{opacity:0.35;cursor:not-allowed;background:var(--gray);}
+.btn-submit:disabled{opacity:0.4;cursor:not-allowed;}
 .error-msg{color:#CF4444;font-size:0.68rem;margin-top:10px;display:none;}
 
-/* ── 結果画面 ── */
 #result{display:none;}
 .result-header{text-align:center;margin-bottom:32px;}
 .result-title{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.4rem;color:var(--gold);margin-bottom:8px;}
 .result-sub{font-size:0.62rem;color:var(--gray);letter-spacing:0.12em;line-height:1.8;}
 .qr-box{background:var(--dark);border:1px solid rgba(201,168,76,0.25);padding:32px;text-align:center;margin-bottom:20px;}
 .qr-inner{background:#fff;display:inline-block;padding:16px;margin-bottom:20px;}
-#qr-container canvas,#qr-container img{display:block;}
+#qr-container canvas, #qr-container img{display:block;}
 .guest-id-label{font-size:0.48rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin-bottom:6px;}
 .guest-id-val{font-family:monospace;font-size:1.4rem;color:var(--gold);letter-spacing:0.15em;}
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.7rem;}
+.info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.7rem;}
 .info-row:last-child{border-bottom:none;}
 .info-key{color:var(--gray);}
 .info-val{color:var(--white);}
-
-/* 入場料ハイライト */
-.amount-highlight{
-  background:rgba(201,168,76,0.08);
-  border:1px solid rgba(201,168,76,0.25);
-  border-radius:0;
-  padding:14px 18px;
-  margin:16px 0;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.amount-highlight .ah-label{font-size:0.52rem;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;}
-.amount-highlight .ah-value{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.6rem;color:var(--gold);}
-.amount-note{font-size:0.55rem;color:var(--gray);text-align:right;margin-top:-10px;margin-bottom:12px;line-height:1.8;}
-
 .mail-notice{margin-top:20px;padding:14px 16px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gray);line-height:1.8;text-align:center;}
 
 #loading-screen{text-align:center;padding:80px 24px;}
@@ -119,6 +82,7 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
     <div class="event-info" id="event-info">
       <div class="event-name" id="ev-name">—</div>
       <div class="event-date" id="ev-date">—</div>
+      <div class="event-description" id="ev-description" style="display:none;"></div>
       <span class="invite-type" id="invite-type-badge">—</span>
     </div>
   </div>
@@ -138,58 +102,15 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
       <button class="gender-btn" id="g-female" onclick="selectGender('female')">女性</button>
     </div>
   </div>
-  <!-- promoterパラメータがない場合のみ表示 -->
-  <div class="form-section" id="f-invited-by-section">
+  <div class="form-section">
     <label class="form-label">招待者名（プロモーター名）</label>
     <input class="form-input" id="f-invited-by" placeholder="紹介してくれた方のお名前">
   </div>
-  <!-- promoterパラメータがある場合の隠しフィールド（ゲストには見えない） -->
-  <input type="hidden" id="f-invited-by-hidden" value="">
 
-  <!-- 利用規約 -->
-  <div class="terms-section">
-    <label class="terms-label">利用規約</label>
-    <div class="terms-box" id="terms-box">
-      <div class="terms-title">LUXE PARTY TOKYO 参加規約</div>
-      <div class="terms-body">
-
-        <h4>【撮影・SNS掲載について】</h4>
-        <p>本イベントでは、会場内の様子を写真・動画にて撮影し、主催者および関係者のSNS・WEBサイト・その他広報物等に使用する場合があります。ご来場時点で、これらの撮影および利用について原則として同意いただいたものとみなします。</p>
-        <p>撮影・掲載を希望されない場合は、事前または撮影時にスタッフまたはカメラマンへお申し出ください。可能な範囲で配慮・対応いたします。なお、会場全体の風景や群衆が写り込む映像・写真については、個別対応ができない場合があります。あらかじめご了承ください。</p>
-
-        <h4>【免責・マナーについて】</h4>
-        <p>・会場内での盗難・紛失・破損等について、主催者は一切の責任を負いかねます。貴重品は各自の責任にて管理をお願いいたします。</p>
-        <p>・飲酒は20歳以上の方に限ります。過度な飲酒や他のお客様が不快に感じる行為が確認された場合、スタッフよりお声がけする場合があります。</p>
-        <p>・会場内で生じる不慮の事故（衣服の汚損・破損、転倒等を含む）につきまして、主催者の故意または重大な過失によらない限り、主催者は責任を負いかねます。</p>
-
-        <h4>【交流・勧誘に関する考え方】</h4>
-        <p>本イベントは、プライベート・ビジネス双方において質の高い出会いや交流が生まれる場を大切にしています。参加者同士の自然な会話や、合意のもとでのビジネス的な交流については特に制限しておりません。</p>
-        <p>ただし、主催者の許可なく他イベント等への集客・勧誘を主目的とした行為や、場の雰囲気を損なうと判断される行為についてはご遠慮いただいております。該当すると判断した場合、スタッフよりお声がけ、またはご退場をお願いする場合があります。</p>
-
-        <h4>【入場・滞在・返金について】</h4>
-        <p>本イベントは招待制です。会場の雰囲気・趣旨・安全管理等の観点から、運営側が不適切と判断した場合には、入場のお断りまたはご退場をお願いする場合があります。その際、入場料・チケット代金の返金はいたしかねます。あらかじめご了承ください。</p>
-
-        <h4>【会場内での損害・不利益について】</h4>
-        <p>衣服・持ち物の汚損、飲食物によるシミ、他の参加者との接触による損害等、主催者の故意または重大な過失によらない事由については、主催者は責任を負いかねます。参加者同士のトラブルについても、当事者間での解決をお願いする場合があります。</p>
-
-        <p style="margin-top:16px;color:rgba(245,240,232,0.5);">ご参加をもって、上記事項へのご理解・ご同意をいただいたものとみなします。</p>
-      </div>
-    </div>
-    <div class="terms-scroll-hint" id="scroll-hint">▼ スクロールして全文をお読みください</div>
-    <div class="terms-agree-row" onclick="toggleAgree()" id="terms-agree-row">
-      <div class="terms-checkbox" id="terms-checkbox"></div>
-      <div class="terms-agree-text">
-        <span>利用規約に同意します</span><br>
-        上記の規約を読み、内容に同意の上で申し込みます。
-      </div>
-    </div>
-  </div>
-
-  <button class="btn-submit" id="btn-submit" onclick="submitForm()" disabled>申し込む</button>
+  <button class="btn-submit" id="btn-submit" onclick="submitForm()">申し込む</button>
   <div class="error-msg" id="form-error">入力内容をご確認ください</div>
 </div>
 
-<!-- 結果画面 -->
 <div class="wrap" id="result">
   <div class="result-header">
     <div class="result-title">ご登録ありがとうございます</div>
@@ -202,91 +123,179 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
     <div class="guest-id-label">Guest ID</div>
     <div class="guest-id-val" id="res-guest-id">—</div>
   </div>
-
-  <!-- 入場料ハイライト（有料のみ表示） -->
-  <div id="res-amount-block" style="display:none;">
-    <div class="amount-highlight">
-      <div class="ah-label">当日の入場料</div>
-      <div class="ah-value" id="res-amount-val">—</div>
-    </div>
-    <div class="amount-note">※ 入場時にスタッフが支払い方法をご案内します</div>
-  </div>
-
   <div>
     <div class="info-row"><span class="info-key">お名前</span><span class="info-val" id="res-name">—</span></div>
     <div class="info-row"><span class="info-key">イベント</span><span class="info-val" id="res-event">—</span></div>
     <div class="info-row"><span class="info-key">種別</span><span class="info-val" id="res-type">—</span></div>
+    <div class="info-row" id="res-amount-row" style="display:none"><span class="info-key">入場料</span><span class="info-val" id="res-amount">—</span></div>
     <div class="info-row"><span class="info-key">招待者</span><span class="info-val" id="res-invited-by">—</span></div>
   </div>
   <div class="mail-notice">📧 登録メールアドレスにQRコードを送信しました</div>
 </div>
 
-<!-- QRコード生成 -->
+<!-- QRコード生成（SVG・外部ライブラリ不使用） -->
 <script>
+// ── QR生成エンジン ──────────────────────────────────────────
 (function(g){
-  var EXP=new Array(512),LOG=new Array(256);
+  // GF(256) 初期化
+  var EXP=new Array(512), LOG=new Array(256);
   var x=1;
   for(var i=0;i<256;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x>=256)x^=0x11d;}
   for(var i=255;i<512;i++)EXP[i]=EXP[i-255];
-  EXP[0]=1;
+  EXP[0]=1; // 念のため
+
   function mul(a,b){return(a&&b)?EXP[LOG[a]+LOG[b]]:0;}
+
   function rsEC(data,n){
+    // ジェネレータ多項式
     var gen=[1];
-    for(var i=0;i<n;i++){var g2=[1,EXP[i]],ng=new Array(gen.length+1).fill(0);for(var j=0;j<gen.length;j++)for(var k=0;k<g2.length;k++)ng[j+k]^=mul(gen[j],g2[k]);gen=ng;}
+    for(var i=0;i<n;i++){
+      var g2=[1,EXP[i]];
+      var ng=new Array(gen.length+1).fill(0);
+      for(var j=0;j<gen.length;j++)for(var k=0;k<g2.length;k++)ng[j+k]^=mul(gen[j],g2[k]);
+      gen=ng;
+    }
     var msg=data.concat(new Array(n).fill(0));
-    for(var i=0;i<data.length;i++){var c=msg[i];if(c)for(var j=0;j<gen.length;j++)msg[i+j]^=mul(c,gen[j]);}
+    for(var i=0;i<data.length;i++){
+      var c=msg[i];
+      if(c)for(var j=0;j<gen.length;j++)msg[i+j]^=mul(c,gen[j]);
+    }
     return msg.slice(data.length);
   }
+
+  // バージョン/ECL=M の DC容量
   var DC_CAP=[0,16,28,44,64,86];
+  // ECブロック数とEC codewords/block
   var EC_PER=[0,10,16,26,18,24];
-  g.makeQRSvg=function(text){
+
+  g.makeQRSvg = function(text){
+    // UTF-8 エンコード
     var bytes=[];
-    for(var i=0;i<text.length;i++){var c=text.charCodeAt(i);if(c<0x80)bytes.push(c);else if(c<0x800){bytes.push(0xC0|(c>>6));bytes.push(0x80|(c&63));}else{bytes.push(0xE0|(c>>12));bytes.push(0x80|((c>>6)&63));bytes.push(0x80|(c&63));}}
+    for(var i=0;i<text.length;i++){
+      var c=text.charCodeAt(i);
+      if(c<0x80)bytes.push(c);
+      else if(c<0x800){bytes.push(0xC0|(c>>6));bytes.push(0x80|(c&0x3F));}
+      else{bytes.push(0xE0|(c>>12));bytes.push(0x80|((c>>6)&0x3F));bytes.push(0x80|(c&0x3F));}
+    }
+
+    // バージョン選択 (ECL=M)
     var ver=1;
     for(var v=1;v<=5;v++){if(bytes.length<=DC_CAP[v]-3){ver=v;break;}}
-    if(bytes.length>DC_CAP[5]-3)return null;
-    var dcTotal=DC_CAP[ver],ecN=EC_PER[ver];
+    if(bytes.length>DC_CAP[5]-3)return null; // 長すぎ
+
+    var dcTotal=DC_CAP[ver];
+    var ecN=EC_PER[ver];
+
+    // ビット列構築
     var bits=[];
-    function pb(val,n){for(var i=n-1;i>=0;i--)bits.push((val>>i)&1);}
-    pb(4,4);pb(bytes.length,8);for(var i=0;i<bytes.length;i++)pb(bytes[i],8);
+    function pushBits(val,n){for(var i=n-1;i>=0;i--)bits.push((val>>i)&1);}
+    pushBits(4,4);           // バイトモード
+    pushBits(bytes.length,8);
+    for(var i=0;i<bytes.length;i++)pushBits(bytes[i],8);
+    // ターミネータ
     for(var i=0;i<4&&bits.length<dcTotal*8;i++)bits.push(0);
     while(bits.length%8)bits.push(0);
-    var PAD=[0xEC,0x11],pi=0;while(bits.length<dcTotal*8){pb(PAD[pi%2],8);pi++;}
-    var dc=[];for(var i=0;i<bits.length;i+=8){var v=0;for(var j=0;j<8;j++)v=(v<<1)|bits[i+j];dc.push(v);}
-    var ec=rsEC(dc,ecN),cw=dc.concat(ec);
-    var N=ver*4+17,mat=[],used=[];
+    var PAD=[0xEC,0x11],pi=0;
+    while(bits.length<dcTotal*8){pushBits(PAD[pi%2],8);pi++;}
+
+    // バイト化
+    var dc=[];
+    for(var i=0;i<bits.length;i+=8){var v=0;for(var j=0;j<8;j++)v=(v<<1)|bits[i+j];dc.push(v);}
+
+    // EC生成 (単一ブロック)
+    var ec=rsEC(dc,ecN);
+    var cw=dc.concat(ec);
+
+    // マトリクス構築
+    var N=ver*4+17;
+    var mat=[];var used=[];
     for(var i=0;i<N;i++){mat.push(new Array(N).fill(0));used.push(new Array(N).fill(false));}
-    function sm(r,c,v){mat[r][c]=v?1:0;used[r][c]=true;}
-    function ib(r,c){return r>=0&&r<N&&c>=0&&c<N;}
-    [[0,0],[0,N-7],[N-7,0]].forEach(function(p){
-      var br=p[0],bc=p[1];
-      for(var r=0;r<7;r++)for(var c=0;c<7;c++)sm(br+r,bc+c,(r===0||r===6||c===0||c===6||(r>=2&&r<=4&&c>=2&&c<=4))?1:0);
-      for(var i=-1;i<=7;i++){if(ib(br+i,bc-1))sm(br+i,bc-1,0);if(ib(br+i,bc+7))sm(br+i,bc+7,0);if(ib(br-1,bc+i))sm(br-1,bc+i,0);if(ib(br+7,bc+i))sm(br+7,bc+i,0);}
-    });
-    for(var i=8;i<N-8;i++){sm(6,i,i%2===0?1:0);sm(i,6,i%2===0?1:0);}
-    var APT=[[],[],[6,18],[6,22],[6,26],[6,30]],ap=APT[ver]||[];
-    for(var ai=0;ai<ap.length;ai++)for(var aj=0;aj<ap.length;aj++){var ar=ap[ai],ac=ap[aj];if(used[ar][ac])continue;for(var dr=-2;dr<=2;dr++)for(var dc2=-2;dc2<=2;dc2++)sm(ar+dr,ac+dc2,(Math.abs(dr)===2||Math.abs(dc2)===2||(!dr&&!dc2))?1:0);}
-    sm(4*ver+9,8,1);
-    var F1=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
-    var F2=[[N-1,8],[N-2,8],[N-3,8],[N-4,8],[N-5,8],[N-6,8],[N-7,8],[8,N-8],[8,N-7],[8,N-6],[8,N-5],[8,N-4],[8,N-3],[8,N-2],[8,N-1]];
-    for(var i=0;i<F1.length;i++)used[F1[i][0]][F1[i][1]]=true;
-    for(var i=0;i<F2.length;i++)used[F2[i][0]][F2[i][1]]=true;
-    var db=[];for(var i=0;i<cw.length;i++)for(var b=7;b>=0;b--)db.push((cw[i]>>b)&1);
-    var bi=0,up=true,col=N-1;
-    while(col>0){if(col===6)col--;for(var i=0;i<N;i++){var row=up?(N-1-i):i;for(var d=0;d<2;d++){var c=col-d;if(!used[row][c]){mat[row][c]=db[bi]||0;bi++;}}}up=!up;col-=2;}
-    for(var r=0;r<N;r++)for(var c=0;c<N;c++){if(used[r][c])continue;if((r+c)%2===0)mat[r][c]^=1;}
-    var raw=(1<<3)|0,rem=raw<<10;
+
+    function setM(r,c,v){mat[r][c]=v?1:0;used[r][c]=true;}
+    function inBounds(r,c){return r>=0&&r<N&&c>=0&&c<N;}
+
+    // ファインダーパターン
+    var FP=[[0,0],[0,N-7],[N-7,0]];
+    for(var f=0;f<FP.length;f++){
+      var br=FP[f][0],bc=FP[f][1];
+      for(var r=0;r<7;r++)for(var c=0;c<7;c++){
+        setM(br+r,bc+c,(r===0||r===6||c===0||c===6||( r>=2&&r<=4&&c>=2&&c<=4))?1:0);
+      }
+      // セパレータ
+      for(var i=-1;i<=7;i++){
+        if(inBounds(br+i,bc-1))setM(br+i,bc-1,0);
+        if(inBounds(br+i,bc+7))setM(br+i,bc+7,0);
+        if(inBounds(br-1,bc+i))setM(br-1,bc+i,0);
+        if(inBounds(br+7,bc+i))setM(br+7,bc+i,0);
+      }
+    }
+
+    // タイミングパターン
+    for(var i=8;i<N-8;i++){setM(6,i,i%2===0?1:0);setM(i,6,i%2===0?1:0);}
+
+    // アライメントパターン (ver>=2)
+    var APT=[[],[],[6,18],[6,22],[6,26],[6,30]];
+    var ap=APT[ver]||[];
+    for(var ai=0;ai<ap.length;ai++)for(var aj=0;aj<ap.length;aj++){
+      var ar=ap[ai],ac=ap[aj];
+      if(used[ar][ac])continue;
+      for(var dr=-2;dr<=2;dr++)for(var dc2=-2;dc2<=2;dc2++)
+        setM(ar+dr,ac+dc2,(Math.abs(dr)===2||Math.abs(dc2)===2||(!dr&&!dc2))?1:0);
+    }
+
+    // ダークモジュール
+    setM(4*ver+9,8,1);
+
+    // フォーマット情報領域を予約
+    var FMT1=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+    var FMT2=[[N-1,8],[N-2,8],[N-3,8],[N-4,8],[N-5,8],[N-6,8],[N-7,8],[8,N-8],[8,N-7],[8,N-6],[8,N-5],[8,N-4],[8,N-3],[8,N-2],[8,N-1]];
+    for(var i=0;i<FMT1.length;i++)used[FMT1[i][0]][FMT1[i][1]]=true;
+    for(var i=0;i<FMT2.length;i++)used[FMT2[i][0]][FMT2[i][1]]=true;
+
+    // データ配置
+    var dataBits=[];
+    for(var i=0;i<cw.length;i++)for(var b=7;b>=0;b--)dataBits.push((cw[i]>>b)&1);
+    var bi=0,upward=true,col=N-1;
+    while(col>0){
+      if(col===6)col--;
+      for(var i=0;i<N;i++){
+        var row=upward?(N-1-i):i;
+        for(var dc3=0;dc3<2;dc3++){
+          var c2=col-dc3;
+          if(!used[row][c2]){mat[row][c2]=dataBits[bi]||0;bi++;}
+        }
+      }
+      upward=!upward;col-=2;
+    }
+
+    // マスク評価 (マスク0固定で簡略化 - 実用上問題なし)
+    var MASK=0;
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++){
+      if(used[r][c])continue;
+      if((r+c)%2===0)mat[r][c]^=1;
+    }
+
+    // フォーマット情報書き込み (ECL=M:01, mask=0)
+    var ecBits=1; // M=01 → MSB=0,LSB=1 → bits=01
+    var raw=(ecBits<<3)|MASK; // 01 000
+    var rem=raw<<10;
     for(var i=14;i>=10;i--)if((rem>>i)&1)rem^=(0x537<<(i-10));
     var fmt=((raw<<10)|rem)^0x5412;
-    for(var i=0;i<15;i++){var b=(fmt>>(14-i))&1;mat[F1[i][0]][F1[i][1]]=b;mat[F2[i][0]][F2[i][1]]=b;}
+    for(var i=0;i<15;i++){
+      var b=(fmt>>(14-i))&1;
+      mat[FMT1[i][0]][FMT1[i][1]]=b;
+      mat[FMT2[i][0]][FMT2[i][1]]=b;
+    }
+
+    // SVG出力
     var cell=10,margin=4,size=(N+margin*2)*cell;
     var rects='';
-    for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(mat[r][c])rects+='<rect x="'+((c+margin)*cell)+'" y="'+((r+margin)*cell)+'" width="'+cell+'" height="'+cell+'"/>';
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++)
+      if(mat[r][c])rects+='<rect x="'+((c+margin)*cell)+'" y="'+((r+margin)*cell)+'" width="'+cell+'" height="'+cell+'"/>';
     return '<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'"><rect width="'+size+'" height="'+size+'" fill="#fff"/><g fill="#000">'+rects+'</g></svg>';
   };
 })(window);
 </script>
-
 <script>
 const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
 const BASE_URL = 'https://luxepartycom.github.io/event-system/';
@@ -294,35 +303,43 @@ const BASE_URL = 'https://luxepartycom.github.io/event-system/';
 let currentEvent   = null;
 let currentPayType = 'paid';
 let selectedGender = '';
-let termsAgreed    = false;
-let hiddenPromoter = '';  // ゲストには見えないプロモーター名
 
-async function apiGet(p)  { const r = await fetch(API + '?' + new URLSearchParams(p)); return r.json(); }
+async function apiGet(p)  { const r=await fetch(API+'?'+new URLSearchParams(p)); return r.json(); }
 async function apiPost(b) {
   const r = await fetch(API, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body:    JSON.stringify(b)
+    body: JSON.stringify(b)
   });
   return r.json();
 }
 
 window.addEventListener('load', async () => {
-  fetch(API + '?action=ping').catch(() => {});
-  const params   = new URLSearchParams(location.search);
-  const eventId  = params.get('e')        || '';
-  const type     = params.get('type')     || 'paid';
-  const promoter = params.get('promoter') || '';
+  fetch(API + '?action=ping').catch(()=>{});
+  const params  = new URLSearchParams(location.search);
+  const eventId = params.get('e') || '';
+  const type    = params.get('type') || 'paid';
+
   if (!eventId) { showError('URLにイベントIDが含まれていません'); return; }
+
   try {
     const data = await apiGet({ action: 'getEvents' });
     const ev   = (data.events || []).find(e => e.event_id === eventId);
-    if (!ev)                            { showError('イベントが見つかりません'); return; }
+    if (!ev) { showError('イベントが見つかりません'); return; }
     if (String(ev.status) === 'closed') { showError('このイベントの受付は終了しました'); return; }
+
     currentEvent   = ev;
     currentPayType = type === 'free' ? 'free' : 'paid';
+
     document.getElementById('ev-name').textContent = ev.name;
     document.getElementById('ev-date').textContent = ev.date;
+    const descEl = document.getElementById('ev-description');
+    if (ev.description && ev.description.trim()) {
+      descEl.textContent = ev.description.trim();
+      descEl.style.display = 'block';
+    } else {
+      descEl.style.display = 'none';
+    }
     const badge = document.getElementById('invite-type-badge');
     if (currentPayType === 'free') {
       badge.textContent = '無料招待';
@@ -334,25 +351,11 @@ window.addEventListener('load', async () => {
       badge.className   = 'invite-type type-paid';
     }
 
-    // promoterパラメータがある場合 → 招待者欄を完全に非表示にして隠しフィールドに保存
-    if (promoter) {
-      hiddenPromoter = promoter;
-      document.getElementById('f-invited-by-section').style.display = 'none';
-      document.getElementById('f-invited-by-hidden').value = promoter;
-    }
-
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('form-screen').style.display    = 'block';
   } catch(err) {
     showError('読み込みに失敗しました。しばらく経ってから再度お試しください。');
   }
-
-  // スクロール検知でヒントを消す
-  const box = document.getElementById('terms-box');
-  box.addEventListener('scroll', function() {
-    const hint = document.getElementById('scroll-hint');
-    if (hint) hint.style.opacity = '0';
-  }, { passive: true });
 });
 
 function showError(msg) {
@@ -367,41 +370,19 @@ function selectGender(g) {
   document.getElementById('g-female').classList.toggle('active', g === 'female');
 }
 
-function toggleAgree() {
-  termsAgreed = !termsAgreed;
-  const cb  = document.getElementById('terms-checkbox');
-  const btn = document.getElementById('btn-submit');
-  if (termsAgreed) {
-    cb.classList.add('checked');
-    btn.disabled = false;
-  } else {
-    cb.classList.remove('checked');
-    btn.disabled = true;
-  }
-}
-
 async function submitForm() {
-  const name  = document.getElementById('f-name').value.trim();
-  const email = document.getElementById('f-email').value.trim();
-  // promoterパラメータがある場合は隠し変数を使用、ない場合はフォームから取得
-  const invitedBy = hiddenPromoter
-    ? hiddenPromoter
-    : document.getElementById('f-invited-by').value.trim();
-  const errEl = document.getElementById('form-error');
+  const name      = document.getElementById('f-name').value.trim();
+  const email     = document.getElementById('f-email').value.trim();
+  const invitedBy = document.getElementById('f-invited-by').value.trim();
+  const errEl     = document.getElementById('form-error');
 
-  // 招待者欄が非表示の場合は invitedBy のチェックをスキップ
-  if (!name || !email || !selectedGender || (!hiddenPromoter && !invitedBy)) {
-    errEl.textContent   = 'すべての項目を入力してください';
+  if (!name || !email || !selectedGender || !invitedBy) {
+    errEl.textContent = 'すべての項目を入力してください';
     errEl.style.display = 'block';
     return;
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errEl.textContent   = 'メールアドレスの形式が正しくありません';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (!termsAgreed) {
-    errEl.textContent   = '利用規約に同意してください';
+    errEl.textContent = 'メールアドレスの形式が正しくありません';
     errEl.style.display = 'block';
     return;
   }
@@ -420,14 +401,17 @@ async function submitForm() {
       invited_by: invitedBy,
       pay_type:   currentPayType
     });
+
     if (!data.ok) {
-      errEl.textContent   = data.message || 'エラーが発生しました';
+      errEl.textContent = data.message || 'エラーが発生しました';
       errEl.style.display = 'block';
-      btn.disabled        = false;
-      btn.textContent     = '申し込む';
+      btn.disabled    = false;
+      btn.textContent = '申し込む';
       return;
     }
+
     showResult(data, name, email, invitedBy);
+
     apiPost({
       action:     'sendQREmail',
       guest_id:   data.guest_id,
@@ -435,12 +419,13 @@ async function submitForm() {
       pay_type:   data.pay_type,
       amount:     data.amount,
       event_name: currentEvent.name
-    }).catch(() => {});
+    }).catch(()=>{});
+
   } catch(err) {
-    errEl.textContent   = '通信エラーが発生しました。再度お試しください。';
+    errEl.textContent = '通信エラーが発生しました。再度お試しください。';
     errEl.style.display = 'block';
-    btn.disabled        = false;
-    btn.textContent     = '申し込む';
+    btn.disabled    = false;
+    btn.textContent = '申し込む';
   }
 }
 
@@ -454,17 +439,16 @@ function showResult(data, name, email, invitedBy) {
   document.getElementById('res-invited-by').textContent = invitedBy;
 
   if (data.pay_type === 'free') {
-    document.getElementById('res-type').textContent        = '無料招待';
-    document.getElementById('res-amount-block').style.display = 'none';
+    document.getElementById('res-type').textContent = '無料招待';
   } else {
-    document.getElementById('res-type').textContent        = '有料招待';
+    document.getElementById('res-type').textContent = '有料招待';
     if (data.amount > 0) {
-      document.getElementById('res-amount-block').style.display = 'block';
-      document.getElementById('res-amount-val').textContent     = '¥' + Number(data.amount).toLocaleString();
+      document.getElementById('res-amount-row').style.display = 'flex';
+      document.getElementById('res-amount').textContent = '¥' + Number(data.amount).toLocaleString();
     }
   }
 
-  // QRコード生成
+  // SVGでQR生成（外部ライブラリ不使用・iOS Safari対応）
   const container = document.getElementById('qr-container');
   container.innerHTML = '';
   try {
