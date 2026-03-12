@@ -349,7 +349,7 @@ let toastT;
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3000); }
 
 // ── ログイン ─────────────────────────────────────────
-async function doLogin() {
+async async function doLogin() {
   const pw = document.getElementById('login-pw').value.trim();
   const d  = await apiGet({ action:'auth', password:pw });
   if(d.ok) {
