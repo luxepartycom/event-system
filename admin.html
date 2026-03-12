@@ -138,6 +138,13 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .btn-confirm-cash{width:100%;margin-top:14px;background:var(--cash);border:none;cursor:pointer;padding:14px;color:var(--black);font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;}
 .btn-confirm-free{width:100%;margin-top:14px;background:var(--arrived);border:none;cursor:pointer;padding:14px;color:var(--black);font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;}
 
+/* イベント詳細 */
+.ev-desc-block{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.ev-desc{font-size:0.68rem;color:var(--white);opacity:0.75;line-height:1.8;margin:6px 0 8px;white-space:pre-wrap;}
+.ev-desc-empty{font-size:0.6rem;color:rgba(255,255,255,0.2);margin:6px 0 8px;}
+.btn-edit-desc{background:none;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:5px 10px;cursor:pointer;font-family:inherit;font-size:0.52rem;letter-spacing:0.1em;transition:all 0.2s;}
+.btn-edit-desc:hover{border-color:rgba(201,168,76,0.4);color:var(--gold);}
+
 /* 支払い方法選択ボタン */
 .payment-select-area{margin-top:14px;display:none;}
 .payment-select-label{font-size:0.52rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;}
@@ -424,6 +431,13 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <input class="form-input" id="me-date" type="date">
     </div>
     <div class="modal-group">
+      <label class="form-label">イベント詳細（任意）</label>
+      <textarea class="form-input" id="me-description"
+        placeholder="会場・時間・ドレスコードなど&#10;例）会場: ○○ラウンジ&#10;時間: 20:00〜24:00&#10;ドレスコード: スマートカジュアル"
+        rows="5" style="resize:vertical;line-height:1.7;padding-top:10px;font-size:0.8rem;"></textarea>
+      <div class="modal-note">招待フォームのイベント情報欄に表示されます</div>
+    </div>
+    <div class="modal-group">
       <label class="form-label">有料招待の入場料（性別別）</label>
       <div class="price-grid">
         <div class="price-item"><label>男性 (¥)</label><input class="form-input" id="me-price-male"   type="number" placeholder="5000" value="5000"></div>
@@ -434,6 +448,25 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     <div class="modal-actions">
       <button class="btn-cancel"  onclick="closeModal('modal-event')">キャンセル</button>
       <button class="btn-confirm" onclick="addEvent()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- モーダル: イベント詳細編集 -->
+<div class="modal-overlay" id="modal-edit-desc">
+  <div class="modal">
+    <div class="modal-title">イベント詳細を編集</div>
+    <div class="modal-group">
+      <div style="font-size:0.7rem;color:var(--gold);margin-bottom:12px;" id="edit-desc-ev-name"></div>
+      <label class="form-label">イベント詳細</label>
+      <textarea class="form-input" id="edit-desc-text"
+        placeholder="会場・時間・ドレスコードなど"
+        rows="6" style="resize:vertical;line-height:1.7;padding-top:10px;font-size:0.8rem;"></textarea>
+      <div class="modal-note">変更後、招待フォームに即時反映されます</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel"  onclick="closeModal('modal-edit-desc')">キャンセル</button>
+      <button class="btn-confirm" onclick="saveEventDescription()">保存</button>
     </div>
   </div>
 </div>
@@ -601,6 +634,10 @@ function renderEventGrid() {
       ? promoList.map(u => buildPromoItem(ev.event_id, u)).join('')
       : `<div class="ev-promo-empty">まだ指定URLはありません</div>`;
 
+    const descHtml = ev.description
+      ? `<div class="ev-desc">${ev.description.replace(/\n/g, '<br>')}</div>`
+      : `<div class="ev-desc ev-desc-empty">詳細未設定</div>`;
+
     const card = document.createElement('div');
     card.className = 'event-card';
     card.id = 'ev-card-' + ev.event_id;
@@ -608,6 +645,11 @@ function renderEventGrid() {
       <div class="ev-name">${ev.name}</div>
       <div class="ev-date">${ev.date}</div>
       <span class="ev-status ${ev.status === 'active' ? 'status-active' : 'status-closed'}">${ev.status === 'active' ? '開催中' : '終了'}</span>
+      <div class="ev-desc-block">
+        <div class="ev-url-label">📋 イベント詳細</div>
+        ${descHtml}
+        <button class="btn-edit-desc" onclick="openEditDesc('${ev.event_id}')">✏️ 詳細を編集</button>
+      </div>
       <div class="ev-url-block">
         <div class="ev-url-label" style="color:var(--free)">🎟 無料招待URL</div>
         <div class="ev-url-row"><div class="ev-url-text">${freeUrl}</div><button class="copy-btn" onclick="copyText('${freeUrl}',this)">📋</button></div>
@@ -646,10 +688,40 @@ async function addEvent() {
   const date = document.getElementById('me-date').value;
   const pm   = document.getElementById('me-price-male').value   || 0;
   const pf   = document.getElementById('me-price-female').value || 0;
+  const desc = document.getElementById('me-description').value.trim();
   if (!name || !date) { toast('イベント名と日付を入力してください'); return; }
-  const d = await apiPost({ action: 'addEvent', name, date, price_male: pm, price_female: pf });
-  if (d.ok) { closeModal('modal-event'); await loadEvents(); toast('✦ イベントを追加しました'); }
-  else toast('エラー: ' + d.message);
+  const d = await apiPost({ action: 'addEvent', name, date, price_male: pm, price_female: pf, description: desc });
+  if (d.ok) {
+    document.getElementById('me-name').value = '';
+    document.getElementById('me-date').value = '';
+    document.getElementById('me-description').value = '';
+    closeModal('modal-event');
+    await loadEvents();
+    toast('✦ イベントを追加しました');
+  } else toast('エラー: ' + d.message);
+}
+
+let editDescEventId = null;
+function openEditDesc(eventId) {
+  const ev = allEvents.find(e => e.event_id === eventId);
+  if (!ev) return;
+  editDescEventId = eventId;
+  document.getElementById('edit-desc-ev-name').textContent = ev.name;
+  document.getElementById('edit-desc-text').value = ev.description || '';
+  document.getElementById('modal-edit-desc').classList.add('active');
+}
+async function saveEventDescription() {
+  if (!editDescEventId) return;
+  const desc = document.getElementById('edit-desc-text').value.trim();
+  const d = await apiPost({ action: 'updateEventDescription', event_id: editDescEventId, description: desc });
+  if (d.ok) {
+    const ev = allEvents.find(e => e.event_id === editDescEventId);
+    if (ev) ev.description = desc;
+    closeModal('modal-edit-desc');
+    renderEventGrid();
+    toast('✦ イベント詳細を保存しました');
+  } else toast('エラー: ' + d.message);
+  editDescEventId = null;
 }
 
 async function closeEvent(id)  { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'closed' }); await loadEvents(); toast('受付を終了しました'); }
