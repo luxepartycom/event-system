@@ -439,12 +439,13 @@ async function submitForm() {
     }
     showResult(data, name, email, invitedBy);
     apiPost({
-      action:     'sendQREmail',
-      guest_id:   data.guest_id,
+      action:      'sendQREmail',
+      guest_id:    data.guest_id,
       email, name,
-      pay_type:   data.pay_type,
-      amount:     data.amount,
-      event_name: currentEvent.name
+      pay_type:    data.pay_type,
+      amount:      data.amount,
+      event_name:  currentEvent.name,
+      description: currentEvent.description || ''
     }).catch(() => {});
   } catch(err) {
     errEl.textContent   = '通信エラーが発生しました。再度お試しください。';
