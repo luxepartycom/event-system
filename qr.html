@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUXE PARTY TOKYO — 入場QRコード</title>
+<style>
+:root{
+  --gold:#C9A84C;--gold-light:#E8D08A;
+  --black:#080808;--dark:#111111;
+  --white:#F5F0E8;--gray:#888880;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--black);
+  color:var(--white);
+  font-family:-apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif;
+  font-weight:300;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.bg-glow{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 60% at 60% 40%,rgba(201,168,76,0.05) 0%,transparent 70%);}
+.wrap{position:relative;z-index:1;width:100%;max-width:420px;padding:48px 24px;text-align:center;}
+
+.logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.3rem;color:var(--gold);letter-spacing:0.4em;margin-bottom:4px;}
+.logo-sub{font-size:0.5rem;letter-spacing:0.35em;color:var(--gray);text-transform:uppercase;margin-bottom:40px;}
+
+.qr-box{background:var(--dark);border:1px solid rgba(201,168,76,0.25);padding:32px;margin-bottom:20px;}
+.qr-inner{background:#fff;display:inline-block;padding:16px;margin-bottom:20px;}
+#qr-container svg{display:block;}
+
+.guest-id-label{font-size:0.46rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin-bottom:8px;}
+.guest-id-val{font-family:monospace;font-size:1.5rem;color:var(--gold);letter-spacing:0.15em;}
+
+.notice{font-size:0.62rem;color:var(--gray);line-height:1.9;margin-top:24px;}
+.notice strong{color:var(--white);}
+
+/* loading / error */
+.loading-txt{font-size:0.65rem;color:var(--gray);letter-spacing:0.15em;padding:60px 0;}
+.error-txt{font-size:0.75rem;color:#CF4444;padding:40px 0;line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="wrap">
+  <div class="logo">LUXE PARTY TOKYO</div>
+  <div class="logo-sub">Entry QR Code</div>
+
+  <div id="loading" class="loading-txt">読み込み中…</div>
+  <div id="error"   class="error-txt"   style="display:none;"></div>
+
+  <div id="main" style="display:none;">
+    <div class="qr-box">
+      <div class="qr-inner">
+        <div id="qr-container"></div>
+      </div>
+      <div class="guest-id-label">Guest ID</div>
+      <div class="guest-id-val" id="guest-id-text">—</div>
+    </div>
+    <div class="notice">
+      <strong>当日はこのQRコードをスタッフにご提示ください</strong><br>
+      スクリーンショットを保存しておくと安心です
+    </div>
+  </div>
+</div>
+
+<!-- インラインQR生成エンジン（外部依存なし） -->
+<script>
+(function(g){
+  var EXP=new Array(512),LOG=new Array(256),x=1;
+  for(var i=0;i<256;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x>=256)x^=0x11d;}
+  for(var i=255;i<512;i++)EXP[i]=EXP[i-255];
+  function mul(a,b){return(a&&b)?EXP[LOG[a]+LOG[b]]:0;}
+  function rsEC(data,n){
+    var gen=[1];
+    for(var i=0;i<n;i++){var g2=[1,EXP[i]],ng=new Array(gen.length+1).fill(0);for(var j=0;j<gen.length;j++)for(var k=0;k<g2.length;k++)ng[j+k]^=mul(gen[j],g2[k]);gen=ng;}
+    var msg=data.concat(new Array(n).fill(0));
+    for(var i=0;i<data.length;i++){var c=msg[i];if(c)for(var j=0;j<gen.length;j++)msg[i+j]^=mul(c,gen[j]);}
+    return msg.slice(data.length);
+  }
+  var DC=[0,16,28,44,64,86],EC=[0,10,16,26,18,24];
+  g.makeQRSvg=function(text){
+    var bytes=[];
+    for(var i=0;i<text.length;i++){var c=text.charCodeAt(i);if(c<0x80)bytes.push(c);else if(c<0x800){bytes.push(0xC0|(c>>6));bytes.push(0x80|(c&63));}else{bytes.push(0xE0|(c>>12));bytes.push(0x80|((c>>6)&63));bytes.push(0x80|(c&63));}}
+    var ver=1;for(var v=1;v<=5;v++){if(bytes.length<=DC[v]-3){ver=v;break;}}
+    var bits=[];
+    function pb(val,n){for(var i=n-1;i>=0;i--)bits.push((val>>i)&1);}
+    pb(4,4);pb(bytes.length,8);for(var i=0;i<bytes.length;i++)pb(bytes[i],8);
+    for(var i=0;i<4&&bits.length<DC[ver]*8;i++)bits.push(0);
+    while(bits.length%8)bits.push(0);
+    var PAD=[0xEC,0x11],pi=0;while(bits.length<DC[ver]*8){pb(PAD[pi%2],8);pi++;}
+    var dc=[];for(var i=0;i<bits.length;i+=8){var v=0;for(var j=0;j<8;j++)v=(v<<1)|bits[i+j];dc.push(v);}
+    var ec=rsEC(dc,EC[ver]),cw=dc.concat(ec);
+    var N=ver*4+17,mat=[],used=[];
+    for(var i=0;i<N;i++){mat.push(new Array(N).fill(0));used.push(new Array(N).fill(false));}
+    function sm(r,c,v){mat[r][c]=v?1:0;used[r][c]=true;}
+    function ib(r,c){return r>=0&&r<N&&c>=0&&c<N;}
+    [[0,0],[0,N-7],[N-7,0]].forEach(function(p){
+      var br=p[0],bc=p[1];
+      for(var r=0;r<7;r++)for(var c=0;c<7;c++)sm(br+r,bc+c,(r===0||r===6||c===0||c===6||(r>=2&&r<=4&&c>=2&&c<=4))?1:0);
+      for(var i=-1;i<=7;i++){if(ib(br+i,bc-1))sm(br+i,bc-1,0);if(ib(br+i,bc+7))sm(br+i,bc+7,0);if(ib(br-1,bc+i))sm(br-1,bc+i,0);if(ib(br+7,bc+i))sm(br+7,bc+i,0);}
+    });
+    for(var i=8;i<N-8;i++){sm(6,i,i%2===0?1:0);sm(i,6,i%2===0?1:0);}
+    var APT=[[],[],[6,18],[6,22],[6,26],[6,30]],ap=APT[ver]||[];
+    for(var ai=0;ai<ap.length;ai++)for(var aj=0;aj<ap.length;aj++){var ar=ap[ai],ac=ap[aj];if(used[ar][ac])continue;for(var dr=-2;dr<=2;dr++)for(var dc2=-2;dc2<=2;dc2++)sm(ar+dr,ac+dc2,(Math.abs(dr)===2||Math.abs(dc2)===2||(!dr&&!dc2))?1:0);}
+    sm(4*ver+9,8,1);
+    var F1=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+    var F2=[[N-1,8],[N-2,8],[N-3,8],[N-4,8],[N-5,8],[N-6,8],[N-7,8],[8,N-8],[8,N-7],[8,N-6],[8,N-5],[8,N-4],[8,N-3],[8,N-2],[8,N-1]];
+    for(var i=0;i<F1.length;i++)used[F1[i][0]][F1[i][1]]=true;
+    for(var i=0;i<F2.length;i++)used[F2[i][0]][F2[i][1]]=true;
+    var db=[];for(var i=0;i<cw.length;i++)for(var b=7;b>=0;b--)db.push((cw[i]>>b)&1);
+    var bi=0,up=true,col=N-1;
+    while(col>0){if(col===6)col--;for(var i=0;i<N;i++){var row=up?(N-1-i):i;for(var d=0;d<2;d++){var c=col-d;if(!used[row][c]){mat[row][c]=db[bi]||0;bi++;}}}up=!up;col-=2;}
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++){if(used[r][c])continue;if((r+c)%2===0)mat[r][c]^=1;}
+    var raw=(1<<3)|0,rem=raw<<10;
+    for(var i=14;i>=10;i--)if((rem>>i)&1)rem^=(0x537<<(i-10));
+    var fmt=((raw<<10)|rem)^0x5412;
+    for(var i=0;i<15;i++){var b=(fmt>>(14-i))&1;mat[F1[i][0]][F1[i][1]]=b;mat[F2[i][0]][F2[i][1]]=b;}
+    var cell=10,margin=4,size=(N+margin*2)*cell;
+    var rects='';
+    for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(mat[r][c])rects+='<rect x="'+((c+margin)*cell)+'" y="'+((r+margin)*cell)+'" width="'+cell+'" height="'+cell+'"/>';
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'"><rect width="'+size+'" height="'+size+'" fill="#fff"/><g fill="#000">'+rects+'</g></svg>';
+  };
+})(window);
+</script>
+
+<script>
+window.addEventListener('load', function() {
+  var params  = new URLSearchParams(location.search);
+  var guestId = params.get('id') || '';
+
+  if (!guestId) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display   = 'block';
+    document.getElementById('error').textContent     = 'URLにゲストIDが含まれていません。\nメール内のボタンから再度アクセスしてください。';
+    return;
+  }
+
+  try {
+    var svg = makeQRSvg(guestId);
+    document.getElementById('qr-container').innerHTML    = svg;
+    document.getElementById('guest-id-text').textContent = guestId;
+    document.getElementById('loading').style.display     = 'none';
+    document.getElementById('main').style.display        = 'block';
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display   = 'block';
+    document.getElementById('error').innerHTML       =
+      'QRコードの生成に失敗しました。<br>Guest ID: <strong style="color:#C9A84C;font-family:monospace;">' + guestId + '</strong><br>スタッフにこのIDをお伝えください。';
+  }
+});
+</script>
+</body>
+</html>
