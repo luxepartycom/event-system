@@ -344,10 +344,15 @@ window.addEventListener('load', async () => {
       document.getElementById('f-invited-by-hidden').value = promoter;
     }
 
-    // イベント詳細があれば表示
+    // イベント詳細があれば表示（URLはリンクに変換）
     const descEl = document.getElementById('ev-description');
     if (ev.description && String(ev.description).trim()) {
-      descEl.textContent = ev.description;
+      const descText = String(ev.description).trim();
+      const descHtml = descText.replace(
+        /(https?:\/\/[^\s]+)/g,
+        '<a href="$1" target="_blank" rel="noopener" style="color:var(--gold);word-break:break-all;">$1</a>'
+      );
+      descEl.innerHTML = descHtml;
       descEl.style.display = 'block';
     }
 
