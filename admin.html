@@ -1452,32 +1452,13 @@ async function runAIGrouping() {
   document.getElementById('r-ai-status').textContent  = 'AIが名寄せを分析中…';
 
   try {
-    const prompt = `以下は招待制パーティーの「招待者名（プロモーター名）」の一覧です。同一人物と思われる名前を日本語の表記ゆれ（漢字・ひらがな・カタカナ・略称・敬称など）を考慮してグルーピングしてください。
-
-名前リスト:
-${names.map((n,i) => `${i+1}. ${n}`).join('\n')}
-
-以下のJSON形式のみで回答してください（説明不要）:
-[{"canonical":"正規の表記","aliases":["名前1","名前2"]},...]
-
-ルール:
-- 明らかに同一人物でない場合は1名1グループ
-- canonicalは最も正式・読みやすい表記
-- aliasesにはcanonicalと同じ名前も含める
-- 全ての名前をいずれかのグループに含める`;
-
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+    // GAS経由でAIグルーピングを実行（CORS回避）
+    const resp = await apiPost({
+      action: 'aiGroupNames',
+      names:  names
     });
-    const data = await resp.json();
-    const raw  = data.content?.[0]?.text || '[]';
-    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    if (!resp.ok) throw new Error(resp.message || 'GASエラー');
+    const parsed = resp.groups;
 
     reportGroups = parsed.map((g, i) => ({
       id: 'ai' + i, canonical: g.canonical,
