@@ -208,6 +208,28 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .btn-manual-submit{background:var(--gold);border:none;cursor:pointer;padding:10px 16px;color:var(--black);font-family:inherit;font-size:0.6rem;font-weight:700;letter-spacing:0.1em;white-space:nowrap;}
 
 
+/* ── グループ詳細展開 ── */
+.group-aliases-section{margin-bottom:8px;}
+.alias-chip-row{display:flex;align-items:center;gap:4px;padding:3px 0;}
+.alias-chip-ex{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);padding:3px 10px;font-size:0.62rem;color:var(--gray);flex:1;}
+.alias-chip-ex .alias-name{flex:1;}
+.alias-chip-ex .alias-count{font-size:0.55rem;color:var(--gold-dim);}
+.btn-remove-alias{background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;font-size:0.85rem;padding:2px 6px;flex-shrink:0;transition:color 0.2s;line-height:1;}
+.btn-remove-alias:hover{color:#CF4444;}
+.btn-expand-alias{background:none;border:none;color:var(--gray);cursor:pointer;font-size:0.6rem;padding:2px 8px;flex-shrink:0;transition:color 0.2s;letter-spacing:0.05em;}
+.btn-expand-alias:hover{color:var(--gold);}
+.alias-guest-list{display:none;margin:4px 0 4px 16px;border-left:1px solid rgba(255,255,255,0.06);padding-left:10px;}
+.alias-guest-list.open{display:block;}
+.alias-guest-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.6rem;}
+.alias-guest-row:last-child{border-bottom:none;}
+.agu-name{flex:1;color:var(--white);}
+.agu-gender{color:var(--gray);min-width:18px;}
+.agu-type-free{color:var(--free);font-size:0.5rem;padding:1px 5px;border:1px solid rgba(155,142,196,0.3);}
+.agu-type-paid{color:var(--gold);font-size:0.5rem;padding:1px 5px;border:1px solid rgba(201,168,76,0.3);}
+.agu-arrived-yes{color:var(--arrived);font-size:0.55rem;}
+.agu-arrived-no{color:rgba(255,255,255,0.2);font-size:0.55rem;}
+.agu-date{color:var(--gray);font-size:0.5rem;margin-left:auto;}
+
 /* ── REPORT TAB ── */
 .report-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:24px;}
 .report-btn{background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:9px 16px;cursor:pointer;font-family:inherit;font-size:0.58rem;letter-spacing:0.16em;text-transform:uppercase;transition:all 0.2s;}
@@ -1486,35 +1508,87 @@ function renderReportGroups() {
   const list = document.getElementById('r-groups-list');
   list.innerHTML = '';
   reportGroups.forEach(g => {
-    const count = reportGuests.filter(gu =>
+    const allMembers = reportGuests.filter(gu =>
       g.aliases.some(a => (gu.invited_by||'').trim() === a)
-    ).length;
+    );
+    const totalCount   = allMembers.length;
+    const arrivedCount = allMembers.filter(gu => String(gu.arrived).toUpperCase() === 'TRUE').length;
+
     const card = document.createElement('div');
     card.className = 'group-card' + (g.confirmed ? ' confirmed' : '');
     card.id = 'rgc-' + g.id;
+
+    // エイリアス行を生成（各エイリアスごとにゲスト一覧を折りたたみ）
+    const aliasRows = g.aliases.map(a => {
+      const aliasMembers = reportGuests.filter(gu => (gu.invited_by||'').trim() === a)
+        .sort((x,y) => {
+          const xA = String(x.arrived).toUpperCase() === 'TRUE';
+          const yA = String(y.arrived).toUpperCase() === 'TRUE';
+          if (xA !== yA) return xA ? -1 : 1;
+          return (x.registered_at||'').localeCompare(y.registered_at||'');
+        });
+      const aCnt     = aliasMembers.length;
+      const aArrived = aliasMembers.filter(gu => String(gu.arrived).toUpperCase() === 'TRUE').length;
+      const uid      = g.id + '_' + encodeURIComponent(a);
+
+      const guestRows = aliasMembers.map(gu => {
+        const arr  = String(gu.arrived).toUpperCase() === 'TRUE';
+        const date = (gu.registered_at||'').substring(0,10);
+        const typeClass = gu.pay_type === 'free' ? 'agu-type-free' : 'agu-type-paid';
+        const typeLabel = gu.pay_type === 'free' ? '無料' : '有料';
+        return `<div class="alias-guest-row">
+          <span class="agu-name">${escH(gu.name)}</span>
+          <span class="agu-gender">${gu.gender === 'female' ? '女' : '男'}</span>
+          <span class="${typeClass}">${typeLabel}</span>
+          <span class="${arr ? 'agu-arrived-yes' : 'agu-arrived-no'}">${arr ? '✓ 来場' : '— 未来場'}</span>
+          <span class="agu-date">${date}</span>
+        </div>`;
+      }).join('');
+
+      return `<div class="alias-chip-row">
+        <div class="alias-chip-ex">
+          <span class="alias-name">${escH(a)}</span>
+          <span class="alias-count">${aArrived}/${aCnt}名</span>
+        </div>
+        <button class="btn-expand-alias" onclick="toggleAliasGuests('${uid}')" id="btn-ex-${uid}">▶ 詳細</button>
+        <button class="btn-remove-alias" onclick="removeAlias('${g.id}','${escH(a)}')" title="グループから除外">✕</button>
+      </div>
+      <div class="alias-guest-list" id="agl-${uid}">
+        ${guestRows || '<div style="font-size:0.58rem;color:var(--gray);padding:4px 0;">ゲストなし</div>'}
+      </div>`;
+    }).join('');
+
     card.innerHTML = `
       <div class="group-header">
         <div class="group-canonical" style="flex:1;">
           <input type="text" value="${escH(g.canonical)}"
             onchange="updateGroupCanonical('${g.id}',this.value)" placeholder="正規の名前">
         </div>
-        <span class="group-count">${count}名</span>
+        <span class="group-count">${arrivedCount}/${totalCount}名</span>
         <button class="btn-confirm-grp ${g.confirmed?'is-confirmed':''}"
           onclick="toggleGroupConfirm('${g.id}')">
           ${g.confirmed ? '✓ 確定済み' : '確定'}
         </button>
-        <button class="btn-del-grp" onclick="deleteGroup('${g.id}')" title="削除">✕</button>
+        <button class="btn-del-grp" onclick="deleteGroup('${g.id}')" title="グループを削除">✕</button>
       </div>
-      <div class="aliases-wrap" id="ral-${g.id}">
-        ${g.aliases.map(a => `<span class="alias-chip">${escH(a)}<span class="rm-alias" onclick="removeAlias('${g.id}','${escH(a)}')">×</span></span>`).join('')}
+      <div class="group-aliases-section" id="ral-${g.id}">
+        ${aliasRows}
       </div>
-      <div class="alias-add-row">
+      <div class="alias-add-row" style="margin-top:8px;">
         <input class="alias-add-input" id="rai-${g.id}" placeholder="別名を追加…"
           onkeydown="if(event.key==='Enter')addAlias('${g.id}')">
         <button class="btn-add-alias" onclick="addAlias('${g.id}')">追加</button>
       </div>`;
     list.appendChild(card);
   });
+}
+
+function toggleAliasGuests(uid) {
+  const list = document.getElementById('agl-' + uid);
+  const btn  = document.getElementById('btn-ex-' + uid);
+  if (!list) return;
+  const isOpen = list.classList.toggle('open');
+  btn.textContent = isOpen ? '▼ 閉じる' : '▶ 詳細';
 }
 
 function updateGroupCanonical(id, val) {
@@ -1641,14 +1715,41 @@ async function exportToSheet() {
     return buildReportRow(g.canonical, members, g.confirmed);
   }).filter(r => r.total > 0).sort((a,b) => b.total - a.total);
 
+  // 詳細行を生成（グルーピングごとのゲスト内訳）
+  const detailRows = [];
+  reportGroups.forEach(g => {
+    const members = reportGuests
+      .filter(gu => g.aliases.some(a => (gu.invited_by||'').trim() === a))
+      .sort((a, b) => {
+        // 来場済みを先に、次に登録日時順
+        const aA = String(a.arrived).toUpperCase() === 'TRUE';
+        const bA = String(b.arrived).toUpperCase() === 'TRUE';
+        if (aA !== bA) return aA ? -1 : 1;
+        return (a.registered_at||'').localeCompare(b.registered_at||'');
+      });
+    members.forEach(gu => {
+      detailRows.push({
+        promoter:       g.canonical,
+        name:           gu.name,
+        gender:         gu.gender,
+        pay_type:       gu.pay_type,
+        arrived:        String(gu.arrived).toUpperCase() === 'TRUE',
+        payment_method: gu.payment_method || '',
+        amount:         Number(gu.amount || 0),
+        registered_at:  gu.registered_at || ''
+      });
+    });
+  });
+
   const d = await apiPost({
     action: 'exportPromoReport',
     event_id: reportEventId,
     event_name: ev ? ev.name : reportEventId,
-    rows
+    rows,
+    detailRows
   });
   document.getElementById('r-btn-export').disabled = false;
-  toast(d.ok ? '✦ 出力完了 → シート: ' + d.sheet_name : '出力エラー: ' + d.message);
+  toast(d.ok ? '✦ 出力完了 → ' + d.sheet_name + ' / ' + d.detail_sheet_name : '出力エラー: ' + d.message);
 }
 
 
