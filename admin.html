@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LUXE PARTY TOKYO — Admin</title>
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <style>
 :root{
   --gold:#C9A84C;--gold-light:#E8D08A;--gold-dim:#7a6230;
@@ -207,83 +206,6 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .manual-input:focus{border-color:rgba(201,168,76,0.4);}
 .btn-manual-submit{background:var(--gold);border:none;cursor:pointer;padding:10px 16px;color:var(--black);font-family:inherit;font-size:0.6rem;font-weight:700;letter-spacing:0.1em;white-space:nowrap;}
 
-
-/* ── グループ詳細展開 ── */
-.group-aliases-section{margin-bottom:8px;}
-.alias-chip-row{display:flex;align-items:center;gap:4px;padding:3px 0;}
-.alias-chip-ex{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);padding:3px 10px;font-size:0.62rem;color:var(--gray);flex:1;}
-.alias-chip-ex .alias-name{flex:1;}
-.alias-chip-ex .alias-count{font-size:0.55rem;color:var(--gold-dim);}
-.btn-remove-alias{background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;font-size:0.85rem;padding:2px 6px;flex-shrink:0;transition:color 0.2s;line-height:1;}
-.btn-remove-alias:hover{color:#CF4444;}
-.btn-expand-alias{background:none;border:none;color:var(--gray);cursor:pointer;font-size:0.6rem;padding:2px 8px;flex-shrink:0;transition:color 0.2s;letter-spacing:0.05em;}
-.btn-expand-alias:hover{color:var(--gold);}
-.alias-guest-list{display:none;margin:4px 0 4px 16px;border-left:1px solid rgba(255,255,255,0.06);padding-left:10px;}
-.alias-guest-list.open{display:block;}
-.alias-guest-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.6rem;}
-.alias-guest-row:last-child{border-bottom:none;}
-.agu-name{flex:1;color:var(--white);}
-.agu-gender{color:var(--gray);min-width:18px;}
-.agu-type-free{color:var(--free);font-size:0.5rem;padding:1px 5px;border:1px solid rgba(155,142,196,0.3);}
-.agu-type-paid{color:var(--gold);font-size:0.5rem;padding:1px 5px;border:1px solid rgba(201,168,76,0.3);}
-.agu-arrived-yes{color:var(--arrived);font-size:0.55rem;}
-.agu-arrived-no{color:rgba(255,255,255,0.2);font-size:0.55rem;}
-.agu-date{color:var(--gray);font-size:0.5rem;margin-left:auto;}
-
-/* ── REPORT TAB ── */
-.report-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:24px;}
-.report-btn{background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:9px 16px;cursor:pointer;font-family:inherit;font-size:0.58rem;letter-spacing:0.16em;text-transform:uppercase;transition:all 0.2s;}
-.report-btn:hover{background:rgba(201,168,76,0.08);}
-.report-btn:disabled{opacity:0.35;cursor:not-allowed;}
-.report-btn-primary{background:var(--gold);border:none;color:var(--black);padding:9px 18px;cursor:pointer;font-family:inherit;font-size:0.58rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;transition:background 0.2s;}
-.report-btn-primary:hover{background:var(--gold-light);}
-.report-btn-primary:disabled{opacity:0.35;cursor:not-allowed;}
-.ai-panel{background:var(--dark);border:1px solid rgba(201,168,76,0.15);padding:18px 20px;margin-bottom:20px;}
-.ai-desc{font-size:0.63rem;color:var(--gray);line-height:1.8;margin-bottom:10px;}
-.ai-status{font-size:0.63rem;color:var(--gray);font-style:italic;}
-.section-eyebrow{font-size:0.48rem;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase;margin-bottom:12px;}
-.groups-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
-.group-card{background:var(--dark2);border:1px solid rgba(255,255,255,0.06);padding:14px 18px;}
-.group-card.confirmed{border-color:rgba(76,175,130,0.35);}
-.group-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
-.group-canonical{flex:1;min-width:0;}
-.group-canonical input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);color:var(--white);font-family:inherit;font-size:0.88rem;padding:2px 0;outline:none;width:100%;}
-.group-canonical input:focus{border-bottom-color:var(--gold);}
-.group-count{font-size:0.52rem;letter-spacing:0.12em;color:var(--gray);padding:2px 8px;border:1px solid rgba(255,255,255,0.08);flex-shrink:0;}
-.btn-confirm-grp{background:none;border:1px solid rgba(76,175,130,0.4);color:var(--arrived);padding:4px 10px;cursor:pointer;font-family:inherit;font-size:0.52rem;letter-spacing:0.1em;flex-shrink:0;transition:all 0.2s;}
-.btn-confirm-grp.is-confirmed{background:rgba(76,175,130,0.1);}
-.btn-del-grp{background:none;border:none;color:var(--gray);cursor:pointer;font-size:0.75rem;padding:3px 5px;flex-shrink:0;transition:color 0.2s;}
-.btn-del-grp:hover{color:#CF4444;}
-.aliases-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
-.alias-chip{display:flex;align-items:center;gap:3px;background:rgba(255,255,255,0.04);padding:2px 7px;font-size:0.58rem;color:var(--gray);}
-.alias-chip .rm-alias{cursor:pointer;color:rgba(255,255,255,0.2);font-size:0.8rem;transition:color 0.2s;}
-.alias-chip .rm-alias:hover{color:#CF4444;}
-.alias-add-row{display:flex;gap:6px;}
-.alias-add-input{background:var(--dark);border:1px solid rgba(255,255,255,0.08);color:var(--white);padding:4px 8px;font-family:inherit;font-size:0.63rem;outline:none;flex:1;max-width:160px;}
-.alias-add-input:focus{border-color:rgba(201,168,76,0.3);}
-.btn-add-alias{background:none;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:4px 8px;cursor:pointer;font-size:0.58rem;transition:all 0.2s;}
-.btn-add-alias:hover{border-color:rgba(201,168,76,0.3);color:var(--gold);}
-.btn-add-group{background:transparent;border:1px dashed rgba(255,255,255,0.12);color:var(--gray);padding:10px;cursor:pointer;font-family:inherit;font-size:0.58rem;letter-spacing:0.1em;width:100%;margin-bottom:20px;transition:all 0.2s;}
-.btn-add-group:hover{border-color:rgba(201,168,76,0.3);color:var(--gold);}
-.report-table-wrap{overflow-x:auto;margin-bottom:16px;}
-.report-table{width:100%;border-collapse:collapse;min-width:700px;font-size:0.66rem;}
-.report-table thead tr{border-bottom:1px solid rgba(201,168,76,0.2);}
-.report-table th{text-align:left;padding:9px 10px;font-size:0.44rem;font-weight:500;letter-spacing:0.18em;color:var(--gold-dim);text-transform:uppercase;}
-.report-table th.r{text-align:right;}
-.report-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.15s;}
-.report-table tbody tr:hover{background:rgba(255,255,255,0.02);}
-.report-table td{padding:10px 10px;color:var(--white);}
-.report-table td.r{text-align:right;font-family:monospace;color:var(--gray);}
-.report-table td.r.hl{color:var(--gold);}
-.report-table td.nm{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;}
-.report-table .gm{color:var(--cash);}
-.report-table .gf{color:var(--free);}
-.report-table tfoot tr{border-top:1px solid rgba(201,168,76,0.25);}
-.report-table tfoot td{padding:10px 10px;font-weight:600;color:var(--gold);}
-.report-table tfoot td.r{text-align:right;font-family:monospace;}
-.export-bar{display:flex;gap:10px;align-items:center;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05);}
-.export-note{font-size:0.56rem;color:var(--gray);flex:1;line-height:1.6;}
-
 @media(max-width:600px){
   .stats-row{grid-template-columns:repeat(3,1fr);}
   .page{padding:20px 16px;}
@@ -317,7 +239,6 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <button class="nav-tab"        onclick="showTab('guests')"    id="tab-guests">ゲスト</button>
       <button class="nav-tab"        onclick="showTab('promoters')" id="tab-promoters">招待者別</button>
       <button class="nav-tab"        onclick="showTab('scan')"      id="tab-scan">QRスキャン</button>
-      <button class="nav-tab" onclick="showTab('report')" id="tab-report">レポート</button>
     </div>
     <button class="btn-logout" onclick="logout()">ログアウト</button>
   </nav>
@@ -496,53 +417,6 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   </div>
 </div>
 
-
-  <!-- レポート -->
-  <div class="page" id="page-report">
-    <div class="page-eyebrow">Promoter Report</div>
-    <h1 class="page-title">プロモーター <span>レポート</span></h1>
-    <div class="report-controls">
-      <select class="event-selector" id="r-event-sel" onchange="onReportEventChange()" style="margin-bottom:0;">
-        <option value="">イベントを選択…</option>
-      </select>
-      <button class="report-btn" id="r-btn-ai" onclick="runAIGrouping()" disabled>✦ AIでグルーピング</button>
-      <button class="report-btn" id="r-btn-save" onclick="saveGroups()" disabled>💾 グループを保存</button>
-      <button class="report-btn-primary" id="r-btn-export" onclick="exportToSheet()" disabled>📊 スプレッドシートに出力</button>
-    </div>
-    <div class="ai-panel" id="r-ai-panel" style="display:none;">
-      <div class="section-eyebrow">AI グルーピング候補</div>
-      <div class="ai-desc">類似する招待者名を自動でグルーピングしました。正式名を編集し、別名を確認・追加してから「確定」してください。確定済みグループのみレポートに反映されます。</div>
-      <div id="r-ai-status" class="ai-status"></div>
-    </div>
-    <div id="r-groups-container" style="display:none;">
-      <div class="section-eyebrow" style="margin-bottom:10px;">プロモーターグループ</div>
-      <div class="groups-list" id="r-groups-list"></div>
-      <button class="btn-add-group" onclick="addManualGroup()">＋ グループを手動追加</button>
-    </div>
-    <div id="r-report-section" style="display:none;">
-      <div class="section-eyebrow" style="margin-bottom:12px;">集計レポート</div>
-      <div class="report-table-wrap">
-        <table class="report-table">
-          <thead><tr>
-            <th>プロモーター</th>
-            <th class="r">招待計</th><th class="r gm">男招待</th><th class="r gf">女招待</th>
-            <th class="r">来場計</th><th class="r gm">男来場</th><th class="r gf">女来場</th>
-            <th class="r">来場率</th>
-            <th class="r">無料</th><th class="r">有料</th>
-            <th class="r">現金</th><th class="r">カード</th><th class="r">PayPay</th>
-          </tr></thead>
-          <tbody id="r-report-tbody"></tbody>
-          <tfoot id="r-report-tfoot"></tfoot>
-        </table>
-      </div>
-      <div class="export-bar">
-        <div class="export-note">※ スプレッドシートの「report_イベント名」シートに書き出されます（既存は上書き）</div>
-        <button class="report-btn-primary" onclick="exportToSheet()">📊 スプレッドシートに出力</button>
-      </div>
-    </div>
-    <div id="r-loading" class="loading" style="display:none;">読み込み中…</div>
-  </div>
-
 <!-- モーダル: イベント追加 -->
 <div class="modal-overlay" id="modal-event">
   <div class="modal">
@@ -685,8 +559,15 @@ function logout() { location.reload(); }
 // ── 初期化 ───────────────────────────────────────────
 async function init() {
   fetch(API + '?action=ping').catch(() => {});
-  await Promise.all([loadEvents(), loadAllPromoUrls()]);
-  renderEventGrid(); // プロモーターURLロード後に再描画
+  // 並列取得してから1回だけ描画（速度改善）
+  const [evResult, puResult] = await Promise.all([
+    apiGet({ action: 'getEvents' }),
+    apiGet({ action: 'getPromoUrls' })
+  ]);
+  allEvents    = evResult.events || [];
+  allPromoUrls = puResult.urls   || [];
+  populateEventSelectors();
+  renderEventGrid();
 }
 
 // ── タブ切替 ─────────────────────────────────────────
@@ -698,7 +579,6 @@ function showTab(id) {
   if (id === 'scan')      initScanPage();
   else                    stopScan();
   if (id === 'promoters') renderPromoterStats();
-  if (id === 'report')    onReportTabOpen();
 }
 
 // ── イベント ─────────────────────────────────────────
@@ -710,7 +590,7 @@ async function loadEvents() {
 }
 
 function populateEventSelectors() {
-  ['g-event-sel', 'p-event-sel', 'scan-event-sel', 'r-event-sel'].forEach(selId => {
+  ['g-event-sel', 'p-event-sel', 'scan-event-sel'].forEach(selId => {
     const sel = document.getElementById(selId);
     const cur = sel.value;
     sel.innerHTML = '<option value="">イベントを選択…</option>';
@@ -860,12 +740,29 @@ async function onGuestEventChange() {
   await loadGuests(true);
 }
 
+const guestCache = {}; // イベント別キャッシュ
+
 async function loadGuests(force = false) {
   if (!currentEventId) return;
+  // キャッシュがあれば再利用（forceまたは5分経過で再取得）
+  const cached = guestCache[currentEventId];
+  const now    = Date.now();
+  if (!force && cached && (now - cached.ts) < 5 * 60 * 1000) {
+    allGuests = cached.data;
+    updateGuestStats();
+    renderGuestTable();
+    return;
+  }
   const d = await apiGet({ action: 'getGuests', event_id: currentEventId });
   allGuests = d.guests || [];
+  guestCache[currentEventId] = { data: allGuests, ts: now };
   updateGuestStats();
   renderGuestTable();
+}
+
+// チェックイン後にキャッシュを無効化
+function invalidateGuestCache(eventId) {
+  if (guestCache[eventId]) delete guestCache[eventId];
 }
 
 function updateGuestStats() {
@@ -938,8 +835,8 @@ function renderGuestTable() {
     const arr    = String(g.arrived).toUpperCase() === 'TRUE';
     const conf   = String(g.pay_confirmed).toUpperCase() === 'TRUE';
     const method = (g.payment_method || '').toLowerCase();
-    const methodLabel = { cash:'💵 現金', card:'💳 カード', paypay:'📱 PayPay' }[method] || '';
-    const methodColor = { cash:'var(--gold)', card:'var(--cash)', paypay:'var(--free)' }[method] || 'var(--gray)';
+    const methodLabel = { cash:'💵 現金', card:'💳 カード', paypay:'📱 PayPay', stripe:'💳 Stripe（事前）' }[method] || '';
+    const methodColor = { cash:'var(--gold)', card:'var(--cash)', paypay:'var(--free)', stripe:'var(--cash)' }[method] || 'var(--gray)';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="muted" style="color:var(--gold-dim)">${g.guest_id}</td>
@@ -1053,9 +950,27 @@ async function startScanManual() {
 }
 
 // ── ZXingリアルタイムスキャン ──────────────────────────
+async function loadZXing() {
+  if (typeof ZXing !== 'undefined') return; // 既にロード済み
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+    s.onload  = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
 async function startZXingLiveScan() {
   stopScan();
   setScanMsg('カメラを起動中…', 'scanning');
+
+  // ZXingを遅延ロード（初回のみダウンロード）
+  try { await loadZXing(); } catch(e) {
+    setScanMsg('ライブラリ読み込みに失敗しました', 'err');
+    document.getElementById('manual-input-area').style.display = 'block';
+    return;
+  }
 
   try {
     // デバイス一覧取得
@@ -1227,11 +1142,17 @@ async function processCheckIn(guestId) {
   }
 
   // 有料招待・未払い → 支払い方法選択ボタンを表示
+  // ただしStripe事前決済済みの場合はそのまま通す
   if (guest.pay_type === 'paid' && String(guest.pay_confirmed).toUpperCase() !== 'TRUE') {
     setScanMsg('💳 支払い方法を選択してチェックインしてください — ' + guest.name, 'warn');
     pendingGuest = guestId;
     showCheckinResult(guest, 'payment_required');
     checkinBusy = false; return;
+  }
+  // Stripe事前決済済み（pay_confirmed=TRUE, payment_method=stripe）
+  if (guest.pay_type === 'paid' && String(guest.pay_confirmed).toUpperCase() === 'TRUE'
+      && (guest.payment_method || '').toLowerCase() === 'stripe') {
+    setScanMsg('✅ 事前決済済み — チェックイン処理中… ' + guest.name, 'scanning');
   }
 
   // 有料・支払済み → そのままチェックイン
@@ -1260,6 +1181,7 @@ async function confirmFree() {
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
     if (idx >= 0) allGuests[idx].arrived = 'TRUE';
     pendingGuest = null;
+    invalidateGuestCache(eventId); // キャッシュ無効化
     if (currentEventId === eventId) {
       updateGuestStats();
       renderGuestTable();
@@ -1289,7 +1211,7 @@ async function confirmPayment(method) {
       allGuests[idx].payment_method = method;
     }
     pendingGuest = null;
-    // ゲスト一覧タブのイベントが同じなら統計を再描画
+    invalidateGuestCache(eventId); // キャッシュ無効化
     if (currentEventId === eventId) {
       updateGuestStats();
       renderGuestTable();
@@ -1423,339 +1345,6 @@ document.querySelectorAll('.modal-overlay').forEach(o =>
 );
 
 window.addEventListener('load', () => { fetch(API + '?action=ping').catch(() => {}); });
-
-// ── レポート機能 ─────────────────────────────────────────
-let reportGroups   = [];
-let reportEventId  = '';
-let reportGuests   = [];
-
-async function onReportEventChange() {
-  reportEventId = document.getElementById('r-event-sel').value;
-  if (!reportEventId) return;
-
-  document.getElementById('r-loading').style.display        = 'block';
-  document.getElementById('r-groups-container').style.display = 'none';
-  document.getElementById('r-report-section').style.display   = 'none';
-  document.getElementById('r-ai-panel').style.display         = 'none';
-
-  // ゲストデータ取得
-  const d = await apiGet({ action: 'getGuests', event_id: reportEventId });
-  reportGuests = d.guests || [];
-
-  // 保存済みグループ取得
-  const sg = await apiGet({ action: 'getPromoGroups', event_id: reportEventId });
-  if (sg.groups && sg.groups.length > 0) {
-    reportGroups = sg.groups;
-  } else {
-    // 初回：ユニーク名から個別グループ生成
-    const names = [...new Set(reportGuests.map(g => (g.invited_by||'').trim()).filter(n => n))];
-    reportGroups = names.map((name, i) => ({
-      id: 'g' + i, canonical: name, aliases: [name], confirmed: false
-    }));
-  }
-
-  document.getElementById('r-loading').style.display = 'none';
-  document.getElementById('r-btn-ai').disabled    = false;
-  document.getElementById('r-btn-save').disabled  = false;
-  document.getElementById('r-btn-export').disabled = false;
-  document.getElementById('r-groups-container').style.display = 'block';
-  document.getElementById('r-report-section').style.display   = 'block';
-
-  renderReportGroups();
-  renderReportTable();
-}
-
-async function runAIGrouping() {
-  const names = [...new Set(reportGuests.map(g => (g.invited_by||'').trim()).filter(n => n))];
-  if (!names.length) { toast('ゲストデータがありません'); return; }
-
-  document.getElementById('r-btn-ai').disabled = true;
-  document.getElementById('r-ai-panel').style.display = 'block';
-  document.getElementById('r-ai-status').textContent  = 'AIが名寄せを分析中…';
-
-  try {
-    // GAS経由でAIグルーピングを実行（CORS回避）
-    const resp = await apiPost({
-      action: 'aiGroupNames',
-      names:  names
-    });
-    if (!resp.ok) throw new Error(resp.message || 'GASエラー');
-    const parsed = resp.groups;
-
-    reportGroups = parsed.map((g, i) => ({
-      id: 'ai' + i, canonical: g.canonical,
-      aliases: [...new Set(g.aliases)], confirmed: false
-    }));
-
-    document.getElementById('r-ai-status').textContent =
-      `${reportGroups.length}グループを検出。内容を確認して「確定」してください。`;
-    toast('✦ AIグルーピング完了');
-  } catch(err) {
-    document.getElementById('r-ai-status').textContent = 'エラー: ' + err.message;
-    toast('AIエラー: ' + err.message);
-  }
-
-  document.getElementById('r-btn-ai').disabled = false;
-  renderReportGroups();
-  renderReportTable();
-}
-
-function escH(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function renderReportGroups() {
-  const list = document.getElementById('r-groups-list');
-  list.innerHTML = '';
-  reportGroups.forEach(g => {
-    const allMembers = reportGuests.filter(gu =>
-      g.aliases.some(a => (gu.invited_by||'').trim() === a)
-    );
-    const totalCount   = allMembers.length;
-    const arrivedCount = allMembers.filter(gu => String(gu.arrived).toUpperCase() === 'TRUE').length;
-
-    const card = document.createElement('div');
-    card.className = 'group-card' + (g.confirmed ? ' confirmed' : '');
-    card.id = 'rgc-' + g.id;
-
-    // エイリアス行を生成（各エイリアスごとにゲスト一覧を折りたたみ）
-    const aliasRows = g.aliases.map(a => {
-      const aliasMembers = reportGuests.filter(gu => (gu.invited_by||'').trim() === a)
-        .sort((x,y) => {
-          const xA = String(x.arrived).toUpperCase() === 'TRUE';
-          const yA = String(y.arrived).toUpperCase() === 'TRUE';
-          if (xA !== yA) return xA ? -1 : 1;
-          return (x.registered_at||'').localeCompare(y.registered_at||'');
-        });
-      const aCnt     = aliasMembers.length;
-      const aArrived = aliasMembers.filter(gu => String(gu.arrived).toUpperCase() === 'TRUE').length;
-      const uid      = g.id + '_' + encodeURIComponent(a);
-
-      const guestRows = aliasMembers.map(gu => {
-        const arr  = String(gu.arrived).toUpperCase() === 'TRUE';
-        const date = (gu.registered_at||'').substring(0,10);
-        const typeClass = gu.pay_type === 'free' ? 'agu-type-free' : 'agu-type-paid';
-        const typeLabel = gu.pay_type === 'free' ? '無料' : '有料';
-        return `<div class="alias-guest-row">
-          <span class="agu-name">${escH(gu.name)}</span>
-          <span class="agu-gender">${gu.gender === 'female' ? '女' : '男'}</span>
-          <span class="${typeClass}">${typeLabel}</span>
-          <span class="${arr ? 'agu-arrived-yes' : 'agu-arrived-no'}">${arr ? '✓ 来場' : '— 未来場'}</span>
-          <span class="agu-date">${date}</span>
-        </div>`;
-      }).join('');
-
-      return `<div class="alias-chip-row">
-        <div class="alias-chip-ex">
-          <span class="alias-name">${escH(a)}</span>
-          <span class="alias-count">${aArrived}/${aCnt}名</span>
-        </div>
-        <button class="btn-expand-alias" onclick="toggleAliasGuests('${uid}')" id="btn-ex-${uid}">▶ 詳細</button>
-        <button class="btn-remove-alias" onclick="removeAlias('${g.id}','${escH(a)}')" title="グループから除外">✕</button>
-      </div>
-      <div class="alias-guest-list" id="agl-${uid}">
-        ${guestRows || '<div style="font-size:0.58rem;color:var(--gray);padding:4px 0;">ゲストなし</div>'}
-      </div>`;
-    }).join('');
-
-    card.innerHTML = `
-      <div class="group-header">
-        <div class="group-canonical" style="flex:1;">
-          <input type="text" value="${escH(g.canonical)}"
-            onchange="updateGroupCanonical('${g.id}',this.value)" placeholder="正規の名前">
-        </div>
-        <span class="group-count">${arrivedCount}/${totalCount}名</span>
-        <button class="btn-confirm-grp ${g.confirmed?'is-confirmed':''}"
-          onclick="toggleGroupConfirm('${g.id}')">
-          ${g.confirmed ? '✓ 確定済み' : '確定'}
-        </button>
-        <button class="btn-del-grp" onclick="deleteGroup('${g.id}')" title="グループを削除">✕</button>
-      </div>
-      <div class="group-aliases-section" id="ral-${g.id}">
-        ${aliasRows}
-      </div>
-      <div class="alias-add-row" style="margin-top:8px;">
-        <input class="alias-add-input" id="rai-${g.id}" placeholder="別名を追加…"
-          onkeydown="if(event.key==='Enter')addAlias('${g.id}')">
-        <button class="btn-add-alias" onclick="addAlias('${g.id}')">追加</button>
-      </div>`;
-    list.appendChild(card);
-  });
-}
-
-function toggleAliasGuests(uid) {
-  const list = document.getElementById('agl-' + uid);
-  const btn  = document.getElementById('btn-ex-' + uid);
-  if (!list) return;
-  const isOpen = list.classList.toggle('open');
-  btn.textContent = isOpen ? '▼ 閉じる' : '▶ 詳細';
-}
-
-function updateGroupCanonical(id, val) {
-  const g = reportGroups.find(g => g.id === id);
-  if (g) { g.canonical = val.trim(); renderReportTable(); }
-}
-function toggleGroupConfirm(id) {
-  const g = reportGroups.find(g => g.id === id);
-  if (g) { g.confirmed = !g.confirmed; renderReportGroups(); renderReportTable(); }
-}
-function deleteGroup(id) {
-  reportGroups = reportGroups.filter(g => g.id !== id);
-  renderReportGroups(); renderReportTable();
-}
-function addAlias(id) {
-  const input = document.getElementById('rai-' + id);
-  const val   = (input.value || '').trim();
-  if (!val) return;
-  const g = reportGroups.find(g => g.id === id);
-  if (g && !g.aliases.includes(val)) {
-    g.aliases.push(val); input.value = '';
-    renderReportGroups(); renderReportTable();
-  }
-}
-function removeAlias(id, alias) {
-  const g = reportGroups.find(g => g.id === id);
-  if (g) {
-    g.aliases = g.aliases.filter(a => a !== alias);
-    renderReportGroups(); renderReportTable();
-  }
-}
-function addManualGroup() {
-  const id = 'manual' + Date.now();
-  reportGroups.push({ id, canonical: '新しいプロモーター', aliases: [], confirmed: false });
-  renderReportGroups();
-  setTimeout(() => {
-    const card = document.getElementById('rgc-' + id);
-    if (card) { card.scrollIntoView({ behavior:'smooth' }); card.querySelector('input').select(); }
-  }, 100);
-}
-
-function buildReportRow(name, members, confirmed) {
-  const arrived  = members.filter(g => String(g.arrived).toUpperCase() === 'TRUE');
-  const mTotal   = members.filter(g => g.gender === 'male').length;
-  const fTotal   = members.filter(g => g.gender === 'female').length;
-  const mArrived = arrived.filter(g => g.gender === 'male').length;
-  const fArrived = arrived.filter(g => g.gender === 'female').length;
-  const free     = members.filter(g => g.pay_type === 'free').length;
-  const paid     = members.filter(g => g.pay_type === 'paid').length;
-  const cash     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'cash').length;
-  const card     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'card').length;
-  const paypay   = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'paypay').length;
-  return { name, confirmed, total:members.length, mTotal, fTotal,
-           arrived:arrived.length, mArrived, fArrived, free, paid, cash, card, paypay };
-}
-
-function renderReportTable() {
-  const tbody = document.getElementById('r-report-tbody');
-  const tfoot = document.getElementById('r-report-tfoot');
-  tbody.innerHTML = '';
-
-  const rows = reportGroups.map(g => {
-    const members = reportGuests.filter(gu =>
-      g.aliases.some(a => (gu.invited_by||'').trim() === a)
-    );
-    return buildReportRow(g.canonical, members, g.confirmed);
-  }).filter(r => r.total > 0);
-
-  // 未グループのゲスト
-  const groupedNames = new Set(reportGroups.flatMap(g => g.aliases));
-  const ungrouped = reportGuests.filter(gu => {
-    const n = (gu.invited_by||'').trim();
-    return n && !groupedNames.has(n);
-  });
-  if (ungrouped.length) rows.push(buildReportRow('（未グループ）', ungrouped, false));
-
-  rows.sort((a, b) => b.total - a.total);
-
-  let tot = { total:0, mTotal:0, fTotal:0, arrived:0, mArrived:0, fArrived:0, free:0, paid:0, cash:0, card:0, paypay:0 };
-
-  rows.forEach(r => {
-    const rate = r.total ? Math.round(r.arrived / r.total * 100) : 0;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="nm">${escH(r.name)}${!r.confirmed&&r.name!=='（未グループ）'?'<span style="font-size:0.48rem;color:var(--gray);margin-left:4px;">(未確定)</span>':''}</td>
-      <td class="r hl">${r.total}</td><td class="r gm">${r.mTotal}</td><td class="r gf">${r.fTotal}</td>
-      <td class="r hl">${r.arrived}</td><td class="r gm">${r.mArrived}</td><td class="r gf">${r.fArrived}</td>
-      <td class="r">${rate}%</td>
-      <td class="r">${r.free}</td><td class="r">${r.paid}</td>
-      <td class="r">${r.cash}</td><td class="r">${r.card}</td><td class="r">${r.paypay}</td>`;
-    tbody.appendChild(tr);
-    Object.keys(tot).forEach(k => tot[k] += r[k] || 0);
-  });
-
-  const tRate = tot.total ? Math.round(tot.arrived / tot.total * 100) : 0;
-  tfoot.innerHTML = `<tr>
-    <td>合計</td>
-    <td class="r">${tot.total}</td><td class="r gm">${tot.mTotal}</td><td class="r gf">${tot.fTotal}</td>
-    <td class="r">${tot.arrived}</td><td class="r gm">${tot.mArrived}</td><td class="r gf">${tot.fArrived}</td>
-    <td class="r">${tRate}%</td>
-    <td class="r">${tot.free}</td><td class="r">${tot.paid}</td>
-    <td class="r">${tot.cash}</td><td class="r">${tot.card}</td><td class="r">${tot.paypay}</td>
-  </tr>`;
-}
-
-async function saveGroups() {
-  if (!reportEventId) { toast('イベントを選択してください'); return; }
-  document.getElementById('r-btn-save').disabled = true;
-  const d = await apiPost({ action: 'savePromoGroups', event_id: reportEventId, groups: reportGroups });
-  document.getElementById('r-btn-save').disabled = false;
-  toast(d.ok ? '✦ グループを保存しました' : '保存エラー: ' + d.message);
-}
-
-async function exportToSheet() {
-  if (!reportEventId) { toast('イベントを選択してください'); return; }
-  const ev = allEvents.find(e => e.event_id === reportEventId);
-  document.getElementById('r-btn-export').disabled = true;
-  toast('スプレッドシートに出力中…');
-
-  const rows = reportGroups.map(g => {
-    const members = reportGuests.filter(gu =>
-      g.aliases.some(a => (gu.invited_by||'').trim() === a)
-    );
-    return buildReportRow(g.canonical, members, g.confirmed);
-  }).filter(r => r.total > 0).sort((a,b) => b.total - a.total);
-
-  // 詳細行を生成（グルーピングごとのゲスト内訳）
-  const detailRows = [];
-  reportGroups.forEach(g => {
-    const members = reportGuests
-      .filter(gu => g.aliases.some(a => (gu.invited_by||'').trim() === a))
-      .sort((a, b) => {
-        // 来場済みを先に、次に登録日時順
-        const aA = String(a.arrived).toUpperCase() === 'TRUE';
-        const bA = String(b.arrived).toUpperCase() === 'TRUE';
-        if (aA !== bA) return aA ? -1 : 1;
-        return (a.registered_at||'').localeCompare(b.registered_at||'');
-      });
-    members.forEach(gu => {
-      detailRows.push({
-        promoter:       g.canonical,
-        name:           gu.name,
-        gender:         gu.gender,
-        pay_type:       gu.pay_type,
-        arrived:        String(gu.arrived).toUpperCase() === 'TRUE',
-        payment_method: gu.payment_method || '',
-        amount:         Number(gu.amount || 0),
-        registered_at:  gu.registered_at || ''
-      });
-    });
-  });
-
-  const d = await apiPost({
-    action: 'exportPromoReport',
-    event_id: reportEventId,
-    event_name: ev ? ev.name : reportEventId,
-    rows,
-    detailRows
-  });
-  document.getElementById('r-btn-export').disabled = false;
-  toast(d.ok ? '✦ 出力完了 → ' + d.sheet_name + ' / ' + d.detail_sheet_name : '出力エラー: ' + d.message);
-}
-
-
-function onReportTabOpen() {
-  if (reportEventId) { renderReportGroups(); renderReportTable(); }
-}
 </script>
 </body>
 </html>
