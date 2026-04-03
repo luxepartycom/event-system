@@ -554,6 +554,7 @@ async function doLogin() {
   const pw = document.getElementById('login-pw').value.trim();
   const d  = await apiGet({ action: 'auth', password: pw });
   if (d.ok) {
+    sessionStorage.setItem('lpt_auth', pw); // セッションキャッシュ
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display          = 'block';
     await init();
@@ -561,7 +562,10 @@ async function doLogin() {
     document.getElementById('login-err').style.display = 'block';
   }
 }
-function logout() { location.reload(); }
+function logout() {
+  sessionStorage.removeItem('lpt_auth');
+  location.reload();
+}
 
 // ── 初期化 ───────────────────────────────────────────
 async function init() {
@@ -1349,7 +1353,23 @@ document.querySelectorAll('.modal-overlay').forEach(o =>
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); })
 );
 
-window.addEventListener('load', () => { fetch(API + '?action=ping').catch(() => {}); });
+window.addEventListener('load', async () => {
+  // GASを暖機（ログイン前から）
+  fetch(API + '?action=ping').catch(() => {});
+  // セッションキャッシュ確認 → 自動ログイン
+  const cached = sessionStorage.getItem('lpt_auth');
+  if (cached) {
+    const d = await apiGet({ action: 'auth', password: cached });
+    if (d.ok) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display          = 'block';
+      await init();
+      return;
+    } else {
+      sessionStorage.removeItem('lpt_auth'); // 無効なキャッシュは削除
+    }
+  }
+});
 </script>
 </body>
 </html>
