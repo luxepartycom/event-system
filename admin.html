@@ -155,7 +155,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .btn-payment .pay-icon{font-size:1.3rem;}
 
 /* 売上内訳 */
-.stats-row-pay{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:8px;}
+.stats-row-pay{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:8px;}
 .stat-card-pay{background:var(--dark);padding:14px 16px;}
 .stat-card-pay .sc-label{font-size:0.44rem;letter-spacing:0.15em;color:var(--gray);text-transform:uppercase;margin-bottom:5px;}
 .stat-card-pay .sc-value{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.3rem;font-weight:300;line-height:1;}
@@ -294,7 +294,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <div class="sc-sub" id="gs-pay-cash-sub">0名</div>
       </div>
       <div class="stat-card-pay">
-        <div class="sc-label">💳 カード</div>
+        <div class="sc-label">💳 カード（当日）</div>
         <div class="sc-value" style="color:var(--cash)" id="gs-pay-card">¥0</div>
         <div class="sc-sub" id="gs-pay-card-sub">0名</div>
       </div>
@@ -302,6 +302,11 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <div class="sc-label">📱 PayPay</div>
         <div class="sc-value" style="color:var(--free)" id="gs-pay-paypay">¥0</div>
         <div class="sc-sub" id="gs-pay-paypay-sub">0名</div>
+      </div>
+      <div class="stat-card-pay">
+        <div class="sc-label">✅ Stripe（事前）</div>
+        <div class="sc-value" style="color:var(--arrived)" id="gs-pay-stripe">¥0</div>
+        <div class="sc-sub" id="gs-pay-stripe-sub">0名</div>
       </div>
     </div>
     <div class="toolbar">
@@ -785,7 +790,7 @@ function updateGuestStats() {
   const actualTotal = arrivedPaidGuests.reduce((sum, g) => sum + Number(g.amount || 0), 0);
 
   // 支払い方法別集計
-  const byMethod = { cash: { count:0, total:0 }, card: { count:0, total:0 }, paypay: { count:0, total:0 } };
+  const byMethod = { cash: { count:0, total:0 }, card: { count:0, total:0 }, paypay: { count:0, total:0 }, stripe: { count:0, total:0 } };
   arrivedPaidGuests.forEach(g => {
     const m = (g.payment_method || '').toLowerCase();
     if (byMethod[m]) { byMethod[m].count++; byMethod[m].total += Number(g.amount || 0); }
@@ -803,10 +808,12 @@ function updateGuestStats() {
   document.getElementById('gs-actual-sub').textContent   = `来場済み有料 ${arrivedPaidGuests.length}名`;
 
   // 支払い方法別
-  ['cash','card','paypay'].forEach(m => {
-    const el = { cash:'gs-pay-cash', card:'gs-pay-card', paypay:'gs-pay-paypay' }[m];
-    document.getElementById(el).textContent = '¥' + byMethod[m].total.toLocaleString();
-    document.getElementById(el + '-sub').textContent = byMethod[m].count + '名';
+  ['stripe','cash','card','paypay'].forEach(m => {
+    const el = { stripe:'gs-pay-stripe', cash:'gs-pay-cash', card:'gs-pay-card', paypay:'gs-pay-paypay' }[m];;
+    if (document.getElementById(el)) {
+      document.getElementById(el).textContent = '¥' + byMethod[m].total.toLocaleString();
+      document.getElementById(el + '-sub').textContent = byMethod[m].count + '名';
+    }
   });
 
   document.getElementById('guest-stats').style.display  = total ? 'grid' : 'none';
@@ -837,8 +844,8 @@ function renderGuestTable() {
     const arr    = String(g.arrived).toUpperCase() === 'TRUE';
     const conf   = String(g.pay_confirmed).toUpperCase() === 'TRUE';
     const method = (g.payment_method || '').toLowerCase();
-    const methodLabel = { cash:'💵 現金', card:'💳 カード', paypay:'📱 PayPay', stripe:'💳 Stripe（事前）' }[method] || '';
-    const methodColor = { cash:'var(--gold)', card:'var(--cash)', paypay:'var(--free)', stripe:'var(--cash)' }[method] || 'var(--gray)';
+    const methodLabel = { cash:'💵 現金', card:'💳 カード', paypay:'📱 PayPay', stripe:'✅ 事前決済済み' }[method] || '';
+    const methodColor = { cash:'var(--gold)', card:'var(--cash)', paypay:'var(--free)', stripe:'var(--arrived)' }[method] || 'var(--gray)';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="muted" style="color:var(--gold-dim)">${g.guest_id}</td>
@@ -1156,7 +1163,8 @@ async function processCheckIn(guestId) {
   showCheckinResult(guest, 'checking');
   const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: eventId });
   if (d.ok) {
-    setScanMsg('✅ チェックイン完了 — ' + d.name, 'ok');
+    const isStripe = (d.payment_method || '').toLowerCase() === 'stripe';
+    setScanMsg((isStripe ? '✅ 事前決済済み・チェックイン完了 — ' : '✅ チェックイン完了 — ') + d.name, 'ok');
     showCheckinResult(d, 'ok');
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(guestId));
     if (idx >= 0) allGuests[idx].arrived = 'TRUE';
@@ -1226,7 +1234,8 @@ function showCheckinResult(d, status) {
   document.getElementById('cr-name').textContent       = d.name       || d.guest_id || '—';
   document.getElementById('cr-gender').textContent     = d.gender === 'female' ? '女性' : '男性';
   document.getElementById('cr-invited-by').textContent = d.invited_by || '—';
-  document.getElementById('cr-type').textContent       = d.pay_type === 'free' ? '無料招待' : '有料招待';
+  const isStripePaid = (d.payment_method || '').toLowerCase() === 'stripe' && String(d.pay_confirmed || '').toUpperCase() === 'TRUE';
+  document.getElementById('cr-type').textContent = d.pay_type === 'free' ? '無料招待' : (isStripePaid ? '有料招待（事前決済済み ✅）' : '有料招待');
   const amountRow = document.getElementById('cr-amount-row');
   if (d.pay_type === 'paid') {
     amountRow.style.display = 'flex';
