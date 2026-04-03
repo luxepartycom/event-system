@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LUXE PARTY TOKYO — Admin</title>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <style>
 :root{
   --gold:#C9A84C;--gold-light:#E8D08A;--gold-dim:#7a6230;
@@ -939,14 +941,8 @@ async function startScanManual() {
   const sel = document.getElementById('scan-event-sel');
   if (!sel.value) { setScanMsg('イベントを選択してください', 'err'); return; }
 
-  // ZXingライブラリが読み込まれているか確認
-  if (typeof ZXing !== 'undefined') {
-    await startZXingLiveScan();
-  } else {
-    // ZXing未ロード時: 撮影方式にフォールバック
-    setScanMsg('📷 QRコードを撮影してください', 'scanning');
-    document.getElementById('qr-file-input').click();
-  }
+  // ZXingライブラリでスキャン開始
+  await startZXingLiveScan();
 }
 
 // ── ZXingリアルタイムスキャン ──────────────────────────
