@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LUXE PARTY TOKYO — Admin</title>
 <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <style>
 :root{
   --gold:#C9A84C;--gold-light:#E8D08A;--gold-dim:#7a6230;
@@ -79,6 +78,9 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .ev-actions{display:flex;gap:8px;margin-top:12px;}
 .btn-close-ev{background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:7px 14px;cursor:pointer;font-family:inherit;font-size:0.55rem;letter-spacing:0.12em;transition:all 0.2s;}
 .btn-close-ev:hover{border-color:rgba(201,168,76,0.4);color:var(--gold);}
+.btn-archive-ev{background:transparent;border:1px solid rgba(207,68,68,0.25);color:rgba(207,68,68,0.6);padding:7px 14px;cursor:pointer;font-family:inherit;font-size:0.55rem;letter-spacing:0.12em;transition:all 0.2s;}
+.btn-archive-ev:hover{border-color:rgba(207,68,68,0.6);color:#CF4444;}
+.ev-archived-badge{display:inline-block;padding:2px 8px;font-size:0.44rem;letter-spacing:0.15em;text-transform:uppercase;background:rgba(255,255,255,0.03);color:var(--gray);border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;}
 
 /* GUEST TABLE */
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
@@ -684,7 +686,8 @@ function renderEventGrid() {
       <div class="ev-actions">
         ${ev.status === 'active'
           ? `<button class="btn-close-ev" onclick="closeEvent('${ev.event_id}')">受付終了にする</button>`
-          : `<button class="btn-close-ev" onclick="reopenEvent('${ev.event_id}')">再開する</button>`}
+          : `<button class="btn-close-ev" onclick="reopenEvent('${ev.event_id}')">再開する</button>
+             <button class="btn-archive-ev" onclick="archiveEvent('${ev.event_id}','${(ev.name||'').replace(/'/g,\"\\\\'\")}')">📦 アーカイブ</button>`}
       </div>`;
     grid.appendChild(card);
   });
@@ -743,6 +746,22 @@ async function saveEventDescription() {
 
 async function closeEvent(id)  { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'closed' }); await loadEvents(); toast('受付を終了しました'); }
 async function reopenEvent(id) { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'active' }); await loadEvents(); toast('受付を再開しました'); }
+
+async function archiveEvent(eventId, eventName) {
+  if (!confirm(`「${eventName}」のゲストデータをアーカイブしますか？
+
+ゲストデータはguests_archiveシートに移動されます。
+アーカイブ後も管理画面から閲覧できます。`)) return;
+  toast('アーカイブ中…');
+  const d = await apiPost({ action: 'archiveEvent', event_id: eventId });
+  if (d.ok) {
+    // キャッシュをクリア
+    if (typeof guestCache !== 'undefined') delete guestCache[eventId];
+    toast(`✦ アーカイブ完了（${d.archived_count}名移動）`);
+  } else {
+    toast('❌ ' + (d.message || 'アーカイブに失敗しました'));
+  }
+}
 
 // ── ゲスト ───────────────────────────────────────────
 async function onGuestEventChange() {
