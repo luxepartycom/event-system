@@ -687,7 +687,7 @@ function renderEventGrid() {
         ${ev.status === 'active'
           ? `<button class="btn-close-ev" onclick="closeEvent('${ev.event_id}')">受付終了にする</button>`
           : `<button class="btn-close-ev" onclick="reopenEvent('${ev.event_id}')">再開する</button>
-             <button class="btn-archive-ev" onclick="archiveEvent('${ev.event_id}','${(ev.name||'').replace(/'/g,\"\\\\'\")}')">📦 アーカイブ</button>`}
+             <button class="btn-archive-ev" data-id="${ev.event_id}" onclick="archiveEvent('${ev.event_id}')">📦 アーカイブ</button>`}
       </div>`;
     grid.appendChild(card);
   });
@@ -747,11 +747,10 @@ async function saveEventDescription() {
 async function closeEvent(id)  { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'closed' }); await loadEvents(); toast('受付を終了しました'); }
 async function reopenEvent(id) { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'active' }); await loadEvents(); toast('受付を再開しました'); }
 
-async function archiveEvent(eventId, eventName) {
-  if (!confirm(`「${eventName}」のゲストデータをアーカイブしますか？
-
-ゲストデータはguests_archiveシートに移動されます。
-アーカイブ後も管理画面から閲覧できます。`)) return;
+async function archiveEvent(eventId) {
+  const ev = allEvents.find(e => e.event_id === eventId);
+  const evName = ev ? ev.name : eventId;
+  if (!confirm('「' + evName + '」のゲストデータをアーカイブしますか？\n\nゲストデータはguests_archiveシートに移動されます。\nアーカイブ後も管理画面から閲覧できます。')) return;
   toast('アーカイブ中…');
   const d = await apiPost({ action: 'archiveEvent', event_id: eventId });
   if (d.ok) {
