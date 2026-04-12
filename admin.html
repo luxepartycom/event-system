@@ -1945,14 +1945,22 @@ window.addEventListener('load', async () => {
   // GASを暖機（ログイン前から）
   fetch(API + '?action=ping').catch(() => {});
 
-  // 単発決済から戻った場合: 履歴を復元して単発決済タブを表示
-  try {
-    const savedHistory = sessionStorage.getItem('lpt_charge_history');
-    if (savedHistory) {
-      chargeHistory = JSON.parse(savedHistory);
-      sessionStorage.removeItem('lpt_charge_history');
-    }
-  } catch(e) {}
+  // 単発決済から戻った場合の復元処理
+  const isChargeReturn = localStorage.getItem('lpt_charge_return') === '1';
+  if (isChargeReturn) {
+    try {
+      // 履歴を復元
+      const savedHistory = localStorage.getItem('lpt_charge_history');
+      if (savedHistory) chargeHistory = JSON.parse(savedHistory);
+      // パスワードをsessionStorageに戻す
+      const savedPw = localStorage.getItem('lpt_charge_auth');
+      if (savedPw) sessionStorage.setItem('lpt_auth', savedPw);
+      // localStorageをクリア
+      localStorage.removeItem('lpt_charge_return');
+      localStorage.removeItem('lpt_charge_history');
+      localStorage.removeItem('lpt_charge_auth');
+    } catch(e) {}
+  }
 
   // セッションキャッシュ確認 → 自動ログイン
   const cached = sessionStorage.getItem('lpt_auth');
@@ -1962,10 +1970,11 @@ window.addEventListener('load', async () => {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display          = 'block';
       await init();
-      // 単発決済履歴があれば単発決済タブを表示
-      if (chargeHistory.length > 0) {
+      // 単発決済から戻った場合: 単発決済タブを開いて履歴を表示
+      if (isChargeReturn && chargeHistory.length > 0) {
         showTab('charge');
         renderChargeHistory();
+        toast('✅ 決済が完了しました');
       }
       return;
     } else {
@@ -2337,9 +2346,15 @@ async function startQuickCharge() {
     const d = await res.json();
 
     if (d.ok && d.checkout_url) {
-      // 決済前に履歴を保存（sessionStorageで戻った後も表示）
+      // 決済前に履歴・認証情報をlocalStorageに保存（遷移後も消えない）
       chargeHistory.unshift({ desc, amount, status: 'pending', session_id: d.session_id });
-      try { sessionStorage.setItem('lpt_charge_history', JSON.stringify(chargeHistory)); } catch(e) {}
+      try {
+        localStorage.setItem('lpt_charge_history', JSON.stringify(chargeHistory));
+        // 現在のパスワードをlocalStorageに退避（sessionStorageは遷移で消える場合がある）
+        const pw = sessionStorage.getItem('lpt_auth');
+        if (pw) localStorage.setItem('lpt_charge_auth', pw);
+        localStorage.setItem('lpt_charge_return', '1'); // 単発決済からの戻りフラグ
+      } catch(e) {}
 
       // 同タブで遷移（iPhone Safari対応・ポップアップブロック回避）
       location.href = d.checkout_url;
