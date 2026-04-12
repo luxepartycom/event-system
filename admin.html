@@ -292,6 +292,107 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .report-table tfoot td.r{text-align:right;font-family:monospace;}
 .export-bar{display:flex;gap:10px;align-items:center;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05);}
 .export-note{font-size:0.56rem;color:var(--gray);flex:1;line-height:1.6;}
+
+/* ── チェックイン結果パネル（新UI） ── */
+.cr-state-box{
+  border:1px solid rgba(255,255,255,0.08);
+  padding:28px 20px 24px;
+  text-align:center;
+  margin-top:12px;
+  background:var(--dark);
+  transition:border-color 0.3s;
+}
+.cr-loading-box { border-color:rgba(201,168,76,0.25); }
+.cr-payment-box { border-color:rgba(106,171,255,0.4); }
+.cr-error-box   { border-color:rgba(232,160,32,0.4); }
+
+/* スピナー */
+.cr-spinner{
+  width:40px;height:40px;
+  border:3px solid rgba(201,168,76,0.2);
+  border-top-color:var(--gold);
+  border-radius:50%;
+  margin:0 auto 14px;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.cr-state-label{
+  font-size:0.7rem;letter-spacing:0.25em;
+  color:var(--gray);text-transform:uppercase;
+}
+.cr-guest-id{
+  font-size:0.6rem;color:var(--gold-dim);
+  margin-top:6px;font-family:monospace;
+}
+
+/* 完了・エラー共通 */
+.cr-ok-icon{font-size:2.8rem;margin-bottom:10px;line-height:1;}
+.cr-ok-title{
+  font-size:1rem;letter-spacing:0.2em;
+  color:var(--arrived);text-transform:uppercase;
+  margin-bottom:14px;font-weight:600;
+}
+.cr-ok-name{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.5rem;color:var(--white);
+  margin-bottom:8px;line-height:1.3;
+}
+.cr-ok-badge{
+  display:inline-block;
+  padding:4px 14px;
+  font-size:0.55rem;letter-spacing:0.18em;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+.badge-stripe{
+  background:rgba(106,171,255,0.1);
+  color:var(--cash);
+  border:1px solid rgba(106,171,255,0.4);
+}
+.badge-free{
+  background:rgba(155,142,196,0.1);
+  color:var(--free);
+  border:1px solid rgba(155,142,196,0.3);
+}
+.cr-ok-meta{
+  font-size:0.65rem;color:var(--gray);
+  line-height:2;margin-bottom:8px;
+}
+.btn-next-scan{
+  margin-top:18px;
+  background:transparent;
+  border:1px solid rgba(201,168,76,0.4);
+  color:var(--gold);
+  padding:12px 24px;
+  cursor:pointer;
+  font-family:inherit;
+  font-size:0.62rem;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  transition:all 0.2s;
+  width:100%;
+}
+.btn-next-scan:hover{
+  background:rgba(201,168,76,0.08);
+}
+
+/* 支払い受付 */
+.cr-payment-icon{font-size:2rem;margin-bottom:8px;}
+.cr-payment-title{
+  font-size:1rem;letter-spacing:0.2em;
+  color:var(--cash);margin-bottom:14px;font-weight:600;
+}
+.cr-pay-amount{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.8rem;color:var(--gold);
+  margin-bottom:8px;line-height:1;
+}
+.cr-payment-label{
+  font-size:0.52rem;letter-spacing:0.18em;
+  color:var(--gray);text-transform:uppercase;
+  margin-top:16px;margin-bottom:0;
+}
 </style>
 </head>
 <body>
@@ -469,35 +570,63 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         </div>
       </div>
 
-      <div class="checkin-result" id="checkin-result">
-        <div class="cr-name" id="cr-name">—</div>
-        <div class="cr-row"><span class="cr-key">性別</span><span id="cr-gender">—</span></div>
-        <div class="cr-row"><span class="cr-key">招待者</span><span id="cr-invited-by">—</span></div>
-        <div class="cr-row"><span class="cr-key">種別</span><span id="cr-type">—</span></div>
-        <div class="cr-row" id="cr-amount-row"><span class="cr-key">入場料</span><span id="cr-amount">—</span></div>
-        <!-- 無料招待 チェックインボタン -->
-        <button class="btn-confirm-free" id="btn-confirm-free" onclick="confirmFree()" style="display:none;">
-          ✅ チェックイン
-        </button>
-        <!-- 有料招待 支払い方法選択 -->
-        <div class="payment-select-area" id="payment-select-area">
-          <div class="payment-select-label">支払い方法を選択してチェックイン</div>
-          <div class="payment-btns">
-            <button class="btn-payment" onclick="confirmPayment('cash')">
-              <span class="pay-icon">💵</span>現金
-            </button>
-            <button class="btn-payment" onclick="confirmPayment('card')">
-              <span class="pay-icon">💳</span>カード
-            </button>
-            <button class="btn-payment" onclick="confirmPayment('paypay')">
-              <span class="pay-icon">📱</span>PayPay
-            </button>
+      <!-- チェックイン結果パネル（全面刷新） -->
+      <div id="checkin-result" style="display:none;">
+
+        <!-- ① 照会中 -->
+        <div id="cr-state-loading" style="display:none;">
+          <div class="cr-state-box cr-loading-box">
+            <div class="cr-spinner"></div>
+            <div class="cr-state-label">照会中...</div>
+            <div class="cr-guest-id" id="cr-loading-id"></div>
           </div>
         </div>
-        <!-- 有料招待 現金確認ボタン（後方互換用 — 非表示） -->
-        <button class="btn-confirm-cash" id="btn-confirm-cash" onclick="confirmPayment('cash')" style="display:none;">
-          💴 現金受取確認 → チェックイン
-        </button>
+
+        <!-- ② チェックイン完了（無料・事前決済共通ベース） -->
+        <div id="cr-state-ok" style="display:none;">
+          <div class="cr-state-box" id="cr-ok-box">
+            <div class="cr-ok-icon" id="cr-ok-icon">✅</div>
+            <div class="cr-ok-title" id="cr-ok-title">チェックイン完了</div>
+            <div class="cr-ok-name" id="cr-ok-name"></div>
+            <div class="cr-ok-badge" id="cr-ok-badge" style="display:none;"></div>
+            <div class="cr-ok-meta" id="cr-ok-meta"></div>
+            <button class="btn-next-scan" id="btn-next-scan" onclick="resetScanResult()">📷 次の読み取りへ</button>
+          </div>
+        </div>
+
+        <!-- ③ 支払い受付（当日払い） -->
+        <div id="cr-state-payment" style="display:none;">
+          <div class="cr-state-box cr-payment-box">
+            <div class="cr-payment-icon">💴</div>
+            <div class="cr-payment-title">支払い受付</div>
+            <div class="cr-ok-name" id="cr-pay-name"></div>
+            <div class="cr-pay-amount" id="cr-pay-amount"></div>
+            <div class="cr-ok-meta" id="cr-pay-meta"></div>
+            <div class="cr-payment-label">支払い方法を選択してチェックイン</div>
+            <div class="payment-btns" style="margin-top:12px;">
+              <button class="btn-payment" onclick="confirmPayment('cash')">
+                <span class="pay-icon">💵</span>現金
+              </button>
+              <button class="btn-payment" onclick="confirmPayment('card')">
+                <span class="pay-icon">💳</span>カード
+              </button>
+              <button class="btn-payment" onclick="confirmPayment('paypay')">
+                <span class="pay-icon">📱</span>PayPay
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ④ 入場済みエラー -->
+        <div id="cr-state-duplicate" style="display:none;">
+          <div class="cr-state-box cr-error-box">
+            <div class="cr-ok-icon">⚠️</div>
+            <div class="cr-ok-title" style="color:#E8A020;">入場済み</div>
+            <div class="cr-ok-name" id="cr-dup-name"></div>
+            <div class="cr-ok-meta" id="cr-dup-meta"></div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -1280,6 +1409,8 @@ async function processCheckIn(guestId) {
   // キャッシュにない場合はAPIから取得
   if (!guest) {
     setScanMsg('🔍 照会中… ' + guestId, 'scanning');
+    showCheckinResult({ guest_id: guestId }, 'loading');
+    document.getElementById('checkin-result').style.display = 'block';
     const res = await apiGet({ action: 'getGuests', event_id: eventId });
     const fetched = (res.guests || []).find(g => String(g.guest_id) === String(guestId));
     if (fetched) {
@@ -1302,31 +1433,17 @@ async function processCheckIn(guestId) {
     checkinBusy = false; return;
   }
 
-  // 無料招待 → 確認ボタンを表示して待機
-  if (guest.pay_type === 'free') {
-    setScanMsg('確認してチェックインしてください — ' + guest.name, 'warn');
-    pendingGuest = guestId;
-    showCheckinResult(guest, 'free_confirm');
-    checkinBusy = false; return;
-  }
-
-  // 有料招待・未払い → 支払い方法選択ボタンを表示
-  // ただしStripe事前決済済みの場合はそのまま通す
+  // 当日払い → 支払い方法選択を表示して待機
   if (guest.pay_type === 'paid' && String(guest.pay_confirmed).toUpperCase() !== 'TRUE') {
-    setScanMsg('💳 支払い方法を選択してチェックインしてください — ' + guest.name, 'warn');
+    setScanMsg('💴 支払い受付 — ' + guest.name, 'warn');
     pendingGuest = guestId;
     showCheckinResult(guest, 'payment_required');
     checkinBusy = false; return;
   }
-  // Stripe事前決済済み（pay_confirmed=TRUE, payment_method=stripe）
-  if (guest.pay_type === 'paid' && String(guest.pay_confirmed).toUpperCase() === 'TRUE'
-      && (guest.payment_method || '').toLowerCase() === 'stripe') {
-    setScanMsg('✅ 事前決済済み — チェックイン処理中… ' + guest.name, 'scanning');
-  }
 
-  // 有料・支払済み → そのままチェックイン
-  setScanMsg('✅ チェックイン処理中…', 'scanning');
-  showCheckinResult(guest, 'checking');
+  // 無料招待 or Stripe事前決済済み → 自動チェックイン
+  setScanMsg('⏳ チェックイン処理中… ' + guest.name, 'scanning');
+  showCheckinResult({ guest_id: guestId }, 'loading');
   const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: eventId });
   if (d.ok) {
     const isStripe = (d.payment_method || '').toLowerCase() === 'stripe';
@@ -1334,8 +1451,10 @@ async function processCheckIn(guestId) {
     showCheckinResult(d, 'ok');
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(guestId));
     if (idx >= 0) allGuests[idx].arrived = 'TRUE';
+    invalidateGuestCache(eventId);
   } else {
     setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
+    showCheckinResult({ guest_id: guestId, name: '未登録' }, 'duplicate');
   }
   checkinBusy = false;
 }
@@ -1371,9 +1490,10 @@ async function confirmPayment(method) {
   const methodLabel = { cash:'現金', card:'カード', paypay:'PayPay' }[method] || method;
   const d = await apiPost({ action: 'checkIn', guest_id: pendingGuest, event_id: eventId, payment_method: method });
   if (d.ok) {
-    setScanMsg(`✅ チェックイン完了（${methodLabel}）— ` + d.name, 'ok');
+    setScanMsg('✅ チェックイン完了（' + methodLabel + '）— ' + d.name, 'ok');
+    // payment_methodをセットしてok表示
+    d.payment_method = method;
     showCheckinResult(d, 'ok');
-    // ローカルキャッシュを更新
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
     if (idx >= 0) {
       allGuests[idx].arrived        = 'TRUE';
@@ -1381,12 +1501,11 @@ async function confirmPayment(method) {
       allGuests[idx].payment_method = method;
     }
     pendingGuest = null;
-    invalidateGuestCache(eventId); // キャッシュ無効化
+    invalidateGuestCache(eventId);
     if (currentEventId === eventId) {
       updateGuestStats();
       renderGuestTable();
     }
-    toast(`✅ ${d.name}（${methodLabel}）チェックイン完了`);
   } else {
     setScanMsg('❌ ' + (d.message || 'チェックインに失敗しました'), 'err');
     toast('❌ ' + (d.message || 'チェックインに失敗しました'));
@@ -1394,33 +1513,85 @@ async function confirmPayment(method) {
   checkinBusy = false;
 }
 
+// 全ステートを非表示
+function crHideAll() {
+  ['cr-state-loading','cr-state-ok','cr-state-payment','cr-state-duplicate'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+}
+
 function showCheckinResult(d, status) {
-  const el = document.getElementById('checkin-result');
-  el.style.display = 'block';
-  document.getElementById('cr-name').textContent       = d.name       || d.guest_id || '—';
-  document.getElementById('cr-gender').textContent     = d.gender === 'female' ? '女性' : '男性';
-  document.getElementById('cr-invited-by').textContent = d.invited_by || '—';
-  const isStripePaid = (d.payment_method || '').toLowerCase() === 'stripe' && String(d.pay_confirmed || '').toUpperCase() === 'TRUE';
-  document.getElementById('cr-type').textContent = d.pay_type === 'free' ? '無料招待' : (isStripePaid ? '有料招待（事前決済済み ✅）' : '有料招待');
-  const amountRow = document.getElementById('cr-amount-row');
-  if (d.pay_type === 'paid') {
-    amountRow.style.display = 'flex';
-    document.getElementById('cr-amount').textContent = '¥' + Number(d.amount || 0).toLocaleString();
-  } else {
-    amountRow.style.display = 'none';
+  const wrap = document.getElementById('checkin-result');
+  wrap.style.display = 'block';
+  crHideAll();
+
+  const gender  = d.gender === 'female' ? '女性' : '男性';
+  const invBy   = d.invited_by ? '招待者: ' + d.invited_by : '';
+
+  if (status === 'loading') {
+    // ① 照会中
+    document.getElementById('cr-loading-id').textContent = d.guest_id || '';
+    document.getElementById('cr-state-loading').style.display = 'block';
+
+  } else if (status === 'ok') {
+    // ② 完了（無料・事前決済）
+    const isStripe = (d.payment_method || '').toLowerCase() === 'stripe';
+    const isFree   = d.pay_type === 'free';
+    const box      = document.getElementById('cr-ok-box');
+    const badge    = document.getElementById('cr-ok-badge');
+    const title    = document.getElementById('cr-ok-title');
+
+    box.style.borderColor = isStripe
+      ? 'rgba(106,171,255,0.5)'
+      : 'rgba(76,175,130,0.5)';
+
+    document.getElementById('cr-ok-icon').textContent  = '✅';
+    title.textContent = 'チェックイン完了';
+    title.style.color = isStripe ? 'var(--cash)' : 'var(--arrived)';
+    document.getElementById('cr-ok-name').textContent  = d.name || '—';
+
+    if (isStripe) {
+      badge.className   = 'cr-ok-badge badge-stripe';
+      badge.textContent = '💳 事前決済済み ¥' + Number(d.amount || 0).toLocaleString();
+      badge.style.display = 'inline-block';
+    } else if (isFree) {
+      badge.className   = 'cr-ok-badge badge-free';
+      badge.textContent = '🎟 無料招待';
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    document.getElementById('cr-ok-meta').innerHTML =
+      gender + (invBy ? '&nbsp;&nbsp;|&nbsp;&nbsp;' + invBy : '');
+    document.getElementById('cr-state-ok').style.display = 'block';
+
+    // ボタン表示（次の読み取りへ）
+
+  } else if (status === 'payment_required') {
+    // ③ 当日払い
+    document.getElementById('cr-pay-name').textContent   = d.name || '—';
+    document.getElementById('cr-pay-amount').textContent = '¥' + Number(d.amount || 0).toLocaleString();
+    document.getElementById('cr-pay-meta').innerHTML     =
+      gender + (invBy ? '&nbsp;&nbsp;|&nbsp;&nbsp;' + invBy : '');
+    document.getElementById('cr-state-payment').style.display = 'block';
+
+  } else if (status === 'duplicate') {
+    // ④ 入場済み
+    document.getElementById('cr-dup-name').textContent = d.name || '—';
+    document.getElementById('cr-dup-meta').innerHTML   =
+      gender + (invBy ? '&nbsp;&nbsp;|&nbsp;&nbsp;' + invBy : '');
+    document.getElementById('cr-state-duplicate').style.display = 'block';
   }
-  // ボタン表示制御
-  document.getElementById('btn-confirm-free').style.display       = status === 'free_confirm' ? 'block' : 'none';
-  document.getElementById('payment-select-area').style.display    = status === 'payment_required' ? 'block' : 'none';
-  document.getElementById('btn-confirm-cash').style.display       = 'none'; // 非表示（後方互換のみ）
-  // ボーダー色
-  el.style.borderColor = status === 'ok'
-    ? 'rgba(76,175,130,0.4)'
-    : status === 'free_confirm'
-      ? 'rgba(76,175,130,0.25)'
-      : status === 'payment_required'
-        ? 'rgba(106,171,255,0.4)'
-        : 'rgba(207,68,68,0.4)';
+}
+
+function resetScanResult() {
+  const wrap = document.getElementById('checkin-result');
+  wrap.style.display = 'none';
+  crHideAll();
+  checkinBusy = false;
+  lastScanned = '';
+  setScanMsg('QRコードをカメラにかざしてください', 'scanning');
 }
 
 function setScanMsg(msg, type) {
