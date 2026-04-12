@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   const body = req.body || {};
   const { event_id, event_name, name, email, gender, invited_by, amount } = body;
 
-  if (!event_id || !name || !email || !amount || Number(amount) <= 0) {
+  if (!event_id || !amount || Number(amount) <= 0) {
     return res.status(400).json({ ok: false, message: 'パラメータ不足' });
   }
 
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
   params.append('line_items[0][price_data][unit_amount]', String(amount));
   params.append('line_items[0][price_data][product_data][name]', (event_name || 'イベント') + ' 入場料');
   params.append('line_items[0][quantity]', '1');
-  params.append('customer_email', email);
+  if (email) params.append('customer_email', email);
   params.append('success_url', successUrl);
   params.append('cancel_url', cancelUrl);
   params.append('metadata[event_id]', event_id);
