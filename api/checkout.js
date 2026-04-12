@@ -26,8 +26,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, message: 'パラメータ不足' });
   }
 
-  const successUrl = 'https://luxepartycom.github.io/event-system/checkout.html?session_id={CHECKOUT_SESSION_ID}';
-  const cancelUrl  = 'https://luxepartycom.github.io/event-system/index.html?e=' + event_id + '&type=paid';
+  // 単発決済（CHARGE-）はadmin.htmlに戻す、通常決済はcheckout.htmlへ
+  const isQuickCharge = String(event_id).startsWith('CHARGE-');
+  const successUrl = isQuickCharge
+    ? 'https://luxepartycom.github.io/event-system/admin.html'
+    : 'https://luxepartycom.github.io/event-system/checkout.html?session_id={CHECKOUT_SESSION_ID}';
+  const cancelUrl = isQuickCharge
+    ? 'https://luxepartycom.github.io/event-system/admin.html'
+    : 'https://luxepartycom.github.io/event-system/index.html?e=' + event_id + '&type=paid';
 
   const params = new URLSearchParams();
   params.append('mode', 'payment');
