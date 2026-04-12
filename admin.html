@@ -1529,57 +1529,69 @@ async function processCheckIn(guestId) {
   const eventId = document.getElementById('scan-event-sel').value;
   if (!eventId) { setScanMsg('イベントを選択してください', 'err'); checkinBusy = false; return; }
 
-  // ローカルキャッシュで照合
-  let guest = allGuests.find(g => String(g.guest_id) === String(guestId) && String(g.event_id) === String(eventId));
+  // ① 即座にローディング表示・カメラ停止
+  showCamOverlay({ guest_id: guestId }, 'loading');
+  setScanMsg('🔍 照会中… ' + guestId, 'scanning');
 
-  // キャッシュにない場合はAPIから取得
-  if (!guest) {
-    setScanMsg('🔍 照会中… ' + guestId, 'scanning');
-    showCamOverlay({ guest_id: guestId }, 'loading');
-    const res = await apiGet({ action: 'getGuests', event_id: eventId });
-    const fetched = (res.guests || []).find(g => String(g.guest_id) === String(guestId));
-    if (fetched) {
-      // キャッシュに追加
-      allGuests.push(fetched);
-      guest = fetched;
-    }
-  }
-
-  // ゲストが見つからない
-  if (!guest) {
-    setScanMsg('❌ このQRコードは登録されていません: ' + guestId, 'err');
-    checkinBusy = false; return;
-  }
-
-  // 入場済み → カメラ停止して表示
-  if (String(guest.arrived).toUpperCase() === 'TRUE') {
-    setScanMsg('⚠️ 入場済みです — ' + guest.name, 'err');
-    showCamOverlay(guest, 'duplicate'); // 内部でstopScan()実行
-    checkinBusy = false; return;
-  }
-
-  // 当日払い → 支払い方法選択を表示して待機
-  if (guest.pay_type === 'paid' && String(guest.pay_confirmed).toUpperCase() !== 'TRUE') {
-    setScanMsg('💴 支払い受付 — ' + guest.name, 'warn');
+  // ② キャッシュで当日払いを確認（支払い選択が必要な場合のみ事前チェック）
+  const cached = allGuests.find(g =>
+    String(g.guest_id) === String(guestId) &&
+    String(g.event_id) === String(eventId)
+  );
+  if (cached &&
+      cached.pay_type === 'paid' &&
+      String(cached.pay_confirmed).toUpperCase() !== 'TRUE' &&
+      String(cached.arrived).toUpperCase() !== 'TRUE') {
+    // キャッシュで当日払いと判明 → 支払い方法選択を表示
     pendingGuest = guestId;
-    showCamOverlay(guest, 'payment_required'); // 内部でstopScan()実行
+    showCamOverlay(cached, 'payment_required');
+    setScanMsg('💴 支払い受付 — ' + cached.name, 'warn');
     checkinBusy = false; return;
   }
 
-  // 無料招待 or Stripe事前決済済み → 自動チェックイン（カメラ停止してから処理）
-  setScanMsg('⏳ チェックイン処理中… ' + guest.name, 'scanning');
-  showCamOverlay({ guest_id: guestId }, 'loading'); // 内部でstopScan()実行
-  const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: eventId });
-  if (d.ok) {
+  // ③ checkInを直接呼ぶ（GAS1回で照会+登録を完結）
+  try {
+    const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: eventId });
+
+    if (!d.ok) {
+      if (d.status === 'not_found') {
+        setScanMsg('❌ 登録されていません: ' + guestId, 'err');
+        camHideAll();
+        // スキャン枠を戻す
+        const frame = document.getElementById('scan-frame-overlay');
+        if (frame) frame.style.display = 'flex';
+        checkinBusy = false; return;
+      }
+      if (d.status === 'duplicate') {
+        setScanMsg('⚠️ 入場済みです — ' + (d.name || ''), 'err');
+        showCamOverlay(d, 'duplicate');
+        checkinBusy = false; return;
+      }
+      if (d.status === 'payment_required') {
+        // GASから支払い未済と返ってきた場合
+        pendingGuest = guestId;
+        showCamOverlay(d, 'payment_required');
+        setScanMsg('💴 支払い受付 — ' + (d.name || ''), 'warn');
+        checkinBusy = false; return;
+      }
+      setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
+      camHideAll();
+      checkinBusy = false; return;
+    }
+
+    // ④ チェックイン成功
     const isStripe = (d.payment_method || '').toLowerCase() === 'stripe';
-    setScanMsg((isStripe ? '✅ 事前決済済み・チェックイン完了 — ' : '✅ チェックイン完了 — ') + d.name, 'ok');
+    setScanMsg((isStripe ? '✅ 事前決済済み・完了 — ' : '✅ チェックイン完了 — ') + d.name, 'ok');
     showCamOverlay(d, 'ok');
+
+    // ローカルキャッシュ更新
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(guestId));
     if (idx >= 0) allGuests[idx].arrived = 'TRUE';
     invalidateGuestCache(eventId);
-  } else {
-    setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
-    showCamOverlay({ guest_id: guestId, name: '未登録' }, 'duplicate');
+
+  } catch(err) {
+    setScanMsg('❌ 通信エラー', 'err');
+    camHideAll();
   }
   checkinBusy = false;
 }
