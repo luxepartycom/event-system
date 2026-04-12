@@ -478,6 +478,49 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   line-height:1.6;transition:all 0.2s;
 }
 .cam-pay-btn:hover{ border-color:var(--gold);color:var(--gold); }
+
+/* ── 最新イベントカード強調 ── */
+.event-card-latest{
+  border-left:3px solid var(--gold);
+  background:rgba(201,168,76,0.04);
+}
+.ev-latest-badge{
+  font-size:0.48rem;letter-spacing:0.2em;
+  color:var(--gold);text-transform:uppercase;
+  margin-bottom:8px;
+}
+/* セレクターの最新イベント強調（ChromeはCSS option未対応のためJS側で対応済み） */
+
+/* ── 単発決済 ── */
+.charge-wrap{max-width:420px;margin:0 auto;}
+.charge-card{background:var(--dark);border:1px solid rgba(201,168,76,0.15);padding:32px 28px;margin-bottom:20px;}
+.charge-group{margin-bottom:22px;}
+.charge-label{display:block;font-size:0.52rem;letter-spacing:0.22em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;}
+.charge-input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:11px 0;color:var(--white);font-family:inherit;font-size:0.95rem;outline:none;transition:border-color 0.3s;}
+.charge-input:focus{border-bottom-color:var(--gold);}
+.charge-input::placeholder{color:rgba(255,255,255,0.2);}
+.charge-amount-wrap{display:flex;align-items:baseline;gap:8px;}
+.charge-yen{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.4rem;color:var(--gold-dim);}
+.charge-amount-input{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.8rem;color:var(--gold);letter-spacing:0.05em;-moz-appearance:textfield;}
+.charge-amount-input::-webkit-outer-spin-button,
+.charge-amount-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.charge-preview{background:var(--dark2);border:1px solid rgba(201,168,76,0.2);padding:16px 20px;margin-bottom:22px;text-align:center;}
+.charge-preview-label{font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:8px;}
+.charge-preview-amount{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:2rem;color:var(--gold);line-height:1;margin-bottom:4px;}
+.charge-preview-desc{font-size:0.65rem;color:var(--gray);}
+.btn-charge{width:100%;padding:18px;background:var(--gold);border:none;cursor:pointer;font-family:inherit;font-size:0.72rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--black);transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;}
+.btn-charge:hover:not(:disabled){background:var(--gold-light);}
+.btn-charge:disabled{background:rgba(201,168,76,0.2);color:rgba(0,0,0,0.3);cursor:not-allowed;}
+.btn-charge-icon{font-size:1.1rem;}
+.charge-note{font-size:0.55rem;color:var(--gray);text-align:center;line-height:1.7;}
+.charge-history{background:var(--dark);border:1px solid rgba(255,255,255,0.06);padding:20px 24px;}
+.charge-history-title{font-size:0.5rem;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:14px;}
+.charge-history-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.68rem;}
+.charge-history-item:last-child{border-bottom:none;}
+.chi-desc{color:var(--gray);flex:1;}
+.chi-amount{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;color:var(--gold);font-size:0.85rem;margin:0 12px;}
+.chi-status-ok{color:var(--arrived);font-size:0.55rem;}
+.chi-status-err{color:#CF4444;font-size:0.55rem;}
 </style>
 </head>
 <body>
@@ -506,6 +549,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <button class="nav-tab"        onclick="showTab('promoters')" id="tab-promoters">招待者別</button>
       <button class="nav-tab"        onclick="showTab('scan')"      id="tab-scan">QRスキャン</button>
       <button class="nav-tab"        onclick="showTab('report')"    id="tab-report">レポート</button>
+      <button class="nav-tab"        onclick="showTab('charge')"    id="tab-charge">単発決済</button>
     </div>
     <button class="btn-logout" onclick="logout()">ログアウト</button>
   </nav>
@@ -758,6 +802,56 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   </div>
 </div>
 
+
+  <!-- 単発決済 -->
+  <div class="page" id="page-charge">
+    <div class="page-eyebrow">Quick Charge</div>
+    <h1 class="page-title">単発 <span>決済</span></h1>
+
+    <div class="charge-wrap">
+      <div class="charge-card">
+
+        <div class="charge-group">
+          <label class="charge-label">内容（任意）</label>
+          <input class="charge-input" id="charge-desc"
+            placeholder="例: ドリンク、ボトル など"
+            maxlength="40">
+        </div>
+
+        <div class="charge-group">
+          <label class="charge-label">金額</label>
+          <div class="charge-amount-wrap">
+            <span class="charge-yen">¥</span>
+            <input class="charge-input charge-amount-input" id="charge-amount"
+              type="number" min="1" max="999999"
+              placeholder="0"
+              oninput="updateChargeBtn()">
+          </div>
+        </div>
+
+        <div class="charge-preview" id="charge-preview" style="display:none;">
+          <div class="charge-preview-label">決済内容確認</div>
+          <div class="charge-preview-amount" id="charge-preview-amount"></div>
+          <div class="charge-preview-desc" id="charge-preview-desc"></div>
+        </div>
+
+        <button class="btn-charge" id="btn-charge" onclick="startQuickCharge()" disabled>
+          <span class="btn-charge-icon">💳</span>
+          <span id="btn-charge-label">金額を入力してください</span>
+        </button>
+
+        <div class="charge-note">
+          決済完了後、Stripeの管理画面から履歴を確認できます。
+        </div>
+      </div>
+
+      <div class="charge-history" id="charge-history" style="display:none;">
+        <div class="charge-history-title">今回の決済履歴</div>
+        <div id="charge-history-list"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- レポート -->
   <div class="page" id="page-report">
     <div class="page-eyebrow">Promoter Report</div>
@@ -981,18 +1075,47 @@ async function loadEvents() {
   populateEventSelectors();
 }
 
+function sortedEvents() {
+  // 日付降順（最新が先頭）
+  return [...allEvents].sort((a, b) => {
+    const da = String(a.date).substring(0, 10);
+    const db = String(b.date).substring(0, 10);
+    return db.localeCompare(da);
+  });
+}
+
 function populateEventSelectors() {
+  const sorted = sortedEvents();
+  const latest = sorted[0]; // 最新イベント
+
   ['g-event-sel', 'p-event-sel', 'scan-event-sel', 'r-event-sel'].forEach(selId => {
     const sel = document.getElementById(selId);
     const cur = sel.value;
-    sel.innerHTML = '<option value="">イベントを選択…</option>';
-    allEvents.forEach(ev => {
+    sel.innerHTML = '';
+    sorted.forEach((ev, i) => {
       const o = document.createElement('option');
       o.value = ev.event_id;
-      o.textContent = ev.name + ' — ' + ev.date;
+      // 最新イベントにマーカー
+      if (i === 0) {
+        o.textContent = '★ ' + ev.name + ' — ' + ev.date + (ev.status === 'active' ? ' 【開催中】' : '');
+        o.style.color = '#C9A84C';
+        o.style.fontWeight = 'bold';
+      } else {
+        o.textContent = ev.name + ' — ' + ev.date;
+      }
       sel.appendChild(o);
     });
-    if (cur) sel.value = cur;
+    // 現在選択中を維持 or 最新を自動選択
+    if (cur && sorted.find(e => e.event_id === cur)) {
+      sel.value = cur;
+    } else if (latest) {
+      sel.value = latest.event_id;
+      // 各タブの自動ロード
+      if (selId === 'g-event-sel') {
+        currentEventId = latest.event_id;
+        loadGuests(true);
+      }
+    }
   });
 }
 
@@ -1024,7 +1147,8 @@ function renderEventGrid() {
   grid.innerHTML = '';
   if (!allEvents.length) { grid.innerHTML = '<div class="loading">イベントがありません</div>'; return; }
 
-  allEvents.forEach(ev => {
+  const sorted = sortedEvents();
+  sorted.forEach((ev, evIndex) => {
     const freeUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=free';
     const paidUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid';
     const promoList = getPromoUrls(ev.event_id);
@@ -1037,9 +1161,10 @@ function renderEventGrid() {
       : `<div class="ev-desc ev-desc-empty">詳細未設定</div>`;
 
     const card = document.createElement('div');
-    card.className = 'event-card';
+    card.className = 'event-card' + (evIndex === 0 ? ' event-card-latest' : '');
     card.id = 'ev-card-' + ev.event_id;
     card.innerHTML = `
+      ${evIndex === 0 ? '<div class="ev-latest-badge">★ 最新イベント</div>' : ''}
       <div class="ev-name">${ev.name}</div>
       <div class="ev-date">${ev.date}</div>
       <span class="ev-status ${ev.status === 'active' ? 'status-active' : 'status-closed'}">${ev.status === 'active' ? '開催中' : '終了'}</span>
@@ -2143,6 +2268,98 @@ async function exportToSheet() {
 
 function onReportTabOpen() {
   if (reportEventId) { renderReportGroups(); renderReportTable(); }
+}
+
+
+// ── 単発決済 ──────────────────────────────────────────────
+const VERCEL_CHECKOUT = 'https://event-system-kappa.vercel.app/api/checkout';
+let chargeHistory = [];
+
+function updateChargeBtn() {
+  const amount = Number(document.getElementById('charge-amount').value);
+  const desc   = document.getElementById('charge-desc').value.trim();
+  const btn    = document.getElementById('btn-charge');
+  const label  = document.getElementById('btn-charge-label');
+  const preview = document.getElementById('charge-preview');
+
+  if (amount > 0) {
+    btn.disabled = false;
+    label.textContent = '¥' + amount.toLocaleString() + ' を決済する';
+    preview.style.display = 'block';
+    document.getElementById('charge-preview-amount').textContent = '¥' + amount.toLocaleString();
+    document.getElementById('charge-preview-desc').textContent   = desc || '（内容未入力）';
+  } else {
+    btn.disabled = true;
+    label.textContent = '金額を入力してください';
+    preview.style.display = 'none';
+  }
+}
+
+async function startQuickCharge() {
+  const amount = Number(document.getElementById('charge-amount').value);
+  const desc   = document.getElementById('charge-desc').value.trim() || '単発決済';
+  if (!amount || amount <= 0) { toast('金額を入力してください'); return; }
+
+  const btn   = document.getElementById('btn-charge');
+  const label = document.getElementById('btn-charge-label');
+  btn.disabled = true;
+  label.textContent = '決済画面を準備中…';
+
+  try {
+    const res = await fetch(VERCEL_CHECKOUT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id:   'CHARGE-' + Date.now(),
+        event_name: desc,
+        name:       'スタッフ決済',
+        email:      '',           // メール不要
+        gender:     '',
+        invited_by: '',
+        amount:     amount
+      })
+    });
+    const d = await res.json();
+
+    if (d.ok && d.checkout_url) {
+      // 履歴に追加（処理中）
+      const item = { desc, amount, status: 'pending', session_id: d.session_id };
+      chargeHistory.unshift(item);
+      renderChargeHistory();
+
+      // Stripe Checkoutを新しいタブで開く
+      window.open(d.checkout_url, '_blank');
+      toast('✦ Stripe決済画面を開きました');
+
+      // 入力をリセット
+      document.getElementById('charge-amount').value = '';
+      document.getElementById('charge-desc').value   = '';
+      document.getElementById('charge-preview').style.display = 'none';
+    } else {
+      toast('❌ ' + (d.message || '決済画面の準備に失敗しました'));
+    }
+  } catch(err) {
+    toast('❌ 通信エラー: ' + err.message);
+  }
+
+  btn.disabled = false;
+  label.textContent = '金額を入力してください';
+  updateChargeBtn();
+}
+
+function renderChargeHistory() {
+  if (!chargeHistory.length) return;
+  const wrap = document.getElementById('charge-history');
+  const list = document.getElementById('charge-history-list');
+  wrap.style.display = 'block';
+  list.innerHTML = chargeHistory.map(item => `
+    <div class="charge-history-item">
+      <span class="chi-desc">${item.desc}</span>
+      <span class="chi-amount">¥${Number(item.amount).toLocaleString()}</span>
+      <span class="${item.status === 'ok' ? 'chi-status-ok' : 'chi-status-err'}">
+        ${item.status === 'ok' ? '✅ 完了' : '⏳ 処理中'}
+      </span>
+    </div>`).join('');
 }
 
 </script>
