@@ -318,7 +318,13 @@ async function stripeCheckout(){
   btn.disabled=true;
   btn.querySelector('.btn-stripe-title').textContent='決済画面を準備中…';
   try {
-    const d=await apiPost({action:'createCheckoutSession',event_id:currentEvent.event_id,event_name:currentEvent.name,name,email,gender:selectedGender,invited_by:invitedBy,amount});
+    // Vercel経由でStripe Checkout Session作成（GASより高速）
+    const stripeRes=await fetch('https://event-system-lkjco8zl0-luxepartycom-8581s-projects.vercel.app/api/checkout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({event_id:currentEvent.event_id,event_name:currentEvent.name,name,email,gender:selectedGender,invited_by:invitedBy,amount})
+    });
+    const d=await stripeRes.json();
     if(d.ok&&d.checkout_url){window.location.href=d.checkout_url;}
     else{document.getElementById('form-error').textContent=d.message||'決済の準備に失敗しました';document.getElementById('form-error').style.display='block';btn.disabled=false;btn.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む（推奨）';}
   } catch(err){document.getElementById('form-error').textContent='通信エラーが発生しました';document.getElementById('form-error').style.display='block';btn.disabled=false;btn.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む（推奨）';}
