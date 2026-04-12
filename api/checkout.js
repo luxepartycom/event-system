@@ -44,14 +44,10 @@ export default async function handler(req, res) {
 
   // customer_emailを必ず設定（設定済みの場合Stripeは編集不可にする）
   if (email) {
-    // 通常の招待決済: ゲストの実際のメール
+    // 通常の招待決済: ゲストの実際のメール → 領収書自動送信
     params.append('customer_email', email);
   } else {
     // 単発決済: 無効アドレスを設定 → 編集不可 + 領収書は誰にも届かない
-    params.append('customer_email', 'noreply@luxepartytokyo.com');
-  } else {
-    // 単発決済: no-reply アドレスを設定してメール入力欄を非表示
-    // Stripeはcustomer_emailが設定されている場合、入力欄を表示しない
     params.append('customer_email', 'noreply@luxepartytokyo.com');
   }
 
