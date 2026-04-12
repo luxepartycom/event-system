@@ -319,7 +319,7 @@ async function stripeCheckout(){
   btn.querySelector('.btn-stripe-title').textContent='決済画面を準備中…';
   try {
     // Vercel経由でStripe Checkout Session作成（GASより高速）
-    const stripeRes=await fetch('https://event-system-lkjco8zl0-luxepartycom-8581s-projects.vercel.app/api/checkout',{
+    const stripeRes=await fetch('https://event-system-kappa.vercel.app/api/checkout',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({event_id:currentEvent.event_id,event_name:currentEvent.name,name,email,gender:selectedGender,invited_by:invitedBy,amount})
