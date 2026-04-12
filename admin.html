@@ -1944,6 +1944,16 @@ document.querySelectorAll('.modal-overlay').forEach(o =>
 window.addEventListener('load', async () => {
   // GASを暖機（ログイン前から）
   fetch(API + '?action=ping').catch(() => {});
+
+  // 単発決済から戻った場合: 履歴を復元して単発決済タブを表示
+  try {
+    const savedHistory = sessionStorage.getItem('lpt_charge_history');
+    if (savedHistory) {
+      chargeHistory = JSON.parse(savedHistory);
+      sessionStorage.removeItem('lpt_charge_history');
+    }
+  } catch(e) {}
+
   // セッションキャッシュ確認 → 自動ログイン
   const cached = sessionStorage.getItem('lpt_auth');
   if (cached) {
@@ -1952,9 +1962,14 @@ window.addEventListener('load', async () => {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display          = 'block';
       await init();
+      // 単発決済履歴があれば単発決済タブを表示
+      if (chargeHistory.length > 0) {
+        showTab('charge');
+        renderChargeHistory();
+      }
       return;
     } else {
-      sessionStorage.removeItem('lpt_auth'); // 無効なキャッシュは削除
+      sessionStorage.removeItem('lpt_auth');
     }
   }
 });
@@ -2313,7 +2328,7 @@ async function startQuickCharge() {
         event_id:   'CHARGE-' + Date.now(),
         event_name: desc,
         name:       'スタッフ決済',
-        email:      '',           // メール不要
+        email:      '',
         gender:     '',
         invited_by: '',
         amount:     amount
@@ -2322,29 +2337,24 @@ async function startQuickCharge() {
     const d = await res.json();
 
     if (d.ok && d.checkout_url) {
-      // 履歴に追加（処理中）
-      const item = { desc, amount, status: 'pending', session_id: d.session_id };
-      chargeHistory.unshift(item);
-      renderChargeHistory();
+      // 決済前に履歴を保存（sessionStorageで戻った後も表示）
+      chargeHistory.unshift({ desc, amount, status: 'pending', session_id: d.session_id });
+      try { sessionStorage.setItem('lpt_charge_history', JSON.stringify(chargeHistory)); } catch(e) {}
 
-      // Stripe Checkoutを新しいタブで開く
-      window.open(d.checkout_url, '_blank');
-      toast('✦ Stripe決済画面を開きました');
-
-      // 入力をリセット
-      document.getElementById('charge-amount').value = '';
-      document.getElementById('charge-desc').value   = '';
-      document.getElementById('charge-preview').style.display = 'none';
+      // 同タブで遷移（iPhone Safari対応・ポップアップブロック回避）
+      location.href = d.checkout_url;
     } else {
       toast('❌ ' + (d.message || '決済画面の準備に失敗しました'));
+      btn.disabled = false;
+      label.textContent = '金額を入力してください';
+      updateChargeBtn();
     }
   } catch(err) {
     toast('❌ 通信エラー: ' + err.message);
+    btn.disabled = false;
+    label.textContent = '金額を入力してください';
+    updateChargeBtn();
   }
-
-  btn.disabled = false;
-  label.textContent = '金額を入力してください';
-  updateChargeBtn();
 }
 
 function renderChargeHistory() {
