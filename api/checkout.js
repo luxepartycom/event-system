@@ -42,15 +42,21 @@ export default async function handler(req, res) {
   params.append('line_items[0][price_data][unit_amount]', String(amount));
   params.append('line_items[0][price_data][product_data][name]', (event_name || 'イベント') + ' 入場料');
   params.append('line_items[0][quantity]', '1');
-  if (email) params.append('customer_email', email);
   params.append('success_url', successUrl);
   params.append('cancel_url', cancelUrl);
   params.append('metadata[event_id]', event_id);
-  params.append('metadata[name]', name);
-  params.append('metadata[email]', email);
+  params.append('metadata[name]', name || '');
   params.append('metadata[gender]', gender || '');
   params.append('metadata[invited_by]', invited_by || '');
   params.append('metadata[amount]', String(amount));
+
+  if (email) {
+    // メールがある場合のみ設定（通常の招待決済）
+    params.append('customer_email', email);
+  } else {
+    // メールなし（単発決済）→ メール入力欄を非表示
+    params.append('customer_creation', 'if_required');
+  }
 
   try {
     const auth = Buffer.from(stripe_sk + ':').toString('base64');
