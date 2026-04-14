@@ -522,6 +522,70 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .chi-status-ok{color:var(--arrived);font-size:0.55rem;}
 .chi-status-cancel{color:#CF4444;font-size:0.55rem;}
 .chi-status-pending{color:var(--gray);font-size:0.55rem;}
+
+/* ── 売上サマリー ── */
+.sales-section-title{
+  font-size:0.52rem;letter-spacing:0.3em;
+  color:var(--gold);text-transform:uppercase;
+  margin-bottom:14px;margin-top:8px;
+  padding-bottom:8px;
+  border-bottom:1px solid rgba(201,168,76,0.15);
+}
+.sales-section-sub{
+  font-size:0.48rem;letter-spacing:0.2em;
+  color:var(--gray);text-transform:uppercase;
+  margin-bottom:8px;
+}
+.sales-charge-list{
+  background:var(--dark);
+  border:1px solid rgba(255,255,255,0.06);
+  padding:4px 0;
+  margin-bottom:0;
+}
+.sales-charge-item{
+  display:flex;align-items:center;
+  justify-content:space-between;
+  padding:10px 16px;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  font-size:0.68rem;
+}
+.sales-charge-item:last-child{border-bottom:none;}
+.sci-desc{color:var(--gray);flex:1;}
+.sci-amount{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  color:var(--gold);font-size:0.85rem;margin:0 12px;
+}
+.sci-status-ok{color:var(--arrived);font-size:0.55rem;}
+.sci-status-cancel{color:#CF4444;font-size:0.55rem;}
+.sales-charge-total{
+  display:flex;justify-content:space-between;
+  align-items:center;
+  padding:12px 16px;
+  background:var(--dark2);
+  font-size:0.68rem;color:var(--gray);
+  border:1px solid rgba(255,255,255,0.06);
+  border-top:none;margin-bottom:20px;
+}
+.sales-charge-total span:last-child{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  color:var(--gold);font-size:1rem;
+}
+.sales-grand-total{
+  display:flex;justify-content:space-between;
+  align-items:center;
+  padding:18px 20px;
+  background:var(--dark);
+  border:1px solid rgba(201,168,76,0.3);
+  margin-top:8px;
+}
+.sales-grand-total span:first-child{
+  font-size:0.55rem;letter-spacing:0.2em;
+  color:var(--gold-dim);text-transform:uppercase;
+}
+.sales-grand-total span:last-child{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.8rem;color:var(--gold);
+}
 </style>
 </head>
 <body>
@@ -547,7 +611,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     <div class="nav-tabs">
       <button class="nav-tab active" onclick="showTab('events')"    id="tab-events">イベント</button>
       <button class="nav-tab"        onclick="showTab('guests')"    id="tab-guests">ゲスト</button>
-      <button class="nav-tab"        onclick="showTab('promoters')" id="tab-promoters">招待者別</button>
+      <button class="nav-tab"        onclick="showTab('sales')"     id="tab-sales">売上</button>
       <button class="nav-tab"        onclick="showTab('scan')"      id="tab-scan">QRスキャン</button>
       <button class="nav-tab"        onclick="showTab('report')"    id="tab-report">レポート</button>
       <button class="nav-tab"        onclick="showTab('charge')"    id="tab-charge">単発決済</button>
@@ -578,47 +642,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <div class="stat-card"><div class="stat-label">有料招待</div><div class="stat-value sv-gold" id="gs-paid">0</div></div>
       <div class="stat-card"><div class="stat-label">支払確認済</div><div class="stat-value sv-gold" id="gs-confirmed">0</div></div>
     </div>
-    <div class="stats-row-sales" id="sales-stats" style="display:none;">
-      <div class="stat-card-sales">
-        <div class="sc-left">
-          <div class="sc-label">見込み売上（有料招待 全員来場時）</div>
-          <div class="sc-value" id="gs-expected">¥0</div>
-          <div class="sc-sub" id="gs-expected-sub">有料 0名 × 平均 ¥0</div>
-        </div>
-        <div class="sc-badge">Expected</div>
-      </div>
-      <div class="stat-card-sales">
-        <div class="sc-left">
-          <div class="sc-label">実売上（来場済み有料ゲスト）</div>
-          <div class="sc-value sv-green" id="gs-actual">¥0</div>
-          <div class="sc-sub" id="gs-actual-sub">来場済み有料 0名</div>
-        </div>
-        <div class="sc-badge green">Actual</div>
-      </div>
-    </div>
-    <!-- 支払い方法別内訳 -->
-    <div class="stats-row-pay" id="pay-breakdown" style="display:none;">
-      <div class="stat-card-pay">
-        <div class="sc-label">💵 現金</div>
-        <div class="sc-value sv-gold" id="gs-pay-cash">¥0</div>
-        <div class="sc-sub" id="gs-pay-cash-sub">0名</div>
-      </div>
-      <div class="stat-card-pay">
-        <div class="sc-label">💳 カード（当日）</div>
-        <div class="sc-value" style="color:var(--cash)" id="gs-pay-card">¥0</div>
-        <div class="sc-sub" id="gs-pay-card-sub">0名</div>
-      </div>
-      <div class="stat-card-pay">
-        <div class="sc-label">📱 PayPay</div>
-        <div class="sc-value" style="color:var(--free)" id="gs-pay-paypay">¥0</div>
-        <div class="sc-sub" id="gs-pay-paypay-sub">0名</div>
-      </div>
-      <div class="stat-card-pay">
-        <div class="sc-label">✅ Stripe（事前）</div>
-        <div class="sc-value" style="color:var(--arrived)" id="gs-pay-stripe">¥0</div>
-        <div class="sc-sub" id="gs-pay-stripe-sub">0名</div>
-      </div>
-    </div>
+    <!-- 売上統計は売上タブに移動 -->
     <div class="toolbar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
@@ -655,6 +679,80 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <option value="">イベントを選択…</option>
     </select>
     <div id="promo-grid" class="promo-grid"></div>
+  </div>
+
+
+  <!-- 売上サマリー -->
+  <div class="page" id="page-sales">
+    <div class="page-eyebrow">Sales Summary</div>
+    <h1 class="page-title">売上 <span>サマリー</span></h1>
+    <select class="event-selector" id="sales-event-sel" onchange="onSalesEventChange()">
+      <option value="">イベントを選択…</option>
+    </select>
+
+    <!-- 招待決済 -->
+    <div id="sales-invite-section" style="display:none;">
+      <div class="sales-section-title">🎟 招待決済</div>
+
+      <div class="stats-row-sales" style="margin-bottom:8px;">
+        <div class="stat-card-sales">
+          <div class="sc-left">
+            <div class="sc-label">見込み売上（全員来場時）</div>
+            <div class="sc-value" id="sl-expected">¥0</div>
+            <div class="sc-sub" id="sl-expected-sub">有料 0名 × 平均 ¥0</div>
+          </div>
+          <div class="sc-badge">Expected</div>
+        </div>
+        <div class="stat-card-sales">
+          <div class="sc-left">
+            <div class="sc-label">実売上（来場済み有料ゲスト）</div>
+            <div class="sc-value sv-green" id="sl-actual">¥0</div>
+            <div class="sc-sub" id="sl-actual-sub">来場済み有料 0名</div>
+          </div>
+          <div class="sc-badge green">Actual</div>
+        </div>
+      </div>
+
+      <div class="sales-section-sub">支払い方法別内訳</div>
+      <div class="stats-row-pay" style="margin-bottom:24px;">
+        <div class="stat-card-pay">
+          <div class="sc-label">💵 現金</div>
+          <div class="sc-value sv-gold" id="sl-pay-cash">¥0</div>
+          <div class="sc-sub" id="sl-pay-cash-sub">0名</div>
+        </div>
+        <div class="stat-card-pay">
+          <div class="sc-label">💳 カード（当日）</div>
+          <div class="sc-value" style="color:var(--cash)" id="sl-pay-card">¥0</div>
+          <div class="sc-sub" id="sl-pay-card-sub">0名</div>
+        </div>
+        <div class="stat-card-pay">
+          <div class="sc-label">📱 PayPay</div>
+          <div class="sc-value" style="color:var(--free)" id="sl-pay-paypay">¥0</div>
+          <div class="sc-sub" id="sl-pay-paypay-sub">0名</div>
+        </div>
+        <div class="stat-card-pay">
+          <div class="sc-label">✅ Stripe（事前）</div>
+          <div class="sc-value" style="color:var(--arrived)" id="sl-pay-stripe">¥0</div>
+          <div class="sc-sub" id="sl-pay-stripe-sub">0名</div>
+        </div>
+      </div>
+
+      <!-- 単発決済 -->
+      <div class="sales-section-title">💴 単発決済</div>
+      <div class="sales-charge-list" id="sl-charge-list">
+        <div style="font-size:0.65rem;color:var(--gray);padding:12px 0;">このイベントの単発決済はありません</div>
+      </div>
+      <div class="sales-charge-total" id="sl-charge-total" style="display:none;">
+        <span>単発決済合計</span>
+        <span id="sl-charge-total-amount">¥0</span>
+      </div>
+
+      <!-- 合計 -->
+      <div class="sales-grand-total" id="sl-grand-total">
+        <span>合計売上</span>
+        <span id="sl-grand-total-amount">¥0</span>
+      </div>
+    </div>
   </div>
 
   <!-- QRスキャン -->
@@ -811,6 +909,13 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 
     <div class="charge-wrap">
       <div class="charge-card">
+
+        <div class="charge-group">
+          <label class="charge-label">イベント（任意）</label>
+          <select class="charge-input" id="charge-event-sel" style="padding:11px 0;cursor:pointer;color:var(--white);">
+            <option value="">選択なし</option>
+          </select>
+        </div>
 
         <div class="charge-group">
           <label class="charge-label">内容（任意）</label>
@@ -1066,6 +1171,7 @@ function showTab(id) {
   else                    stopScan();
   if (id === 'promoters') renderPromoterStats();
   if (id === 'report')    onReportTabOpen();
+  if (id === 'sales')     onSalesTabOpen();
 }
 
 // ── イベント ─────────────────────────────────────────
@@ -1089,7 +1195,7 @@ function populateEventSelectors() {
   const sorted = sortedEvents();
   const latest = sorted[0]; // 最新イベント
 
-  ['g-event-sel', 'p-event-sel', 'scan-event-sel', 'r-event-sel'].forEach(selId => {
+  ['g-event-sel', 'p-event-sel', 'scan-event-sel', 'r-event-sel', 'sales-event-sel'].forEach(selId => {
     const sel = document.getElementById(selId);
     const cur = sel.value;
     sel.innerHTML = '';
@@ -1118,6 +1224,20 @@ function populateEventSelectors() {
       }
     }
   });
+
+  // 単発決済のイベント選択（選択なしあり）
+  const chargeSel = document.getElementById('charge-event-sel');
+  if (chargeSel) {
+    const curVal = chargeSel.value;
+    chargeSel.innerHTML = '<option value="">選択なし</option>';
+    sortedEvents().forEach(ev => {
+      const o = document.createElement('option');
+      o.value = ev.event_id;
+      o.textContent = ev.name + ' — ' + ev.date;
+      chargeSel.appendChild(o);
+    });
+    if (curVal) chargeSel.value = curVal;
+  }
 }
 
 // ── プロモーターURL — GAS連携 ────────────────────────────
@@ -1326,46 +1446,13 @@ function updateGuestStats() {
   const paid      = allGuests.filter(g => g.pay_type === 'paid').length;
   const confirmed = allGuests.filter(g => String(g.pay_confirmed).toUpperCase() === 'TRUE').length;
 
-  // 売上計算
-  const paidGuests        = allGuests.filter(g => g.pay_type === 'paid');
-  const expectedTotal     = paidGuests.reduce((sum, g) => sum + Number(g.amount || 0), 0);
-  const avgAmount         = paid > 0 ? Math.round(expectedTotal / paid) : 0;
-
-  const arrivedPaidGuests = allGuests.filter(g =>
-    g.pay_type === 'paid' && String(g.arrived).toUpperCase() === 'TRUE'
-  );
-  const actualTotal = arrivedPaidGuests.reduce((sum, g) => sum + Number(g.amount || 0), 0);
-
-  // 支払い方法別集計
-  const byMethod = { cash: { count:0, total:0 }, card: { count:0, total:0 }, paypay: { count:0, total:0 }, stripe: { count:0, total:0 } };
-  arrivedPaidGuests.forEach(g => {
-    const m = (g.payment_method || '').toLowerCase();
-    if (byMethod[m]) { byMethod[m].count++; byMethod[m].total += Number(g.amount || 0); }
-  });
-
   document.getElementById('gs-total').textContent     = total;
   document.getElementById('gs-arrived').textContent   = arrived;
   document.getElementById('gs-free').textContent      = free;
   document.getElementById('gs-paid').textContent      = paid;
   document.getElementById('gs-confirmed').textContent = confirmed;
 
-  document.getElementById('gs-expected').textContent     = '¥' + expectedTotal.toLocaleString();
-  document.getElementById('gs-expected-sub').textContent = `有料 ${paid}名 × 平均 ¥${avgAmount.toLocaleString()}`;
-  document.getElementById('gs-actual').textContent       = '¥' + actualTotal.toLocaleString();
-  document.getElementById('gs-actual-sub').textContent   = `来場済み有料 ${arrivedPaidGuests.length}名`;
-
-  // 支払い方法別
-  ['stripe','cash','card','paypay'].forEach(m => {
-    const el = { stripe:'gs-pay-stripe', cash:'gs-pay-cash', card:'gs-pay-card', paypay:'gs-pay-paypay' }[m];;
-    if (document.getElementById(el)) {
-      document.getElementById(el).textContent = '¥' + byMethod[m].total.toLocaleString();
-      document.getElementById(el + '-sub').textContent = byMethod[m].count + '名';
-    }
-  });
-
-  document.getElementById('guest-stats').style.display  = total ? 'grid' : 'none';
-  document.getElementById('sales-stats').style.display  = total ? 'grid' : 'none';
-  document.getElementById('pay-breakdown').style.display = total ? 'grid' : 'none';
+  document.getElementById('guest-stats').style.display = total ? 'grid' : 'none';
 }
 
 function renderGuestTable() {
@@ -2345,6 +2432,7 @@ async function startQuickCharge() {
       body: JSON.stringify({
         event_id:   'CHARGE-' + Date.now(),
         event_name: desc,
+        charge_event_id: document.getElementById('charge-event-sel')?.value || '',
         name:       'スタッフ決済',
         email:      '',
         gender:     '',
@@ -2404,6 +2492,89 @@ function renderChargeHistory() {
       <span class="${statusClass}">${statusLabel}</span>
     </div>`;
   }).join('');
+}
+
+
+// ── 売上サマリー ──────────────────────────────────────────
+let salesEventId = '';
+let salesGuests  = [];
+
+function onSalesTabOpen() {
+  if (salesEventId) renderSalesSummary();
+}
+
+async function onSalesEventChange() {
+  salesEventId = document.getElementById('sales-event-sel').value;
+  if (!salesEventId) {
+    document.getElementById('sales-invite-section').style.display = 'none';
+    return;
+  }
+  // ゲストデータ取得（キャッシュ優先）
+  const cached = guestCache[salesEventId];
+  if (cached) {
+    salesGuests = cached.data;
+  } else {
+    const d = await apiGet({ action: 'getGuests', event_id: salesEventId });
+    salesGuests = d.guests || [];
+  }
+  renderSalesSummary();
+}
+
+function renderSalesSummary() {
+  document.getElementById('sales-invite-section').style.display = 'block';
+
+  // ── 招待決済集計 ──
+  const paidGuests     = salesGuests.filter(g => g.pay_type === 'paid');
+  const arrivedPaid    = paidGuests.filter(g => String(g.arrived).toUpperCase() === 'TRUE');
+  const expectedTotal  = paidGuests.reduce((s, g) => s + Number(g.amount || 0), 0);
+  const actualTotal    = arrivedPaid.reduce((s, g) => s + Number(g.amount || 0), 0);
+  const avgAmount      = paidGuests.length > 0 ? Math.round(expectedTotal / paidGuests.length) : 0;
+
+  document.getElementById('sl-expected').textContent     = '¥' + expectedTotal.toLocaleString();
+  document.getElementById('sl-expected-sub').textContent = '有料 ' + paidGuests.length + '名 × 平均 ¥' + avgAmount.toLocaleString();
+  document.getElementById('sl-actual').textContent       = '¥' + actualTotal.toLocaleString();
+  document.getElementById('sl-actual-sub').textContent   = '来場済み有料 ' + arrivedPaid.length + '名';
+
+  const byMethod = { cash:0, card:0, paypay:0, stripe:0 };
+  const byCount  = { cash:0, card:0, paypay:0, stripe:0 };
+  arrivedPaid.forEach(g => {
+    const m = (g.payment_method || '').toLowerCase();
+    if (byMethod[m] !== undefined) {
+      byMethod[m] += Number(g.amount || 0);
+      byCount[m]++;
+    }
+  });
+  ['cash','card','paypay','stripe'].forEach(m => {
+    const id = { cash:'sl-pay-cash', card:'sl-pay-card', paypay:'sl-pay-paypay', stripe:'sl-pay-stripe' }[m];
+    document.getElementById(id).textContent           = '¥' + byMethod[m].toLocaleString();
+    document.getElementById(id + '-sub').textContent  = byCount[m] + '名';
+  });
+
+  // ── 単発決済集計 ──
+  const chargeItems = chargeHistory.filter(h =>
+    h.status === 'ok' &&
+    (h.charge_event_id === salesEventId || (!h.charge_event_id && !salesEventId))
+  );
+  const chargeList  = document.getElementById('sl-charge-list');
+  const chargeTotal = chargeItems.reduce((s, h) => s + Number(h.amount || 0), 0);
+
+  if (chargeItems.length > 0) {
+    chargeList.innerHTML = chargeItems.map(h => `
+      <div class="sales-charge-item">
+        <span class="sci-desc">${h.desc}</span>
+        <span class="sci-amount">¥${Number(h.amount).toLocaleString()}</span>
+        <span class="sci-status-ok">✅ 完了</span>
+      </div>`).join('');
+    document.getElementById('sl-charge-total').style.display = 'flex';
+    document.getElementById('sl-charge-total-amount').textContent = '¥' + chargeTotal.toLocaleString();
+  } else {
+    chargeList.innerHTML = '<div style="font-size:0.65rem;color:var(--gray);padding:12px 16px;">このイベントの単発決済はありません</div>';
+    document.getElementById('sl-charge-total').style.display = 'none';
+  }
+
+  // ── 合計売上 ──
+  const grandTotal = actualTotal + chargeTotal;
+  document.getElementById('sl-grand-total-amount').textContent = '¥' + grandTotal.toLocaleString();
 }
 
 </script>
