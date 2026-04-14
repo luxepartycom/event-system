@@ -520,7 +520,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .chi-desc{color:var(--gray);flex:1;}
 .chi-amount{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;color:var(--gold);font-size:0.85rem;margin:0 12px;}
 .chi-status-ok{color:var(--arrived);font-size:0.55rem;}
-.chi-status-err{color:#CF4444;font-size:0.55rem;}
+.chi-status-cancel{color:#CF4444;font-size:0.55rem;}
+.chi-status-pending{color:var(--gray);font-size:0.55rem;}
 </style>
 </head>
 <body>
@@ -1946,20 +1947,27 @@ window.addEventListener('load', async () => {
   fetch(API + '?action=ping').catch(() => {});
 
   // 単発決済から戻った場合の復元処理
+  const urlParams   = new URLSearchParams(location.search);
+  const chargeResult = urlParams.get('charge'); // 'success' or 'cancel' or null
   const isChargeReturn = localStorage.getItem('lpt_charge_return') === '1';
-  if (isChargeReturn) {
+
+  if (isChargeReturn || chargeResult) {
     try {
-      // 履歴を復元
       const savedHistory = localStorage.getItem('lpt_charge_history');
       if (savedHistory) chargeHistory = JSON.parse(savedHistory);
-      // パスワードをsessionStorageに戻す
       const savedPw = localStorage.getItem('lpt_charge_auth');
       if (savedPw) sessionStorage.setItem('lpt_auth', savedPw);
-      // localStorageをクリア
       localStorage.removeItem('lpt_charge_return');
       localStorage.removeItem('lpt_charge_history');
       localStorage.removeItem('lpt_charge_auth');
+      // URLパラメータをクリア（履歴に残さない）
+      if (chargeResult) history.replaceState({}, '', location.pathname);
     } catch(e) {}
+
+    // 先頭の履歴アイテムのステータスを更新
+    if (chargeHistory.length > 0) {
+      chargeHistory[0].status = chargeResult === 'success' ? 'ok' : 'cancelled';
+    }
   }
 
   // セッションキャッシュ確認 → 自動ログイン
@@ -1971,10 +1979,11 @@ window.addEventListener('load', async () => {
       document.getElementById('app').style.display          = 'block';
       await init();
       // 単発決済から戻った場合: 単発決済タブを開いて履歴を表示
-      if (isChargeReturn && chargeHistory.length > 0) {
+      if (isChargeReturn || chargeResult) {
         showTab('charge');
         renderChargeHistory();
-        toast('✅ 決済が完了しました');
+        if (chargeResult === 'success') toast('✅ 決済が完了しました');
+        if (chargeResult === 'cancel')  toast('⚠️ 決済をキャンセルしました');
       }
       return;
     } else {
@@ -2377,14 +2386,24 @@ function renderChargeHistory() {
   const wrap = document.getElementById('charge-history');
   const list = document.getElementById('charge-history-list');
   wrap.style.display = 'block';
-  list.innerHTML = chargeHistory.map(item => `
-    <div class="charge-history-item">
+  list.innerHTML = chargeHistory.map(item => {
+    let statusClass, statusLabel;
+    if (item.status === 'ok') {
+      statusClass = 'chi-status-ok';
+      statusLabel = '✅ 完了';
+    } else if (item.status === 'cancelled') {
+      statusClass = 'chi-status-cancel';
+      statusLabel = '❌ キャンセル';
+    } else {
+      statusClass = 'chi-status-pending';
+      statusLabel = '⏳ 処理中';
+    }
+    return `<div class="charge-history-item">
       <span class="chi-desc">${item.desc}</span>
       <span class="chi-amount">¥${Number(item.amount).toLocaleString()}</span>
-      <span class="${item.status === 'ok' ? 'chi-status-ok' : 'chi-status-err'}">
-        ${item.status === 'ok' ? '✅ 完了' : '⏳ 処理中'}
-      </span>
-    </div>`).join('');
+      <span class="${statusClass}">${statusLabel}</span>
+    </div>`;
+  }).join('');
 }
 
 </script>
