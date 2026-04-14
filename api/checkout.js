@@ -21,10 +21,10 @@ export default async function handler(req, res) {
 
   const isQuickCharge = String(event_id).startsWith('CHARGE-');
   const successUrl = isQuickCharge
-    ? 'https://luxepartycom.github.io/event-system/admin.html'
+    ? 'https://luxepartycom.github.io/event-system/admin.html?charge=success'
     : 'https://luxepartycom.github.io/event-system/checkout.html?session_id={CHECKOUT_SESSION_ID}';
   const cancelUrl = isQuickCharge
-    ? 'https://luxepartycom.github.io/event-system/admin.html'
+    ? 'https://luxepartycom.github.io/event-system/admin.html?charge=cancel'
     : 'https://luxepartycom.github.io/event-system/index.html?e=' + event_id + '&type=paid';
 
   const params = new URLSearchParams();
