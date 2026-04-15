@@ -171,7 +171,9 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
         <p>本イベントは、プライベート・ビジネス双方において質の高い出会いや交流が生まれる場を大切にしています。参加者同士の自然な会話や、合意のもとでのビジネス的な交流については特に制限しておりません。</p>
         <p>ただし、主催者の許可なく他イベント等への集客・勧誘を主目的とした行為や、場の雰囲気を損なうと判断される行為についてはご遠慮いただいております。該当すると判断した場合、スタッフよりお声がけ、またはご退場をお願いする場合があります。</p>
         <h4>【入場・滞在・返金について】</h4>
-        <p> すべてのチケットは、購入後のキャンセルはできません。但し、法令上の解除または無効事由等がお客様に認められる場合はこの限りではありません。また本イベントは招待制です。会場の雰囲気・趣旨・安全管理等の観点から、運営側が不適切と判断した場合には、入場のお断りまたはご退場をお願いする場合があります。あらかじめご了承ください。</p>
+        <p>本イベントは招待制です。会場の雰囲気・趣旨・安全管理等の観点から、運営側が不適切と判断した場合には、入場のお断りまたはご退場をお願いする場合があります。その際、入場料・チケット代金の返金はいたしかねます。あらかじめご了承ください。</p>
+        <h4>【キャンセルについて】</h4>
+        <p>すべてのチケットは、購入後のキャンセルはできません。但し、法令上の解除または無効事由等がお客様に認められる場合はこの限りではありません。</p>
         <h4>【会場内での損害・不利益について】</h4>
         <p>衣服・持ち物の汚損、飲食物によるシミ、他の参加者との接触による損害等、主催者の故意または重大な過失によらない事由については、主催者は責任を負いかねます。参加者同士のトラブルについても、当事者間での解決をお願いする場合があります。</p>
         <p style="margin-top:16px;color:rgba(245,240,232,0.5);">ご参加をもって、上記事項へのご理解・ご同意をいただいたものとみなします。</p>
@@ -250,12 +252,15 @@ async function apiGet(p){const r=await fetch(API+'?'+new URLSearchParams(p));ret
 async function apiPost(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});return r.json();}
 
 window.addEventListener('load', async () => {
-  fetch(API+'?action=ping').catch(()=>{});
   const params=new URLSearchParams(location.search);
   const eventId=params.get('e')||'',type=params.get('type')||'paid',promoter=params.get('promoter')||'';
   if(!eventId){showError('URLにイベントIDが含まれていません');return;}
   try {
-    const data=await apiGet({action:'getEvents'});
+    // pingとgetEventsを同時送信（GASコールドスタート対策）
+    const [data] = await Promise.all([
+      apiGet({action:'getEvents'}),
+      fetch(API+'?action=ping').catch(()=>{})
+    ]);
     const ev=(data.events||[]).find(e=>e.event_id===eventId);
     if(!ev){showError('イベントが見つかりません');return;}
     if(String(ev.status)==='closed'){showError('このイベントの受付は終了しました');return;}
