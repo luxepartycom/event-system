@@ -2801,6 +2801,9 @@ let mmTemplates  = {};
 
 // タブ開いた時の初期化
 async function onMailmagTabOpen() {
+  // 初回はチェックボックスをオンにする
+  document.getElementById('mm-target-free').checked = true;
+  document.getElementById('mm-target-paid').checked = true;
   await loadMmGuests();
   loadMmTemplatesFromStorage();
   updateMmCount();
