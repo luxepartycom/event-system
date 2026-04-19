@@ -124,7 +124,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .video-container{position:relative;background:var(--dark);margin-bottom:16px;overflow:hidden;aspect-ratio:1;}
 #scan-video{width:100%;height:100%;object-fit:cover;display:block;}
 .scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
-.scan-frame{width:60%;aspect-ratio:1;border:2px solid rgba(201,168,76,0.6);box-shadow:0 0 0 1000px rgba(0,0,0,0.4);}
+.scan-frame{width:60%;aspect-ratio:1;border:2px solid rgba(201,168,76,0.6);}
 .scan-line{position:absolute;width:56%;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:scanLine 2s linear infinite;}
 @keyframes scanLine{0%{top:20%;}100%{top:80%;}}
 .scan-status{padding:14px 16px;background:var(--dark);margin-bottom:16px;font-size:0.72rem;min-height:48px;display:flex;align-items:center;gap:10px;}
@@ -586,6 +586,52 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
   font-size:1.8rem;color:var(--gold);
 }
+
+/* ── メール配信 ── */
+.mm-section{background:var(--dark);border:1px solid rgba(201,168,76,0.12);padding:20px 24px;margin-bottom:16px;}
+.mm-section-title{font-size:0.5rem;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;font-weight:600;}
+.mm-radio{display:flex;align-items:center;gap:10px;font-size:0.72rem;color:var(--white);margin-bottom:10px;cursor:pointer;}
+.mm-radio input{accent-color:var(--gold);width:16px;height:16px;}
+.mm-check{display:flex;align-items:center;gap:8px;font-size:0.68rem;color:var(--gray);cursor:pointer;}
+.mm-check input{accent-color:var(--gold);width:14px;height:14px;}
+.mm-target-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.mm-target-row:last-child{border-bottom:none;}
+.mm-count{font-size:0.65rem;color:var(--gold);font-family:'Hiragino Mincho ProN','Yu Mincho',serif;}
+.mm-template-row{display:flex;gap:8px;align-items:center;}
+.mm-select{flex:1;background:var(--dark2);border:1px solid rgba(255,255,255,0.12);color:var(--white);padding:10px 12px;font-family:inherit;font-size:0.68rem;outline:none;}
+.mm-btn-sm{background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:8px 14px;cursor:pointer;font-family:inherit;font-size:0.58rem;letter-spacing:0.1em;white-space:nowrap;transition:all 0.2s;}
+.mm-btn-sm:hover{background:rgba(201,168,76,0.1);}
+.mm-btn-del{border-color:rgba(207,68,68,0.4);color:#CF4444;}
+.mm-btn-del:hover{background:rgba(207,68,68,0.1);}
+.mm-tab-row{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.mm-content-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--gray);padding:10px 20px;cursor:pointer;font-family:inherit;font-size:0.62rem;letter-spacing:0.1em;transition:all 0.2s;margin-bottom:-1px;}
+.mm-content-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.mm-field{margin-bottom:16px;}
+.mm-label{display:block;font-size:0.5rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:8px;}
+.mm-input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.78rem;outline:none;transition:border-color 0.2s;}
+.mm-input:focus{border-bottom-color:var(--gold);}
+.mm-input::placeholder{color:rgba(255,255,255,0.2);}
+.mm-textarea{width:100%;background:var(--dark2);border:1px solid rgba(255,255,255,0.08);padding:12px;color:var(--white);font-family:inherit;font-size:0.75rem;outline:none;resize:vertical;line-height:1.8;transition:border-color 0.2s;}
+.mm-textarea:focus{border-color:rgba(201,168,76,0.4);}
+.mm-textarea::placeholder{color:rgba(255,255,255,0.2);}
+.mm-summary{background:var(--dark2);border:1px solid rgba(255,255,255,0.06);padding:16px;font-size:0.68rem;color:var(--gray);line-height:2;margin-bottom:16px;}
+.mm-send-btns{display:flex;flex-direction:column;gap:8px;}
+.mm-btn-preview{background:transparent;border:1px solid rgba(255,255,255,0.2);color:var(--white);padding:14px;cursor:pointer;font-family:inherit;font-size:0.62rem;letter-spacing:0.15em;transition:all 0.2s;}
+.mm-btn-preview:hover{border-color:var(--gold);color:var(--gold);}
+.mm-btn-send{background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:14px;cursor:pointer;font-family:inherit;font-size:0.62rem;letter-spacing:0.15em;transition:all 0.2s;}
+.mm-btn-send:hover:not(:disabled){background:rgba(201,168,76,0.1);}
+.mm-btn-send:disabled{opacity:0.3;cursor:not-allowed;}
+.mm-btn-both{background:var(--gold);color:var(--black);font-weight:700;}
+.mm-btn-both:hover:not(:disabled){background:var(--gold-light);}
+.mm-log{background:var(--dark2);border:1px solid rgba(255,255,255,0.06);padding:16px;font-size:0.62rem;color:var(--gray);line-height:2;margin-top:12px;max-height:200px;overflow-y:auto;}
+
+/* ── テスト送信 ── */
+.mm-test-wrap{background:rgba(201,168,76,0.04);border:1px solid rgba(201,168,76,0.2);padding:16px 20px;margin-bottom:16px;}
+.mm-test-row{margin-bottom:12px;}
+.mm-test-input{width:100%;}
+.mm-test-btns{display:flex;gap:8px;}
+.mm-btn-test{flex:1;background:transparent;border:1px solid rgba(201,168,76,0.35);color:var(--gold);padding:12px 8px;cursor:pointer;font-family:inherit;font-size:0.6rem;letter-spacing:0.1em;transition:all 0.2s;}
+.mm-btn-test:hover{background:rgba(201,168,76,0.1);}
 </style>
 </head>
 <body>
@@ -615,6 +661,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <button class="nav-tab"        onclick="showTab('scan')"      id="tab-scan">QRスキャン</button>
       <button class="nav-tab"        onclick="showTab('report')"    id="tab-report">レポート</button>
       <button class="nav-tab"        onclick="showTab('charge')"    id="tab-charge">単発決済</button>
+      <button class="nav-tab"        onclick="showTab('mailmag')"   id="tab-mailmag">📧 配信</button>
     </div>
     <button class="btn-logout" onclick="logout()">ログアウト</button>
   </nav>
@@ -958,6 +1005,173 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     </div>
   </div>
 
+
+  <!-- メール配信 -->
+  <div class="page" id="page-mailmag">
+    <div class="page-eyebrow">Email Marketing</div>
+    <h1 class="page-title">メール <span>配信</span></h1>
+
+    <!-- STEP 1: 配信対象イベント -->
+    <div class="mm-section">
+      <div class="mm-section-title">STEP 1 　配信対象イベント</div>
+      <label class="mm-radio">
+        <input type="radio" name="mm-scope" value="latest" checked onchange="onMmScopeChange()">
+        <span>前回のイベントの来場者のみ</span>
+      </label>
+      <label class="mm-radio">
+        <input type="radio" name="mm-scope" value="all" onchange="onMmScopeChange()">
+        <span>これまでの全来場者</span>
+      </label>
+      <div id="mm-exclude-wrap" style="display:none;margin-left:24px;margin-top:8px;">
+        <label class="mm-check">
+          <input type="checkbox" id="mm-exclude-latest">
+          <span>前回イベントの参加者を除外する</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- STEP 2: 配信対象者 -->
+    <div class="mm-section">
+      <div class="mm-section-title">STEP 2 　配信対象者</div>
+      <div class="mm-target-row">
+        <label class="mm-check">
+          <input type="checkbox" id="mm-target-free" onchange="updateMmCount()">
+          <span>無料参加者</span>
+        </label>
+        <span class="mm-count" id="mm-count-free">0名</span>
+      </div>
+      <div class="mm-target-row">
+        <label class="mm-check">
+          <input type="checkbox" id="mm-target-paid" onchange="updateMmCount()">
+          <span>有料参加者</span>
+        </label>
+        <span class="mm-count" id="mm-count-paid">0名</span>
+      </div>
+    </div>
+
+    <!-- STEP 3: テンプレート選択 -->
+    <div class="mm-section">
+      <div class="mm-section-title">STEP 3 　テンプレート</div>
+      <div class="mm-template-row">
+        <select class="mm-select" id="mm-template-sel" onchange="loadMmTemplate()">
+          <option value="">新規作成</option>
+        </select>
+        <button class="mm-btn-sm" onclick="saveMmTemplate()">💾 保存</button>
+        <button class="mm-btn-sm mm-btn-del" onclick="deleteMmTemplate()">🗑 削除</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: メール内容 -->
+    <div class="mm-section">
+      <div class="mm-section-title">STEP 4 　メール内容</div>
+
+      <div class="mm-tab-row">
+        <button class="mm-content-tab active" id="mm-tab-free" onclick="switchMmContent('free')">無料参加者向け</button>
+        <button class="mm-content-tab" id="mm-tab-paid" onclick="switchMmContent('paid')">有料参加者向け</button>
+      </div>
+
+      <!-- 無料参加者向け -->
+      <div id="mm-content-free">
+        <div class="mm-field">
+          <label class="mm-label">件名</label>
+          <input class="mm-input" id="mm-free-subject" placeholder="例: 【LUXE PARTY TOKYO】次回イベントのご案内">
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">挨拶文</label>
+          <textarea class="mm-textarea" id="mm-free-greeting" rows="2" placeholder="例: いつもLUXE PARTY TOKYOをご利用いただきありがとうございます。"></textarea>
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">本文・詳細説明</label>
+          <textarea class="mm-textarea" id="mm-free-body" rows="5" placeholder="イベントの詳細・開催日程・場所など"></textarea>
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">フライヤー画像URL（任意）</label>
+          <input class="mm-input" id="mm-free-image" placeholder="https://drive.google.com/...">
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">CTAボタンテキスト</label>
+          <input class="mm-input" id="mm-free-cta-text" placeholder="例: 無料招待で申し込む">
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">CTAリンクURL</label>
+          <input class="mm-input" id="mm-free-cta-url" placeholder="https://luxepartycom.github.io/event-system/index.html?e=...">
+        </div>
+      </div>
+
+      <!-- 有料参加者向け -->
+      <div id="mm-content-paid" style="display:none;">
+        <div class="mm-field">
+          <label class="mm-label">件名</label>
+          <input class="mm-input" id="mm-paid-subject" placeholder="例: 【LUXE PARTY TOKYO】次回イベントのご案内">
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">挨拶文</label>
+          <textarea class="mm-textarea" id="mm-paid-greeting" rows="2" placeholder="例: いつもLUXE PARTY TOKYOをご利用いただきありがとうございます。"></textarea>
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">本文・詳細説明</label>
+          <textarea class="mm-textarea" id="mm-paid-body" rows="5" placeholder="イベントの詳細・開催日程・場所など"></textarea>
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">フライヤー画像URL（任意）</label>
+          <input class="mm-input" id="mm-paid-image" placeholder="https://drive.google.com/...">
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">CTAボタンテキスト</label>
+          <input class="mm-input" id="mm-paid-cta-text" placeholder="例: チケットを購入する">
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">CTAリンクURL</label>
+          <input class="mm-input" id="mm-paid-cta-url" placeholder="https://luxepartycom.github.io/event-system/index.html?e=...">
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: 確認・送信 -->
+    <div class="mm-section">
+      <div class="mm-section-title">STEP 5 　確認・送信</div>
+      <!-- テスト送信 -->
+      <div class="mm-test-wrap">
+        <div class="mm-label" style="margin-bottom:10px;">📧 テスト送信</div>
+        <div class="mm-test-row">
+          <input class="mm-input mm-test-input" id="mm-test-email"
+            placeholder="テスト送信先メールアドレス"
+            type="email">
+        </div>
+        <div class="mm-test-btns">
+          <button class="mm-btn-test" onclick="sendMmTestEmail('free')">📧 無料向けをテスト送信</button>
+          <button class="mm-btn-test" onclick="sendMmTestEmail('paid')">📧 有料向けをテスト送信</button>
+        </div>
+      </div>
+
+      <div class="mm-summary" id="mm-summary">
+        対象者を選択してください
+      </div>
+      <div class="mm-send-btns">
+        <button class="mm-btn-preview" onclick="previewMmEmail()">👁 プレビュー確認</button>
+        <button class="mm-btn-send" id="mm-btn-send-free" onclick="sendMmEmail('free')" disabled>
+          📤 無料参加者に送信
+        </button>
+        <button class="mm-btn-send" id="mm-btn-send-paid" onclick="sendMmEmail('paid')" disabled>
+          📤 有料参加者に送信
+        </button>
+        <button class="mm-btn-send mm-btn-both" id="mm-btn-send-both" onclick="sendMmEmail('both')" disabled>
+          📤 両方に送信
+        </button>
+      </div>
+      <div class="mm-log" id="mm-log" style="display:none;"></div>
+    </div>
+
+    <!-- プレビューモーダル -->
+    <div class="modal-overlay" id="mm-preview-modal" style="display:none;pointer-events:auto;">
+      <div class="modal-box" style="max-width:520px;max-height:80vh;overflow-y:auto;">
+        <div class="modal-title">メールプレビュー</div>
+        <div id="mm-preview-content"></div>
+        <button class="modal-close" onclick="closeMmPreview()">✕ 閉じる</button>
+      </div>
+    </div>
+  </div>
+
   <!-- レポート -->
   <div class="page" id="page-report">
     <div class="page-eyebrow">Promoter Report</div>
@@ -1172,6 +1386,7 @@ function showTab(id) {
   if (id === 'promoters') renderPromoterStats();
   if (id === 'report')    onReportTabOpen();
   if (id === 'sales')     onSalesTabOpen();
+  if (id === 'mailmag')   onMailmagTabOpen();
 }
 
 // ── イベント ─────────────────────────────────────────
@@ -2575,6 +2790,268 @@ function renderSalesSummary() {
   // ── 合計売上 ──
   const grandTotal = actualTotal + chargeTotal;
   document.getElementById('sl-grand-total-amount').textContent = '¥' + grandTotal.toLocaleString();
+}
+
+
+// ── メール配信 ──────────────────────────────────────────
+const MM_DAILY_LIMIT = 100;
+let mmGuestsFree = [];
+let mmGuestsPaid = [];
+let mmTemplates  = {};
+
+// タブ開いた時の初期化
+async function onMailmagTabOpen() {
+  await loadMmGuests();
+  loadMmTemplatesFromStorage();
+  updateMmCount();
+}
+
+// guests_archiveから配信リスト取得
+async function loadMmGuests() {
+  setScanMsg && null;
+  const scope        = document.querySelector('input[name="mm-scope"]:checked').value;
+  const excludeLatest = document.getElementById('mm-exclude-latest').checked;
+
+  const d = await apiGet({ action: 'getMailList', scope, exclude_latest: excludeLatest });
+  if (!d.ok) { toast('❌ リスト取得失敗: ' + (d.message || '')); return; }
+
+  mmGuestsFree = (d.guests || []).filter(g => g.pay_type === 'free');
+  mmGuestsPaid = (d.guests || []).filter(g => g.pay_type === 'paid');
+  updateMmCount();
+}
+
+function onMmScopeChange() {
+  const scope = document.querySelector('input[name="mm-scope"]:checked').value;
+  document.getElementById('mm-exclude-wrap').style.display = scope === 'all' ? 'block' : 'none';
+  loadMmGuests();
+}
+
+function updateMmCount() {
+  const freeChecked = document.getElementById('mm-target-free').checked;
+  const paidChecked = document.getElementById('mm-target-paid').checked;
+
+  document.getElementById('mm-count-free').textContent = mmGuestsFree.length + '名';
+  document.getElementById('mm-count-paid').textContent = mmGuestsPaid.length + '名';
+
+  const totalFree = freeChecked ? mmGuestsFree.length : 0;
+  const totalPaid = paidChecked ? mmGuestsPaid.length : 0;
+  const total     = totalFree + totalPaid;
+
+  const daysNeeded = Math.ceil(total / MM_DAILY_LIMIT);
+
+  document.getElementById('mm-summary').innerHTML = total > 0
+    ? `無料参加者: <strong style="color:var(--white)">${totalFree}名</strong>　有料参加者: <strong style="color:var(--white)">${totalPaid}名</strong>　合計: <strong style="color:var(--gold)">${total}名</strong><br>1日${MM_DAILY_LIMIT}通上限のため <strong style="color:var(--gold)">${daysNeeded}日</strong> に分けて送信されます`
+    : '対象者を選択してください';
+
+  document.getElementById('mm-btn-send-free').disabled = !freeChecked || mmGuestsFree.length === 0;
+  document.getElementById('mm-btn-send-paid').disabled = !paidChecked || mmGuestsPaid.length === 0;
+  document.getElementById('mm-btn-send-both').disabled = !(freeChecked && paidChecked) || total === 0;
+}
+
+function switchMmContent(type) {
+  document.getElementById('mm-content-free').style.display = type === 'free' ? 'block' : 'none';
+  document.getElementById('mm-content-paid').style.display = type === 'paid' ? 'block' : 'none';
+  document.getElementById('mm-tab-free').classList.toggle('active', type === 'free');
+  document.getElementById('mm-tab-paid').classList.toggle('active', type === 'paid');
+}
+
+// テンプレート保存（localStorage）
+function saveMmTemplate() {
+  const name = prompt('テンプレート名を入力してください:');
+  if (!name) return;
+  const tpl = getMmFormData();
+  mmTemplates[name] = tpl;
+  try { localStorage.setItem('lpt_mm_templates', JSON.stringify(mmTemplates)); } catch(e) {}
+  renderMmTemplateList();
+  toast('✅ テンプレートを保存しました: ' + name);
+}
+
+function loadMmTemplatesFromStorage() {
+  try {
+    const saved = localStorage.getItem('lpt_mm_templates');
+    if (saved) mmTemplates = JSON.parse(saved);
+  } catch(e) {}
+  renderMmTemplateList();
+}
+
+function renderMmTemplateList() {
+  const sel = document.getElementById('mm-template-sel');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">新規作成</option>';
+  Object.keys(mmTemplates).forEach(name => {
+    const o = document.createElement('option');
+    o.value = name;
+    o.textContent = name;
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
+}
+
+function loadMmTemplate() {
+  const name = document.getElementById('mm-template-sel').value;
+  if (!name || !mmTemplates[name]) return;
+  setMmFormData(mmTemplates[name]);
+}
+
+function deleteMmTemplate() {
+  const name = document.getElementById('mm-template-sel').value;
+  if (!name) { toast('削除するテンプレートを選択してください'); return; }
+  if (!confirm('「' + name + '」を削除しますか？')) return;
+  delete mmTemplates[name];
+  try { localStorage.setItem('lpt_mm_templates', JSON.stringify(mmTemplates)); } catch(e) {}
+  renderMmTemplateList();
+  toast('🗑 テンプレートを削除しました');
+}
+
+function getMmFormData() {
+  return {
+    free: {
+      subject:  document.getElementById('mm-free-subject').value,
+      greeting: document.getElementById('mm-free-greeting').value,
+      body:     document.getElementById('mm-free-body').value,
+      image:    document.getElementById('mm-free-image').value,
+      ctaText:  document.getElementById('mm-free-cta-text').value,
+      ctaUrl:   document.getElementById('mm-free-cta-url').value,
+    },
+    paid: {
+      subject:  document.getElementById('mm-paid-subject').value,
+      greeting: document.getElementById('mm-paid-greeting').value,
+      body:     document.getElementById('mm-paid-body').value,
+      image:    document.getElementById('mm-paid-image').value,
+      ctaText:  document.getElementById('mm-paid-cta-text').value,
+      ctaUrl:   document.getElementById('mm-paid-cta-url').value,
+    }
+  };
+}
+
+function setMmFormData(data) {
+  if (data.free) {
+    document.getElementById('mm-free-subject').value  = data.free.subject  || '';
+    document.getElementById('mm-free-greeting').value = data.free.greeting || '';
+    document.getElementById('mm-free-body').value     = data.free.body     || '';
+    document.getElementById('mm-free-image').value    = data.free.image    || '';
+    document.getElementById('mm-free-cta-text').value = data.free.ctaText  || '';
+    document.getElementById('mm-free-cta-url').value  = data.free.ctaUrl   || '';
+  }
+  if (data.paid) {
+    document.getElementById('mm-paid-subject').value  = data.paid.subject  || '';
+    document.getElementById('mm-paid-greeting').value = data.paid.greeting || '';
+    document.getElementById('mm-paid-body').value     = data.paid.body     || '';
+    document.getElementById('mm-paid-image').value    = data.paid.image    || '';
+    document.getElementById('mm-paid-cta-text').value = data.paid.ctaText  || '';
+    document.getElementById('mm-paid-cta-url').value  = data.paid.ctaUrl   || '';
+  }
+}
+
+// プレビュー
+function previewMmEmail() {
+  const type = document.getElementById('mm-tab-free').classList.contains('active') ? 'free' : 'paid';
+  const data = getMmFormData()[type];
+  const html = buildMmEmailHtml(data, type, '山田 太郎');
+  document.getElementById('mm-preview-content').innerHTML = html;
+  document.getElementById('mm-preview-modal').style.display = 'flex';
+}
+
+function closeMmPreview() {
+  document.getElementById('mm-preview-modal').style.display = 'none';
+}
+
+function buildMmEmailHtml(data, type, name) {
+  const imageRow = data.image
+    ? `<div style="margin-bottom:24px;"><img src="${data.image}" style="width:100%;max-width:480px;display:block;" alt="フライヤー"></div>`
+    : '';
+  const bodyHtml = (data.body || '').replace(/\n/g, '<br>');
+  return `<div style="background:#080808;padding:32px 20px;font-family:sans-serif;color:#F5F0E8;max-width:480px;margin:0 auto;">
+    <div style="font-size:1.3rem;color:#C9A84C;letter-spacing:0.3em;margin-bottom:4px;">LUXE PARTY TOKYO</div>
+    <div style="font-size:0.6rem;color:#888;letter-spacing:0.2em;margin-bottom:28px;">INVITATION</div>
+    ${imageRow}
+    <p style="font-size:0.9rem;margin-bottom:8px;">${name} 様</p>
+    <p style="font-size:0.78rem;color:#aaa;line-height:1.9;margin-bottom:24px;white-space:pre-wrap;">${data.greeting || ''}</p>
+    <p style="font-size:0.75rem;color:#ccc;line-height:1.9;margin-bottom:28px;">${bodyHtml}</p>
+    ${data.ctaUrl ? `<div style="text-align:center;margin-bottom:28px;"><a href="${data.ctaUrl}" style="display:inline-block;background:#C9A84C;color:#000;text-decoration:none;padding:16px 36px;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;">${data.ctaText || '詳細はこちら'}</a></div>` : ''}
+    <div style="text-align:center;margin-bottom:24px;font-size:0.6rem;color:#666;">
+      <a href="https://www.instagram.com/luxe_party_tokyo/" style="color:#C9A84C;text-decoration:none;margin:0 8px;">Instagram</a>
+      <a href="https://www.tiktok.com/@luxe.party.tokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">TikTok</a>
+      <a href="https://x.com/luxepartytokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">X</a>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">
+      このメールは LUXE PARTY TOKYO からお送りしています。<br>
+      配信停止をご希望の方は<a href="UNSUBSCRIBE_URL" style="color:#666;">こちら</a>からお手続きください。
+    </div>
+  </div>`;
+}
+
+// 送信処理
+async function sendMmEmail(target) {
+  const data = getMmFormData();
+
+  // バリデーション
+  if ((target === 'free' || target === 'both') && !data.free.subject) {
+    toast('❌ 無料参加者向けの件名を入力してください'); return;
+  }
+  if ((target === 'paid' || target === 'both') && !data.paid.subject) {
+    toast('❌ 有料参加者向けの件名を入力してください'); return;
+  }
+
+  const targetLabel = { free: '無料参加者', paid: '有料参加者', both: '両方' }[target];
+  if (!confirm(`${targetLabel}にメールを送信します。よろしいですか？\n\n※1日${MM_DAILY_LIMIT}通の上限があります。`)) return;
+
+  const logEl = document.getElementById('mm-log');
+  logEl.style.display = 'block';
+  logEl.innerHTML = '⏳ 送信中...';
+
+  const guests = target === 'free' ? mmGuestsFree
+               : target === 'paid' ? mmGuestsPaid
+               : [...mmGuestsFree, ...mmGuestsPaid];
+
+  const d = await apiPost({
+    action:      'sendMailMag',
+    target,
+    guests_free: target !== 'paid' ? mmGuestsFree.slice(0, MM_DAILY_LIMIT) : [],
+    guests_paid: target !== 'free' ? mmGuestsPaid.slice(0, MM_DAILY_LIMIT) : [],
+    data_free:   data.free,
+    data_paid:   data.paid,
+    daily_limit: MM_DAILY_LIMIT,
+  });
+
+  if (d.ok) {
+    logEl.innerHTML = `✅ 送信完了<br>無料: ${d.sent_free || 0}通 / 有料: ${d.sent_paid || 0}通<br>配信停止除外: ${d.unsubscribed || 0}名<br>${d.message || ''}`;
+    toast('✅ メール配信が完了しました');
+  } else {
+    logEl.innerHTML = '❌ エラー: ' + (d.message || '不明なエラー');
+    toast('❌ 送信失敗: ' + (d.message || ''));
+  }
+}
+
+
+// ── テスト送信 ──────────────────────────────────────────
+async function sendMmTestEmail(type) {
+  const email = document.getElementById('mm-test-email').value.trim();
+  if (!email) { toast('❌ テスト送信先のメールアドレスを入力してください'); return; }
+  if (!email.includes('@')) { toast('❌ 正しいメールアドレスを入力してください'); return; }
+
+  const data = getMmFormData()[type];
+  if (!data.subject) {
+    toast('❌ ' + (type === 'free' ? '無料' : '有料') + '参加者向けの件名を入力してください');
+    return;
+  }
+
+  const typeLabel = type === 'free' ? '無料参加者向け' : '有料参加者向け';
+  toast('⏳ ' + typeLabel + 'のテストメールを送信中...');
+
+  const d = await apiPost({
+    action:     'sendMailMagTest',
+    email:      email,
+    type:       type,
+    data_free:  getMmFormData().free,
+    data_paid:  getMmFormData().paid,
+  });
+
+  if (d.ok) {
+    toast('✅ テストメールを送信しました → ' + email);
+  } else {
+    toast('❌ 送信失敗: ' + (d.message || '不明なエラー'));
+  }
 }
 
 </script>
