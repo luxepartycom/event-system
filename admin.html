@@ -2815,7 +2815,7 @@ async function loadMmGuests() {
   const scope        = document.querySelector('input[name="mm-scope"]:checked').value;
   const excludeLatest = document.getElementById('mm-exclude-latest').checked;
 
-  const d = await apiGet({ action: 'getMailList', scope, exclude_latest: excludeLatest });
+  const d = await apiPost({ action: 'getMailList', scope, exclude_latest: excludeLatest });
   if (!d.ok) { toast('❌ リスト取得失敗: ' + (d.message || '')); return; }
 
   mmGuestsFree = (d.guests || []).filter(g => g.pay_type === 'free');
