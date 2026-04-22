@@ -632,6 +632,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .mm-test-btns{display:flex;gap:8px;}
 .mm-btn-test{flex:1;background:transparent;border:1px solid rgba(201,168,76,0.35);color:var(--gold);padding:12px 8px;cursor:pointer;font-family:inherit;font-size:0.6rem;letter-spacing:0.1em;transition:all 0.2s;}
 .mm-btn-test:hover{background:rgba(201,168,76,0.1);}
+
+.mm-campaign-status{margin-top:10px;padding:10px 14px;background:var(--dark2);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gold);line-height:1.8;}
 </style>
 </head>
 <body>
@@ -1051,7 +1053,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 
     <!-- STEP 3: テンプレート選択 -->
     <div class="mm-section">
-      <div class="mm-section-title">STEP 3 　テンプレート</div>
+      <div class="mm-section-title">STEP 3 　テンプレート・キャンペーンID</div>
       <div class="mm-template-row">
         <select class="mm-select" id="mm-template-sel" onchange="loadMmTemplate()">
           <option value="">新規作成</option>
@@ -1059,6 +1061,14 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <button class="mm-btn-sm" onclick="saveMmTemplate()">💾 保存</button>
         <button class="mm-btn-sm mm-btn-del" onclick="deleteMmTemplate()">🗑 削除</button>
       </div>
+      <div class="mm-field" style="margin-top:14px;">
+        <label class="mm-label">キャンペーンID <span style="color:var(--gold);font-size:0.55rem;">（同じIDで送信すると前回の続きから再開）</span></label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="mm-input" id="mm-campaign-id" placeholder="例: 2026-04-26_spring_luxe" style="flex:1;">
+          <button class="mm-btn-sm" onclick="genCampaignId()">🔄 自動生成</button>
+        </div>
+      </div>
+      <div class="mm-campaign-status" id="mm-campaign-status" style="display:none;"></div>
     </div>
 
     <!-- STEP 4: メール内容 -->
@@ -3007,11 +3017,18 @@ async function sendMmEmail(target) {
                : target === 'paid' ? mmGuestsPaid
                : [...mmGuestsFree, ...mmGuestsPaid];
 
+  const campaignId = document.getElementById('mm-campaign-id').value.trim();
+  if (!campaignId) {
+    toast('❌ キャンペーンIDを入力または生成してください');
+    return;
+  }
+
   const d = await apiPost({
     action:      'sendMailMag',
     target,
-    guests_free: target !== 'paid' ? mmGuestsFree.slice(0, MM_DAILY_LIMIT) : [],
-    guests_paid: target !== 'free' ? mmGuestsPaid.slice(0, MM_DAILY_LIMIT) : [],
+    campaign_id: campaignId,
+    guests_free: target !== 'paid' ? mmGuestsFree : [],
+    guests_paid: target !== 'free' ? mmGuestsPaid : [],
     data_free:   data.free,
     data_paid:   data.paid,
     daily_limit: MM_DAILY_LIMIT,
@@ -3026,6 +3043,45 @@ async function sendMmEmail(target) {
   }
 }
 
+
+// ── キャンペーンID ──────────────────────────────────────
+function genCampaignId() {
+  const now   = new Date();
+  const date  = now.toISOString().slice(0,10); // 2026-04-26
+  const rand  = Math.random().toString(36).slice(2,6).toUpperCase();
+  const id    = date + '_' + rand;
+  document.getElementById('mm-campaign-id').value = id;
+  toast('✅ キャンペーンID生成: ' + id);
+  checkCampaignStatus(id);
+}
+
+async function checkCampaignStatus(campaignId) {
+  if (!campaignId) return;
+  const statusEl = document.getElementById('mm-campaign-status');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '⏳ 送信済み件数を確認中...';
+
+  const d = await apiPost({ action: 'getCampaignStatus', campaign_id: campaignId });
+  if (d.ok) {
+    if (d.sent_count > 0) {
+      statusEl.innerHTML = `📊 このキャンペーンの送信済み: <strong>${d.sent_count}通</strong>（${d.sent_emails.length}名）<br>続きの未送信者から再開します`;
+    } else {
+      statusEl.textContent = '✨ 新規キャンペーン — 全員に送信します';
+    }
+  } else {
+    statusEl.style.display = 'none';
+  }
+}
+
+// キャンペーンID入力時に自動チェック
+document.addEventListener('DOMContentLoaded', () => {
+  const cidEl = document.getElementById('mm-campaign-id');
+  if (cidEl) {
+    cidEl.addEventListener('blur', () => {
+      if (cidEl.value.trim()) checkCampaignStatus(cidEl.value.trim());
+    });
+  }
+});
 
 // ── テスト送信 ──────────────────────────────────────────
 async function sendMmTestEmail(type) {
