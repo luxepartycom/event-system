@@ -964,13 +964,18 @@ function toast(msg) {
 // ── ログイン ─────────────────────────────────────────
 async function doLogin() {
   const pw = document.getElementById('login-pw').value.trim();
-  const d  = await apiGet({ action: 'auth', password: pw });
-  if (d.ok) {
-    sessionStorage.setItem('lpt_auth', pw); // セッションキャッシュ
+  // entrance専用認証（entranceパスワードのみ許可）
+  const d  = await apiGet({ action: 'auth', password: pw, mode: 'entrance' });
+  if (d.ok && d.role === 'entrance') {
+    sessionStorage.setItem('lpt_auth', pw);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display          = 'block';
     await init();
+  } else if (d.ok && d.role === 'admin') {
+    document.getElementById('login-err').textContent = 'このページは管理者パスワードでは開けません';
+    document.getElementById('login-err').style.display = 'block';
   } else {
+    document.getElementById('login-err').textContent = 'パスワードが違います';
     document.getElementById('login-err').style.display = 'block';
   }
 }
@@ -1893,8 +1898,8 @@ window.addEventListener('load', async () => {
   // セッションキャッシュ確認 → 自動ログイン
   const cached = sessionStorage.getItem('lpt_auth');
   if (cached) {
-    const d = await apiGet({ action: 'auth', password: cached });
-    if (d.ok) {
+    const d = await apiGet({ action: 'auth', password: cached, mode: 'entrance' });
+    if (d.ok && d.role === 'entrance') {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display          = 'block';
       await init();
