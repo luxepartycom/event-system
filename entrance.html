@@ -1,0 +1,2726 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUXE PARTY TOKYO — Entrance</title>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<style>
+:root{
+  --gold:#C9A84C;--gold-light:#E8D08A;--gold-dim:#7a6230;
+  --black:#080808;--dark:#111111;--dark2:#191919;--dark3:#222;
+  --white:#F5F0E8;--gray:#888880;
+  --paid:#C9A84C;--free:#9B8EC4;--arrived:#4CAF82;--cash:#6AABFF;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--black);color:var(--white);font-family:-apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif;font-weight:300;min-height:100vh;}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.login-box{width:100%;max-width:380px;padding:52px 36px;border:1px solid rgba(201,168,76,0.15);background:var(--dark);}
+.login-logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.5rem;color:var(--gold);letter-spacing:0.35em;margin-bottom:4px;}
+.login-sub{font-size:0.52rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin-bottom:36px;}
+.form-label{display:block;font-size:0.55rem;letter-spacing:0.22em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;}
+.form-input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:11px 0;color:var(--white);font-family:inherit;font-size:0.9rem;outline:none;transition:border-color 0.3s;}
+.form-input:focus{border-bottom-color:var(--gold);}
+.form-input::placeholder{color:rgba(255,255,255,0.2);}
+.btn-login{width:100%;margin-top:24px;background:var(--gold);border:none;cursor:pointer;padding:15px;color:var(--black);font-family:inherit;font-size:0.62rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;transition:background 0.3s;}
+.btn-login:hover{background:var(--gold-light);}
+.login-err{color:#CF4444;font-size:0.66rem;margin-top:10px;display:none;}
+
+/* APP */
+#app{display:none;}
+#nav{position:sticky;top:0;z-index:100;background:rgba(8,8,8,0.99);border-bottom:1px solid rgba(201,168,76,0.18);height:56px;display:flex;align-items:center;padding:0 32px;justify-content:space-between;}
+.nav-logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:0.8rem;color:var(--gold);letter-spacing:0.3em;}
+.nav-tabs{display:flex;gap:0;height:56px;}
+.nav-tab{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;padding:0 20px;font-family:inherit;font-size:0.6rem;letter-spacing:0.18em;color:var(--gray);transition:all 0.2s;text-transform:uppercase;height:100%;}
+.nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.btn-logout{background:none;border:none;cursor:pointer;font-size:0.58rem;letter-spacing:0.15em;color:var(--gray);font-family:inherit;}
+.btn-logout:hover{color:var(--white);}
+
+/* PAGES */
+.page{display:none;padding:36px 40px;}
+.page.active{display:block;}
+.page-eyebrow{font-size:0.52rem;letter-spacing:0.35em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;}
+.page-title{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.8rem;font-weight:300;margin-bottom:24px;}
+.page-title span{color:var(--gold);font-style:italic;}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:8px;}
+.stats-row-sales{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:24px;}
+.stat-card{background:var(--dark);padding:18px 20px;}
+.stat-card-sales{background:var(--dark);padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.stat-card-sales .sc-left{}
+.stat-card-sales .sc-label{font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:6px;}
+.stat-card-sales .sc-value{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:2rem;font-weight:300;line-height:1;color:var(--gold);}
+.stat-card-sales .sc-value.sv-green{color:var(--arrived);}
+.stat-card-sales .sc-sub{font-size:0.55rem;color:var(--gray);margin-top:5px;}
+.stat-card-sales .sc-badge{font-size:0.48rem;letter-spacing:0.12em;padding:3px 10px;border:1px solid rgba(201,168,76,0.3);color:var(--gold-dim);text-transform:uppercase;align-self:flex-start;}
+.stat-card-sales .sc-badge.green{border-color:rgba(76,175,130,0.3);color:var(--arrived);}
+.stat-label{font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:7px;}
+.stat-value{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.8rem;font-weight:300;line-height:1;}
+.sv-gold{color:var(--gold);}.sv-green{color:var(--arrived);}.sv-free{color:var(--free);}
+
+/* EVENT CARDS */
+.event-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1px;background:rgba(255,255,255,0.05);margin-bottom:24px;}
+.event-card{background:var(--dark);padding:22px 24px;}
+.ev-name{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1rem;color:var(--white);margin-bottom:4px;}
+.ev-date{font-size:0.62rem;color:var(--gray);margin-bottom:14px;}
+.ev-status{display:inline-block;padding:2px 10px;font-size:0.48rem;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:14px;}
+.status-active{background:rgba(76,175,130,0.1);color:var(--arrived);border:1px solid rgba(76,175,130,0.3);}
+.status-closed{background:rgba(255,255,255,0.04);color:var(--gray);border:1px solid rgba(255,255,255,0.1);}
+.ev-url-block{margin-bottom:10px;}
+.ev-url-label{font-size:0.5rem;letter-spacing:0.18em;color:var(--gray);text-transform:uppercase;margin-bottom:6px;}
+.ev-url-row{display:flex;align-items:center;gap:8px;background:var(--dark2);padding:8px 10px;}
+.ev-url-text{font-size:0.6rem;color:var(--white);opacity:0.65;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.copy-btn{background:none;border:1px solid rgba(201,168,76,0.3);color:var(--gold);padding:4px 8px;cursor:pointer;font-size:0.6rem;flex-shrink:0;transition:all 0.2s;}
+.copy-btn:hover{background:rgba(201,168,76,0.08);}
+.ev-actions{display:flex;gap:8px;margin-top:12px;}
+.btn-close-ev{background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:7px 14px;cursor:pointer;font-family:inherit;font-size:0.55rem;letter-spacing:0.12em;transition:all 0.2s;}
+.btn-close-ev:hover{border-color:rgba(201,168,76,0.4);color:var(--gold);}
+.btn-archive-ev{background:transparent;border:1px solid rgba(207,68,68,0.25);color:rgba(207,68,68,0.6);padding:7px 14px;cursor:pointer;font-family:inherit;font-size:0.55rem;letter-spacing:0.12em;transition:all 0.2s;}
+.btn-archive-ev:hover{border-color:rgba(207,68,68,0.6);color:#CF4444;}
+.ev-archived-badge{display:inline-block;padding:2px 8px;font-size:0.44rem;letter-spacing:0.15em;text-transform:uppercase;background:rgba(255,255,255,0.03);color:var(--gray);border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;}
+
+/* GUEST TABLE */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+.search-wrap{position:relative;flex:1;min-width:160px;max-width:260px;}
+.search-input{width:100%;background:var(--dark2);border:1px solid rgba(255,255,255,0.07);padding:9px 10px 9px 30px;color:var(--white);font-family:inherit;font-size:0.7rem;outline:none;transition:border-color 0.3s;}
+.search-input:focus{border-color:rgba(201,168,76,0.4);}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:0.7rem;color:var(--gray);}
+.filter-select{background:var(--dark2);border:1px solid rgba(255,255,255,0.07);color:var(--gray);padding:9px 10px;font-family:inherit;font-size:0.63rem;outline:none;cursor:pointer;}
+.spacer{flex:1;}
+.btn-refresh{background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:9px 14px;cursor:pointer;font-family:inherit;font-size:0.58rem;letter-spacing:0.14em;transition:all 0.3s;}
+.btn-refresh:hover{border-color:rgba(201,168,76,0.4);color:var(--gold);}
+.table-scroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:600px;}
+thead tr{border-bottom:1px solid rgba(201,168,76,0.2);}
+th{text-align:left;padding:9px 12px;font-size:0.48rem;font-weight:500;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;}
+tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.2s;}
+tbody tr:hover{background:rgba(255,255,255,0.02);}
+td{padding:11px 12px;font-size:0.68rem;color:var(--white);}
+td.muted{color:var(--gray);font-size:0.62rem;}
+.badge{display:inline-block;padding:3px 8px;font-size:0.48rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;}
+.badge-arrived{background:rgba(76,175,130,0.1);color:var(--arrived);border:1px solid rgba(76,175,130,0.3);}
+.badge-pending{background:rgba(255,255,255,0.04);color:var(--gray);border:1px solid rgba(255,255,255,0.1);}
+.badge-paid{background:rgba(201,168,76,0.1);color:var(--gold);border:1px solid rgba(201,168,76,0.3);}
+.badge-free{background:rgba(155,142,196,0.1);color:var(--free);border:1px solid rgba(155,142,196,0.3);}
+.badge-confirmed{background:rgba(106,171,255,0.1);color:var(--cash);border:1px solid rgba(106,171,255,0.3);}
+.gender-badge{display:inline-block;padding:2px 6px;font-size:0.46rem;letter-spacing:0.1em;text-transform:uppercase;border:1px solid rgba(255,255,255,0.1);color:var(--gray);}
+
+/* PROMOTER STATS */
+.promo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1px;background:rgba(255,255,255,0.05);margin-top:16px;}
+.promo-card{background:var(--dark);padding:20px 22px;}
+.promo-name{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1rem;color:var(--white);margin-bottom:12px;}
+.promo-stats{display:flex;gap:20px;margin-bottom:10px;}
+.promo-stat{text-align:center;}
+.promo-stat-val{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.5rem;color:var(--gold);line-height:1;}
+.promo-stat-label{font-size:0.46rem;letter-spacing:0.15em;color:var(--gray);text-transform:uppercase;margin-top:2px;}
+.promo-bar{height:2px;background:rgba(255,255,255,0.07);margin-top:10px;}
+.promo-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width 0.8s;}
+
+/* SCAN */
+.scan-wrap{max-width:480px;margin:0 auto;}
+.video-container{position:relative;background:var(--dark);margin-bottom:16px;overflow:hidden;aspect-ratio:1;}
+#scan-video{width:100%;height:100%;object-fit:cover;display:block;}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.scan-frame{width:60%;aspect-ratio:1;border:2px solid rgba(201,168,76,0.6);}
+.scan-line{position:absolute;width:56%;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:scanLine 2s linear infinite;}
+@keyframes scanLine{0%{top:20%;}100%{top:80%;}}
+.scan-status{padding:14px 16px;background:var(--dark);margin-bottom:16px;font-size:0.72rem;min-height:48px;display:flex;align-items:center;gap:10px;}
+.scan-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-scanning{background:var(--gold);animation:pulse 1.5s infinite;}
+.dot-ok{background:var(--arrived);}
+.dot-err{background:#CF4444;}
+.dot-warn{background:#E8A020;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.checkin-result{background:var(--dark);border:1px solid rgba(201,168,76,0.15);padding:20px;margin-top:12px;display:none;}
+.cr-name{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.3rem;color:var(--white);margin-bottom:10px;}
+.cr-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.68rem;}
+.cr-key{color:var(--gray);}
+.btn-confirm-cash{width:100%;margin-top:14px;background:var(--cash);border:none;cursor:pointer;padding:14px;color:var(--black);font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;}
+.btn-confirm-free{width:100%;margin-top:14px;background:var(--arrived);border:none;cursor:pointer;padding:14px;color:var(--black);font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;}
+
+/* イベント詳細 */
+.ev-desc-block{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.ev-desc{font-size:0.68rem;color:var(--white);opacity:0.75;line-height:1.8;margin:6px 0 8px;white-space:pre-wrap;}
+.ev-desc-empty{font-size:0.6rem;color:rgba(255,255,255,0.2);margin:6px 0 8px;}
+.btn-edit-desc{background:none;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:5px 10px;cursor:pointer;font-family:inherit;font-size:0.52rem;letter-spacing:0.1em;transition:all 0.2s;}
+.btn-edit-desc:hover{border-color:rgba(201,168,76,0.4);color:var(--gold);}
+
+/* 支払い方法選択ボタン */
+.payment-select-area{margin-top:14px;display:none;}
+.payment-select-label{font-size:0.52rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;}
+.payment-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.btn-payment{background:var(--dark2);border:1px solid rgba(255,255,255,0.12);cursor:pointer;padding:13px 6px;color:var(--white);font-family:inherit;font-size:0.68rem;font-weight:600;letter-spacing:0.06em;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.btn-payment:hover{border-color:var(--gold);color:var(--gold);}
+.btn-payment .pay-icon{font-size:1.3rem;}
+
+/* 売上内訳 */
+.stats-row-pay{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:8px;}
+.stat-card-pay{background:var(--dark);padding:14px 16px;}
+.stat-card-pay .sc-label{font-size:0.44rem;letter-spacing:0.15em;color:var(--gray);text-transform:uppercase;margin-bottom:5px;}
+.stat-card-pay .sc-value{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.3rem;font-weight:300;line-height:1;}
+.stat-card-pay .sc-sub{font-size:0.5rem;color:var(--gray);margin-top:4px;}
+
+/* プロモーター指定URLリスト */
+.ev-promo-section{margin-top:14px;border-top:1px solid rgba(255,255,255,0.05);padding-top:12px;}
+.ev-promo-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.ev-promo-title{font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;}
+.ev-promo-empty{font-size:0.58rem;color:rgba(255,255,255,0.18);padding:6px 0;}
+.promo-url-item{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--dark2);margin-bottom:4px;}
+.promo-url-name{font-size:0.65rem;color:var(--white);min-width:60px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
+.promo-url-type{font-size:0.44rem;letter-spacing:0.1em;padding:2px 6px;flex-shrink:0;}
+.promo-url-type.type-free{color:var(--free);border:1px solid rgba(155,142,196,0.4);}
+.promo-url-type.type-paid{color:var(--gold);border:1px solid rgba(201,168,76,0.35);}
+.promo-url-spacer{flex:1;}
+.promo-url-copy{background:none;border:1px solid rgba(201,168,76,0.25);color:var(--gold);padding:3px 7px;cursor:pointer;font-size:0.55rem;flex-shrink:0;transition:all 0.2s;}
+.promo-url-copy:hover{background:rgba(201,168,76,0.08);}
+.promo-url-del{background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;font-size:0.75rem;padding:2px 4px;flex-shrink:0;transition:color 0.2s;}
+.promo-url-del:hover{color:#CF4444;}
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;padding:24px;pointer-events:none;}
+.modal-overlay.active{display:flex;pointer-events:auto;}
+.modal{background:var(--dark);border:1px solid rgba(201,168,76,0.2);padding:36px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.1rem;color:var(--gold);margin-bottom:24px;}
+.modal-group{margin-bottom:18px;}
+.modal-select{width:100%;background:var(--dark2);border:1px solid rgba(255,255,255,0.1);padding:11px 10px;color:var(--white);font-family:inherit;font-size:0.82rem;outline:none;}
+.modal-note{font-size:0.58rem;color:var(--gray);margin-top:6px;line-height:1.6;}
+.modal-actions{display:flex;gap:10px;margin-top:24px;}
+.btn-cancel{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:12px;cursor:pointer;font-family:inherit;font-size:0.6rem;letter-spacing:0.15em;transition:all 0.2s;}
+.btn-cancel:hover{border-color:rgba(201,168,76,0.3);color:var(--white);}
+.btn-confirm{flex:2;background:var(--gold);border:none;cursor:pointer;padding:12px;color:var(--black);font-family:inherit;font-size:0.6rem;font-weight:700;letter-spacing:0.2em;transition:background 0.2s;}
+.btn-confirm:hover{background:var(--gold-light);}
+.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.price-item label{font-size:0.52rem;color:var(--gray);display:block;margin-bottom:6px;letter-spacing:0.1em;}
+
+/* BUTTONS */
+.btn-action{background:transparent;border:1px solid rgba(201,168,76,0.35);color:var(--gold);padding:10px 18px;cursor:pointer;font-family:inherit;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;transition:all 0.3s;margin-right:8px;margin-bottom:20px;}
+.btn-action:hover{background:rgba(201,168,76,0.08);}
+.event-selector{background:var(--dark2);border:1px solid rgba(255,255,255,0.08);color:var(--white);padding:10px 12px;font-family:inherit;font-size:0.75rem;outline:none;margin-bottom:24px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:500;background:var(--dark2);border:1px solid rgba(201,168,76,0.3);padding:12px 18px;font-size:0.68rem;color:var(--white);display:none;}
+.toast.show{display:block;animation:fadeUp 0.3s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.loading{text-align:center;padding:60px;color:var(--gray);font-size:0.7rem;letter-spacing:0.12em;}
+
+/* MANUAL INPUT */
+.manual-input-wrap{display:flex;gap:8px;margin-top:12px;}
+.manual-input{flex:1;background:var(--dark2);border:1px solid rgba(255,255,255,0.1);padding:10px 12px;color:var(--white);font-family:monospace;font-size:0.85rem;outline:none;}
+.manual-input:focus{border-color:rgba(201,168,76,0.4);}
+.btn-manual-submit{background:var(--gold);border:none;cursor:pointer;padding:10px 16px;color:var(--black);font-family:inherit;font-size:0.6rem;font-weight:700;letter-spacing:0.1em;white-space:nowrap;}
+
+@media(max-width:600px){
+  .stats-row{grid-template-columns:repeat(3,1fr);}
+  .page{padding:20px 16px;}
+  #nav{padding:0 16px;}
+  .nav-tab{padding:0 12px;font-size:0.52rem;}
+}
+
+/* ── グループ詳細展開 ── */
+.group-aliases-section{margin-bottom:8px;}
+.alias-chip-row{display:flex;align-items:center;gap:4px;padding:3px 0;}
+.alias-chip-ex{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);padding:3px 10px;font-size:0.62rem;color:var(--gray);flex:1;}
+.alias-chip-ex .alias-name{flex:1;}
+.alias-chip-ex .alias-count{font-size:0.55rem;color:var(--gold-dim);}
+.btn-remove-alias{background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;font-size:0.85rem;padding:2px 6px;flex-shrink:0;transition:color 0.2s;line-height:1;}
+.btn-remove-alias:hover{color:#CF4444;}
+.btn-expand-alias{background:none;border:none;color:var(--gray);cursor:pointer;font-size:0.6rem;padding:2px 8px;flex-shrink:0;transition:color 0.2s;letter-spacing:0.05em;}
+.btn-expand-alias:hover{color:var(--gold);}
+.alias-guest-list{display:none;margin:4px 0 4px 16px;border-left:1px solid rgba(255,255,255,0.06);padding-left:10px;}
+.alias-guest-list.open{display:block;}
+.alias-guest-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.6rem;}
+.alias-guest-row:last-child{border-bottom:none;}
+.agu-name{flex:1;color:var(--white);}
+.agu-gender{color:var(--gray);min-width:18px;}
+.agu-type-free{color:var(--free);font-size:0.5rem;padding:1px 5px;border:1px solid rgba(155,142,196,0.3);}
+.agu-type-paid{color:var(--gold);font-size:0.5rem;padding:1px 5px;border:1px solid rgba(201,168,76,0.3);}
+.agu-arrived-yes{color:var(--arrived);font-size:0.55rem;}
+.agu-arrived-no{color:rgba(255,255,255,0.2);font-size:0.55rem;}
+.agu-date{color:var(--gray);font-size:0.5rem;margin-left:auto;}
+
+/* ── REPORT TAB ── */
+.report-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:24px;}
+.report-btn{background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:9px 16px;cursor:pointer;font-family:inherit;font-size:0.58rem;letter-spacing:0.16em;text-transform:uppercase;transition:all 0.2s;}
+.report-btn:hover{background:rgba(201,168,76,0.08);}
+.report-btn:disabled{opacity:0.35;cursor:not-allowed;}
+.report-btn-primary{background:var(--gold);border:none;color:var(--black);padding:9px 18px;cursor:pointer;font-family:inherit;font-size:0.58rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;transition:background 0.2s;}
+.report-btn-primary:hover{background:var(--gold-light);}
+.report-btn-primary:disabled{opacity:0.35;cursor:not-allowed;}
+.ai-panel{background:var(--dark);border:1px solid rgba(201,168,76,0.15);padding:18px 20px;margin-bottom:20px;}
+.ai-desc{font-size:0.63rem;color:var(--gray);line-height:1.8;margin-bottom:10px;}
+.ai-status{font-size:0.63rem;color:var(--gray);font-style:italic;}
+.section-eyebrow{font-size:0.48rem;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase;margin-bottom:12px;}
+.groups-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.group-card{background:var(--dark2);border:1px solid rgba(255,255,255,0.06);padding:14px 18px;}
+.group-card.confirmed{border-color:rgba(76,175,130,0.35);}
+.group-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.group-canonical{flex:1;min-width:0;}
+.group-canonical input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);color:var(--white);font-family:inherit;font-size:0.88rem;padding:2px 0;outline:none;width:100%;}
+.group-canonical input:focus{border-bottom-color:var(--gold);}
+.group-count{font-size:0.52rem;letter-spacing:0.12em;color:var(--gray);padding:2px 8px;border:1px solid rgba(255,255,255,0.08);flex-shrink:0;}
+.btn-confirm-grp{background:none;border:1px solid rgba(76,175,130,0.4);color:var(--arrived);padding:4px 10px;cursor:pointer;font-family:inherit;font-size:0.52rem;letter-spacing:0.1em;flex-shrink:0;transition:all 0.2s;}
+.btn-confirm-grp.is-confirmed{background:rgba(76,175,130,0.1);}
+.btn-del-grp{background:none;border:none;color:var(--gray);cursor:pointer;font-size:0.75rem;padding:3px 5px;flex-shrink:0;transition:color 0.2s;}
+.btn-del-grp:hover{color:#CF4444;}
+.aliases-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+.alias-chip{display:flex;align-items:center;gap:3px;background:rgba(255,255,255,0.04);padding:2px 7px;font-size:0.58rem;color:var(--gray);}
+.alias-chip .rm-alias{cursor:pointer;color:rgba(255,255,255,0.2);font-size:0.8rem;transition:color 0.2s;}
+.alias-chip .rm-alias:hover{color:#CF4444;}
+.alias-add-row{display:flex;gap:6px;}
+.alias-add-input{background:var(--dark);border:1px solid rgba(255,255,255,0.08);color:var(--white);padding:4px 8px;font-family:inherit;font-size:0.63rem;outline:none;flex:1;max-width:160px;}
+.alias-add-input:focus{border-color:rgba(201,168,76,0.3);}
+.btn-add-alias{background:none;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:4px 8px;cursor:pointer;font-size:0.58rem;transition:all 0.2s;}
+.btn-add-alias:hover{border-color:rgba(201,168,76,0.3);color:var(--gold);}
+.btn-add-group{background:transparent;border:1px dashed rgba(255,255,255,0.12);color:var(--gray);padding:10px;cursor:pointer;font-family:inherit;font-size:0.58rem;letter-spacing:0.1em;width:100%;margin-bottom:20px;transition:all 0.2s;}
+.btn-add-group:hover{border-color:rgba(201,168,76,0.3);color:var(--gold);}
+.report-table-wrap{overflow-x:auto;margin-bottom:16px;}
+.report-table{width:100%;border-collapse:collapse;min-width:700px;font-size:0.66rem;}
+.report-table thead tr{border-bottom:1px solid rgba(201,168,76,0.2);}
+.report-table th{text-align:left;padding:9px 10px;font-size:0.44rem;font-weight:500;letter-spacing:0.18em;color:var(--gold-dim);text-transform:uppercase;}
+.report-table th.r{text-align:right;}
+.report-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.15s;}
+.report-table tbody tr:hover{background:rgba(255,255,255,0.02);}
+.report-table td{padding:10px 10px;color:var(--white);}
+.report-table td.r{text-align:right;font-family:monospace;color:var(--gray);}
+.report-table td.r.hl{color:var(--gold);}
+.report-table td.nm{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;}
+.report-table .gm{color:var(--cash);}
+.report-table .gf{color:var(--free);}
+.report-table tfoot tr{border-top:1px solid rgba(201,168,76,0.25);}
+.report-table tfoot td{padding:10px 10px;font-weight:600;color:var(--gold);}
+.report-table tfoot td.r{text-align:right;font-family:monospace;}
+.export-bar{display:flex;gap:10px;align-items:center;padding-top:16px;border-top:1px solid rgba(255,255,255,0.05);}
+.export-note{font-size:0.56rem;color:var(--gray);flex:1;line-height:1.6;}
+
+/* ── チェックイン結果パネル（新UI） ── */
+.cr-state-box{
+  border:1px solid rgba(255,255,255,0.08);
+  padding:28px 20px 24px;
+  text-align:center;
+  margin-top:12px;
+  background:var(--dark);
+  transition:border-color 0.3s;
+}
+.cr-loading-box { border-color:rgba(201,168,76,0.25); }
+.cr-payment-box { border-color:rgba(106,171,255,0.4); }
+.cr-error-box   { border-color:rgba(232,160,32,0.4); }
+
+/* スピナー */
+.cr-spinner{
+  width:40px;height:40px;
+  border:3px solid rgba(201,168,76,0.2);
+  border-top-color:var(--gold);
+  border-radius:50%;
+  margin:0 auto 14px;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.cr-state-label{
+  font-size:0.7rem;letter-spacing:0.25em;
+  color:var(--gray);text-transform:uppercase;
+}
+.cr-guest-id{
+  font-size:0.6rem;color:var(--gold-dim);
+  margin-top:6px;font-family:monospace;
+}
+
+/* 完了・エラー共通 */
+.cr-ok-icon{font-size:2.8rem;margin-bottom:10px;line-height:1;}
+.cr-ok-title{
+  font-size:1rem;letter-spacing:0.2em;
+  color:var(--arrived);text-transform:uppercase;
+  margin-bottom:14px;font-weight:600;
+}
+.cr-ok-name{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.5rem;color:var(--white);
+  margin-bottom:8px;line-height:1.3;
+}
+.cr-ok-badge{
+  display:inline-block;
+  padding:4px 14px;
+  font-size:0.55rem;letter-spacing:0.18em;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+.badge-stripe{
+  background:rgba(106,171,255,0.1);
+  color:var(--cash);
+  border:1px solid rgba(106,171,255,0.4);
+}
+.badge-free{
+  background:rgba(155,142,196,0.1);
+  color:var(--free);
+  border:1px solid rgba(155,142,196,0.3);
+}
+.cr-ok-meta{
+  font-size:0.65rem;color:var(--gray);
+  line-height:2;margin-bottom:8px;
+}
+.btn-next-scan{
+  margin-top:18px;
+  background:transparent;
+  border:1px solid rgba(201,168,76,0.4);
+  color:var(--gold);
+  padding:12px 24px;
+  cursor:pointer;
+  font-family:inherit;
+  font-size:0.62rem;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  transition:all 0.2s;
+  width:100%;
+}
+.btn-next-scan:hover{
+  background:rgba(201,168,76,0.08);
+}
+
+/* 支払い受付 */
+.cr-payment-icon{font-size:2rem;margin-bottom:8px;}
+.cr-payment-title{
+  font-size:1rem;letter-spacing:0.2em;
+  color:var(--cash);margin-bottom:14px;font-weight:600;
+}
+.cr-pay-amount{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.8rem;color:var(--gold);
+  margin-bottom:8px;line-height:1;
+}
+.cr-payment-label{
+  font-size:0.52rem;letter-spacing:0.18em;
+  color:var(--gray);text-transform:uppercase;
+  margin-top:16px;margin-bottom:0;
+}
+
+/* ── カメラ内オーバーレイ ── */
+.cam-overlay{
+  position:absolute;inset:0;
+  background:rgba(8,8,8,0.92);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:10;padding:20px;text-align:center;
+}
+.cam-overlay-err{ background:rgba(8,8,8,0.92); }
+
+/* 照会中スピナー */
+.cam-overlay-spinner{
+  width:48px;height:48px;
+  border:3px solid rgba(201,168,76,0.2);
+  border-top-color:var(--gold);
+  border-radius:50%;
+  margin-bottom:16px;
+  animation:spin 0.8s linear infinite;
+}
+.cam-overlay-label{
+  font-size:0.75rem;letter-spacing:0.3em;
+  color:var(--gray);text-transform:uppercase;margin-bottom:6px;
+}
+.cam-overlay-id{
+  font-size:0.58rem;color:var(--gold-dim);
+  font-family:monospace;
+}
+
+/* 完了・エラー共通 */
+.cam-ok-icon{ font-size:2.5rem;margin-bottom:8px;line-height:1; }
+.cam-ok-title{
+  font-size:0.85rem;letter-spacing:0.2em;
+  color:var(--arrived);text-transform:uppercase;
+  margin-bottom:10px;font-weight:600;
+}
+.cam-ok-badge{
+  display:inline-block;padding:3px 12px;
+  font-size:0.52rem;letter-spacing:0.15em;
+  text-transform:uppercase;margin-bottom:8px;
+}
+.cam-ok-name{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.3rem;color:var(--white);
+  margin-bottom:4px;line-height:1.3;
+}
+.cam-ok-meta{
+  font-size:0.6rem;color:var(--gray);
+  line-height:1.8;margin-bottom:14px;
+}
+.cam-next-btn{
+  background:transparent;
+  border:1px solid rgba(201,168,76,0.5);
+  color:var(--gold);padding:10px 20px;
+  cursor:pointer;font-family:inherit;
+  font-size:0.6rem;letter-spacing:0.18em;
+  text-transform:uppercase;transition:all 0.2s;
+  margin-top:4px;
+}
+.cam-next-btn:hover{ background:rgba(201,168,76,0.1); }
+
+/* 支払い受付 */
+.cam-payment-icon{ font-size:1.8rem;margin-bottom:6px; }
+.cam-payment-title{
+  font-size:0.85rem;letter-spacing:0.2em;
+  color:var(--cash);margin-bottom:10px;font-weight:600;
+}
+.cam-pay-amount{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.6rem;color:var(--gold);
+  margin-bottom:6px;line-height:1;
+}
+.cam-payment-btns{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:6px;width:100%;margin-top:10px;
+}
+.cam-pay-btn{
+  background:var(--dark2);
+  border:1px solid rgba(255,255,255,0.15);
+  color:var(--white);cursor:pointer;
+  padding:12px 4px;font-family:inherit;
+  font-size:0.7rem;font-weight:600;
+  line-height:1.6;transition:all 0.2s;
+}
+.cam-pay-btn:hover{ border-color:var(--gold);color:var(--gold); }
+
+/* ── 最新イベントカード強調 ── */
+.event-card-latest{
+  border-left:3px solid var(--gold);
+  background:rgba(201,168,76,0.04);
+}
+.ev-latest-badge{
+  font-size:0.48rem;letter-spacing:0.2em;
+  color:var(--gold);text-transform:uppercase;
+  margin-bottom:8px;
+}
+/* セレクターの最新イベント強調（ChromeはCSS option未対応のためJS側で対応済み） */
+
+/* ── 単発決済 ── */
+.charge-wrap{max-width:420px;margin:0 auto;}
+.charge-card{background:var(--dark);border:1px solid rgba(201,168,76,0.15);padding:32px 28px;margin-bottom:20px;}
+.charge-group{margin-bottom:22px;}
+.charge-label{display:block;font-size:0.52rem;letter-spacing:0.22em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;}
+.charge-input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:11px 0;color:var(--white);font-family:inherit;font-size:0.95rem;outline:none;transition:border-color 0.3s;}
+.charge-input:focus{border-bottom-color:var(--gold);}
+.charge-input::placeholder{color:rgba(255,255,255,0.2);}
+.charge-amount-wrap{display:flex;align-items:baseline;gap:8px;}
+.charge-yen{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.4rem;color:var(--gold-dim);}
+.charge-amount-input{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.8rem;color:var(--gold);letter-spacing:0.05em;-moz-appearance:textfield;}
+.charge-amount-input::-webkit-outer-spin-button,
+.charge-amount-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.charge-preview{background:var(--dark2);border:1px solid rgba(201,168,76,0.2);padding:16px 20px;margin-bottom:22px;text-align:center;}
+.charge-preview-label{font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:8px;}
+.charge-preview-amount{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:2rem;color:var(--gold);line-height:1;margin-bottom:4px;}
+.charge-preview-desc{font-size:0.65rem;color:var(--gray);}
+.btn-charge{width:100%;padding:18px;background:var(--gold);border:none;cursor:pointer;font-family:inherit;font-size:0.72rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--black);transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;}
+.btn-charge:hover:not(:disabled){background:var(--gold-light);}
+.btn-charge:disabled{background:rgba(201,168,76,0.2);color:rgba(0,0,0,0.3);cursor:not-allowed;}
+.btn-charge-icon{font-size:1.1rem;}
+.charge-note{font-size:0.55rem;color:var(--gray);text-align:center;line-height:1.7;}
+.charge-history{background:var(--dark);border:1px solid rgba(255,255,255,0.06);padding:20px 24px;}
+.charge-history-title{font-size:0.5rem;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;margin-bottom:14px;}
+.charge-history-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.68rem;}
+.charge-history-item:last-child{border-bottom:none;}
+.chi-desc{color:var(--gray);flex:1;}
+.chi-amount{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;color:var(--gold);font-size:0.85rem;margin:0 12px;}
+.chi-status-ok{color:var(--arrived);font-size:0.55rem;}
+.chi-status-cancel{color:#CF4444;font-size:0.55rem;}
+.chi-status-pending{color:var(--gray);font-size:0.55rem;}
+
+/* ── 売上サマリー ── */
+.sales-section-title{
+  font-size:0.52rem;letter-spacing:0.3em;
+  color:var(--gold);text-transform:uppercase;
+  margin-bottom:14px;margin-top:8px;
+  padding-bottom:8px;
+  border-bottom:1px solid rgba(201,168,76,0.15);
+}
+.sales-section-sub{
+  font-size:0.48rem;letter-spacing:0.2em;
+  color:var(--gray);text-transform:uppercase;
+  margin-bottom:8px;
+}
+.sales-charge-list{
+  background:var(--dark);
+  border:1px solid rgba(255,255,255,0.06);
+  padding:4px 0;
+  margin-bottom:0;
+}
+.sales-charge-item{
+  display:flex;align-items:center;
+  justify-content:space-between;
+  padding:10px 16px;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  font-size:0.68rem;
+}
+.sales-charge-item:last-child{border-bottom:none;}
+.sci-desc{color:var(--gray);flex:1;}
+.sci-amount{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  color:var(--gold);font-size:0.85rem;margin:0 12px;
+}
+.sci-status-ok{color:var(--arrived);font-size:0.55rem;}
+.sci-status-cancel{color:#CF4444;font-size:0.55rem;}
+.sales-charge-total{
+  display:flex;justify-content:space-between;
+  align-items:center;
+  padding:12px 16px;
+  background:var(--dark2);
+  font-size:0.68rem;color:var(--gray);
+  border:1px solid rgba(255,255,255,0.06);
+  border-top:none;margin-bottom:20px;
+}
+.sales-charge-total span:last-child{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  color:var(--gold);font-size:1rem;
+}
+.sales-grand-total{
+  display:flex;justify-content:space-between;
+  align-items:center;
+  padding:18px 20px;
+  background:var(--dark);
+  border:1px solid rgba(201,168,76,0.3);
+  margin-top:8px;
+}
+.sales-grand-total span:first-child{
+  font-size:0.55rem;letter-spacing:0.2em;
+  color:var(--gold-dim);text-transform:uppercase;
+}
+.sales-grand-total span:last-child{
+  font-family:'Hiragino Mincho ProN','Yu Mincho',serif;
+  font-size:1.8rem;color:var(--gold);
+}
+
+/* ── メール配信 ── */
+.mm-section{background:var(--dark);border:1px solid rgba(201,168,76,0.12);padding:20px 24px;margin-bottom:16px;}
+.mm-section-title{font-size:0.5rem;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;font-weight:600;}
+.mm-radio{display:flex;align-items:center;gap:10px;font-size:0.72rem;color:var(--white);margin-bottom:10px;cursor:pointer;}
+.mm-radio input{accent-color:var(--gold);width:16px;height:16px;}
+.mm-check{display:flex;align-items:center;gap:8px;font-size:0.68rem;color:var(--gray);cursor:pointer;}
+.mm-check input{accent-color:var(--gold);width:14px;height:14px;}
+.mm-target-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.mm-target-row:last-child{border-bottom:none;}
+.mm-count{font-size:0.65rem;color:var(--gold);font-family:'Hiragino Mincho ProN','Yu Mincho',serif;}
+.mm-template-row{display:flex;gap:8px;align-items:center;}
+.mm-select{flex:1;background:var(--dark2);border:1px solid rgba(255,255,255,0.12);color:var(--white);padding:10px 12px;font-family:inherit;font-size:0.68rem;outline:none;}
+.mm-btn-sm{background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:8px 14px;cursor:pointer;font-family:inherit;font-size:0.58rem;letter-spacing:0.1em;white-space:nowrap;transition:all 0.2s;}
+.mm-btn-sm:hover{background:rgba(201,168,76,0.1);}
+.mm-btn-del{border-color:rgba(207,68,68,0.4);color:#CF4444;}
+.mm-btn-del:hover{background:rgba(207,68,68,0.1);}
+.mm-tab-row{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.mm-content-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--gray);padding:10px 20px;cursor:pointer;font-family:inherit;font-size:0.62rem;letter-spacing:0.1em;transition:all 0.2s;margin-bottom:-1px;}
+.mm-content-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.mm-field{margin-bottom:16px;}
+.mm-label{display:block;font-size:0.5rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:8px;}
+.mm-input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.78rem;outline:none;transition:border-color 0.2s;}
+.mm-input:focus{border-bottom-color:var(--gold);}
+.mm-input::placeholder{color:rgba(255,255,255,0.2);}
+.mm-textarea{width:100%;background:var(--dark2);border:1px solid rgba(255,255,255,0.08);padding:12px;color:var(--white);font-family:inherit;font-size:0.75rem;outline:none;resize:vertical;line-height:1.8;transition:border-color 0.2s;}
+.mm-textarea:focus{border-color:rgba(201,168,76,0.4);}
+.mm-textarea::placeholder{color:rgba(255,255,255,0.2);}
+.mm-summary{background:var(--dark2);border:1px solid rgba(255,255,255,0.06);padding:16px;font-size:0.68rem;color:var(--gray);line-height:2;margin-bottom:16px;}
+.mm-send-btns{display:flex;flex-direction:column;gap:8px;}
+.mm-btn-preview{background:transparent;border:1px solid rgba(255,255,255,0.2);color:var(--white);padding:14px;cursor:pointer;font-family:inherit;font-size:0.62rem;letter-spacing:0.15em;transition:all 0.2s;}
+.mm-btn-preview:hover{border-color:var(--gold);color:var(--gold);}
+.mm-btn-send{background:transparent;border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:14px;cursor:pointer;font-family:inherit;font-size:0.62rem;letter-spacing:0.15em;transition:all 0.2s;}
+.mm-btn-send:hover:not(:disabled){background:rgba(201,168,76,0.1);}
+.mm-btn-send:disabled{opacity:0.3;cursor:not-allowed;}
+.mm-btn-both{background:var(--gold);color:var(--black);font-weight:700;}
+.mm-btn-both:hover:not(:disabled){background:var(--gold-light);}
+.mm-log{background:var(--dark2);border:1px solid rgba(255,255,255,0.06);padding:16px;font-size:0.62rem;color:var(--gray);line-height:2;margin-top:12px;max-height:200px;overflow-y:auto;}
+
+/* ── テスト送信 ── */
+.mm-test-wrap{background:rgba(201,168,76,0.04);border:1px solid rgba(201,168,76,0.2);padding:16px 20px;margin-bottom:16px;}
+.mm-test-row{margin-bottom:12px;}
+.mm-test-input{width:100%;}
+.mm-test-btns{display:flex;gap:8px;}
+.mm-btn-test{flex:1;background:transparent;border:1px solid rgba(201,168,76,0.35);color:var(--gold);padding:12px 8px;cursor:pointer;font-family:inherit;font-size:0.6rem;letter-spacing:0.1em;transition:all 0.2s;}
+.mm-btn-test:hover{background:rgba(201,168,76,0.1);}
+
+.mm-campaign-status{margin-top:10px;padding:10px 14px;background:var(--dark2);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gold);line-height:1.8;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">LUXE PARTY TOKYO</div>
+    <div class="login-sub">Admin Dashboard</div>
+    <div style="margin-bottom:20px;">
+      <label class="form-label">パスワード</label>
+      <input class="form-input" id="login-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-login" onclick="doLogin()">ログイン</button>
+    <div class="login-err" id="login-err">パスワードが違います</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <nav id="nav">
+      <div class="nav-logo">ENTRANCE</div>
+      <div class="nav-tabs" id="nav-tabs">
+        <button class="nav-tab" onclick="showTab('guests')"  id="tab-guests">ゲスト</button>
+        <button class="nav-tab" onclick="showTab('guests')"    id="tab-scan">QRスキャン</button>
+        <button class="nav-tab" onclick="showTab('charge')"  id="tab-charge">単発決済</button>
+      </div>
+      <button class="nav-logout" onclick="doLogout()">logout</button>
+    </nav>
+
+  <!-- ゲスト -->
+  <div class="page" id="page-guests">
+    <div class="page-eyebrow">Guest Management</div>
+    <h1 class="page-title">ゲスト <span>一覧</span></h1>
+    <select class="event-selector" id="g-event-sel" onchange="onGuestEventChange()">
+      <option value="">イベントを選択…</option>
+    </select>
+    <div class="stats-row" id="guest-stats" style="display:none;">
+      <div class="stat-card"><div class="stat-label">登録数</div><div class="stat-value sv-gold" id="gs-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">来場済み</div><div class="stat-value sv-green" id="gs-arrived">0</div></div>
+      <div class="stat-card"><div class="stat-label">無料招待</div><div class="stat-value sv-free" id="gs-free">0</div></div>
+      <div class="stat-card"><div class="stat-label">有料招待</div><div class="stat-value sv-gold" id="gs-paid">0</div></div>
+      <div class="stat-card"><div class="stat-label">支払確認済</div><div class="stat-value sv-gold" id="gs-confirmed">0</div></div>
+    </div>
+    <!-- 売上統計は売上タブに移動 -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="g-search" placeholder="名前 / メール / 招待者で検索…" oninput="renderGuestTable()">
+      </div>
+      <select class="filter-select" id="g-filter-status" onchange="renderGuestTable()">
+        <option value="all">すべて</option>
+        <option value="arrived">来場済み</option>
+        <option value="pending">未来場</option>
+      </select>
+      <select class="filter-select" id="g-filter-type" onchange="renderGuestTable()">
+        <option value="all">種別: すべて</option>
+        <option value="free">無料招待</option>
+        <option value="paid">有料招待</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="btn-refresh" onclick="loadGuests(true)">🔄 更新</button>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>ID</th><th>氏名</th><th>性別</th><th>招待者</th><th>種別</th><th>支払方法</th><th>金額</th><th>来場</th>
+        </tr></thead>
+        <tbody id="guest-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 招待者別集計 -->
+  <div class="page" id="page-promoters">
+    <div class="page-eyebrow">Promoter Stats</div>
+    <h1 class="page-title">招待者別 <span>集計</span></h1>
+    <select class="event-selector" id="p-event-sel" onchange="renderPromoterStats()">
+      <option value="">イベントを選択…</option>
+    </select>
+    <div id="promo-grid" class="promo-grid"></div>
+  </div>
+
+
+  <!-- QRスキャン -->
+  <div class="page" id="page-scan">
+    <div class="page-eyebrow">Check-in</div>
+    <h1 class="page-title">QR <span>スキャン</span></h1>
+    <select class="event-selector" id="scan-event-sel" onchange="onScanEventChange()">
+      <option value="">イベントを選択…</option>
+    </select>
+    <div class="scan-wrap">
+
+      <!-- iOS ネイティブ撮影用 hidden input -->
+      <input type="file" id="qr-file-input" accept="image/*" capture="environment"
+             style="display:none;" onchange="handleQRCapture(event)">
+
+      <!-- カメラプレビュー -->
+      <div class="video-container" id="video-container" style="display:none;position:relative;">
+        <video id="scan-video" autoplay playsinline muted></video>
+        <div class="scan-overlay" id="scan-frame-overlay">
+          <div class="scan-frame"></div>
+          <div class="scan-line"></div>
+        </div>
+
+        <!-- 照会中オーバーレイ -->
+        <div class="cam-overlay" id="cam-overlay-loading" style="display:none;">
+          <div class="cam-overlay-spinner"></div>
+          <div class="cam-overlay-label">照会中...</div>
+          <div class="cam-overlay-id" id="cam-loading-id"></div>
+        </div>
+
+        <!-- チェックイン完了オーバーレイ -->
+        <div class="cam-overlay" id="cam-overlay-ok" style="display:none;">
+          <div class="cam-ok-icon" id="cam-ok-icon">✅</div>
+          <div class="cam-ok-title" id="cam-ok-title">チェックイン完了</div>
+          <div class="cam-ok-badge" id="cam-ok-badge" style="display:none;"></div>
+          <div class="cam-ok-name" id="cam-ok-name"></div>
+          <div class="cam-ok-meta" id="cam-ok-meta"></div>
+          <button class="cam-next-btn" onclick="resumeCamera()">📷 次の読み取りへ</button>
+        </div>
+
+        <!-- 当日払いオーバーレイ -->
+        <div class="cam-overlay" id="cam-overlay-payment" style="display:none;">
+          <div class="cam-payment-icon">💴</div>
+          <div class="cam-payment-title">支払い受付</div>
+          <div class="cam-ok-name" id="cam-pay-name"></div>
+          <div class="cam-pay-amount" id="cam-pay-amount"></div>
+          <div class="cam-ok-meta" id="cam-pay-meta"></div>
+          <div class="cam-payment-btns">
+            <button class="cam-pay-btn" onclick="confirmPayment('cash')">💵<br>現金</button>
+            <button class="cam-pay-btn" onclick="confirmPayment('card')">💳<br>カード</button>
+            <button class="cam-pay-btn" onclick="confirmPayment('paypay')">📱<br>PayPay</button>
+          </div>
+        </div>
+
+        <!-- 入場済みオーバーレイ -->
+        <div class="cam-overlay cam-overlay-err" id="cam-overlay-duplicate" style="display:none;">
+          <div class="cam-ok-icon">⚠️</div>
+          <div class="cam-ok-title" style="color:#E8A020;">入場済み</div>
+          <div class="cam-ok-name" id="cam-dup-name"></div>
+          <div class="cam-ok-meta" id="cam-dup-meta"></div>
+          <button class="cam-next-btn" onclick="resumeCamera()">📷 次の読み取りへ</button>
+        </div>
+
+      </div>
+
+      <!-- スキャンボタン -->
+      <button class="btn-action" id="btn-start-scan" onclick="startScanManual()"
+              style="display:none;width:100%;margin-bottom:12px;font-size:1rem;padding:18px;">
+        📷 QRコードをスキャン
+      </button>
+
+      <div class="scan-status" id="scan-status">
+        <div class="scan-dot dot-scanning" id="scan-dot"></div>
+        <span id="scan-msg">① イベントを選択 → ② スキャンボタンを押す</span>
+      </div>
+
+      <!-- 手動入力 -->
+      <div id="manual-input-area" style="display:none;margin-bottom:12px;">
+        <div style="font-size:0.52rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:8px;">手動でゲストIDを入力</div>
+        <div class="manual-input-wrap">
+          <input class="manual-input" id="manual-guest-id" placeholder="G-XXXXXXXX"
+                 onkeydown="if(event.key==='Enter')submitManualId()">
+          <button class="btn-manual-submit" onclick="submitManualId()">チェックイン</button>
+        </div>
+      </div>
+
+      <!-- チェックイン結果パネル（全面刷新） -->
+      <div id="checkin-result" style="display:none;">
+
+        <!-- ① 照会中 -->
+        <div id="cr-state-loading" style="display:none;">
+          <div class="cr-state-box cr-loading-box">
+            <div class="cr-spinner"></div>
+            <div class="cr-state-label">照会中...</div>
+            <div class="cr-guest-id" id="cr-loading-id"></div>
+          </div>
+        </div>
+
+        <!-- ② チェックイン完了（無料・事前決済共通ベース） -->
+        <div id="cr-state-ok" style="display:none;">
+          <div class="cr-state-box" id="cr-ok-box">
+            <div class="cr-ok-icon" id="cr-ok-icon">✅</div>
+            <div class="cr-ok-title" id="cr-ok-title">チェックイン完了</div>
+            <div class="cr-ok-name" id="cr-ok-name"></div>
+            <div class="cr-ok-badge" id="cr-ok-badge" style="display:none;"></div>
+            <div class="cr-ok-meta" id="cr-ok-meta"></div>
+            <button class="btn-next-scan" id="btn-next-scan" onclick="resumeCamera()">📷 次の読み取りへ</button>
+          </div>
+        </div>
+
+        <!-- ③ 支払い受付（当日払い） -->
+        <div id="cr-state-payment" style="display:none;">
+          <div class="cr-state-box cr-payment-box">
+            <div class="cr-payment-icon">💴</div>
+            <div class="cr-payment-title">支払い受付</div>
+            <div class="cr-ok-name" id="cr-pay-name"></div>
+            <div class="cr-pay-amount" id="cr-pay-amount"></div>
+            <div class="cr-ok-meta" id="cr-pay-meta"></div>
+            <div class="cr-payment-label">支払い方法を選択してチェックイン</div>
+            <div class="payment-btns" style="margin-top:12px;">
+              <button class="btn-payment" onclick="confirmPayment('cash')">
+                <span class="pay-icon">💵</span>現金
+              </button>
+              <button class="btn-payment" onclick="confirmPayment('card')">
+                <span class="pay-icon">💳</span>カード
+              </button>
+              <button class="btn-payment" onclick="confirmPayment('paypay')">
+                <span class="pay-icon">📱</span>PayPay
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ④ 入場済みエラー -->
+        <div id="cr-state-duplicate" style="display:none;">
+          <div class="cr-state-box cr-error-box">
+            <div class="cr-ok-icon">⚠️</div>
+            <div class="cr-ok-title" style="color:#E8A020;">入場済み</div>
+            <div class="cr-ok-name" id="cr-dup-name"></div>
+            <div class="cr-ok-meta" id="cr-dup-meta"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  <!-- 単発決済 -->
+  <div class="page" id="page-charge">
+    <div class="page-eyebrow">Quick Charge</div>
+    <h1 class="page-title">単発 <span>決済</span></h1>
+
+    <div class="charge-wrap">
+      <div class="charge-card">
+
+        <div class="charge-group">
+          <label class="charge-label">イベント（任意）</label>
+          <select class="charge-input" id="charge-event-sel" style="padding:11px 0;cursor:pointer;color:var(--white);">
+            <option value="">選択なし</option>
+          </select>
+        </div>
+
+        <div class="charge-group">
+          <label class="charge-label">内容（任意）</label>
+          <input class="charge-input" id="charge-desc"
+            placeholder="例: ドリンク、ボトル など"
+            maxlength="40">
+        </div>
+
+        <div class="charge-group">
+          <label class="charge-label">金額</label>
+          <div class="charge-amount-wrap">
+            <span class="charge-yen">¥</span>
+            <input class="charge-input charge-amount-input" id="charge-amount"
+              type="number" min="1" max="999999"
+              placeholder="0"
+              oninput="updateChargeBtn()">
+          </div>
+        </div>
+
+        <div class="charge-preview" id="charge-preview" style="display:none;">
+          <div class="charge-preview-label">決済内容確認</div>
+          <div class="charge-preview-amount" id="charge-preview-amount"></div>
+          <div class="charge-preview-desc" id="charge-preview-desc"></div>
+        </div>
+
+        <button class="btn-charge" id="btn-charge" onclick="startQuickCharge()" disabled>
+          <span class="btn-charge-icon">💳</span>
+          <span id="btn-charge-label">金額を入力してください</span>
+        </button>
+
+        <div class="charge-note">
+          決済完了後、Stripeの管理画面から履歴を確認できます。
+        </div>
+      </div>
+
+      <div class="charge-history" id="charge-history" style="display:none;">
+        <div class="charge-history-title">今回の決済履歴</div>
+        <div id="charge-history-list"></div>
+      </div>
+    </div>
+  </div>
+
+
+  TYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUXE PARTY TOKYO — Entrance</title>
+<script>
+const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+const BASE_URL = 'https://luxepartycom.github.io/event-system/';
+
+let allEvents      = [];
+let allGuests      = [];
+let currentEventId = '';
+let codeReader     = null;
+let scanStream     = null;
+let scanTimer      = null;
+let checkinBusy    = false;
+let lastScanned    = '';
+let pendingGuest   = null;
+
+async function apiGet(p)  { const r = await fetch(API + '?' + new URLSearchParams(p)); return r.json(); }
+async function apiPost(b) {
+  const r = await fetch(API, {
+    method:  'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body:    JSON.stringify(b)
+  });
+  return r.json();
+}
+
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── ログイン ─────────────────────────────────────────
+async function doLogin() {
+  const pw = document.getElementById('login-pw').value.trim();
+  const d  = await apiGet({ action: 'auth', password: pw });
+  if (d.ok) {
+    sessionStorage.setItem('lpt_auth', pw); // セッションキャッシュ
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display          = 'block';
+    await init();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+function logout() {
+  sessionStorage.removeItem('lpt_auth');
+  location.reload();
+}
+
+// ── 初期化 ───────────────────────────────────────────
+async function init() {
+  fetch(API + '?action=ping').catch(() => {});
+  // 並列取得してから1回だけ描画（速度改善）
+  const [evResult, puResult] = await Promise.all([
+    apiGet({ action: 'getEvents' }),
+    apiGet({ action: 'getPromoUrls' })
+  ]);
+  allEvents    = evResult.events || [];
+  allPromoUrls = puResult.urls   || [];
+  populateEventSelectors();
+  renderEventGrid();
+}
+
+// ── タブ切替 ─────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('tab-'  + id).classList.add('active');
+  if (id === 'scan')      initScanPage();
+  else                    stopScan();
+  if (id === 'promoters') renderPromoterStats();
+  if (id === 'report')    onReportTabOpen();
+  if (id === 'sales')     onSalesTabOpen();
+  if (id === 'mailmag')   onMailmagTabOpen();
+}
+
+// ── イベント ─────────────────────────────────────────
+async function loadEvents() {
+  const d = await apiGet({ action: 'getEvents' });
+  allEvents = d.events || [];
+  renderEventGrid();
+  populateEventSelectors();
+}
+
+function sortedEvents() {
+  // 日付降順（最新が先頭）
+  return [...allEvents].sort((a, b) => {
+    const da = String(a.date).substring(0, 10);
+    const db = String(b.date).substring(0, 10);
+    return db.localeCompare(da);
+  });
+}
+
+function populateEventSelectors() {
+  const sorted = sortedEvents();
+  const latest = sorted[0]; // 最新イベント
+
+  ['g-event-sel', 'p-event-sel', 'scan-event-sel', 'r-event-sel', 'sales-event-sel'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    const cur = sel.value;
+    sel.innerHTML = '';
+    sorted.forEach((ev, i) => {
+      const o = document.createElement('option');
+      o.value = ev.event_id;
+      // 最新イベントにマーカー
+      if (i === 0) {
+        o.textContent = '★ ' + ev.name + ' — ' + ev.date + (ev.status === 'active' ? ' 【開催中】' : '');
+        o.style.color = '#C9A84C';
+        o.style.fontWeight = 'bold';
+      } else {
+        o.textContent = ev.name + ' — ' + ev.date;
+      }
+      sel.appendChild(o);
+    });
+    // 現在選択中を維持 or 最新を自動選択
+    if (cur && sorted.find(e => e.event_id === cur)) {
+      sel.value = cur;
+    } else if (latest) {
+      sel.value = latest.event_id;
+      // 各タブの自動ロード
+      if (selId === 'g-event-sel') {
+        currentEventId = latest.event_id;
+        loadGuests(true);
+      }
+    }
+  });
+
+  // 単発決済のイベント選択（選択なしあり）
+  const chargeSel = document.getElementById('charge-event-sel');
+  if (chargeSel) {
+    const curVal = chargeSel.value;
+    chargeSel.innerHTML = '<option value="">選択なし</option>';
+    sortedEvents().forEach(ev => {
+      const o = document.createElement('option');
+      o.value = ev.event_id;
+      o.textContent = ev.name + ' — ' + ev.date;
+      chargeSel.appendChild(o);
+    });
+    if (curVal) chargeSel.value = curVal;
+  }
+}
+
+// ── プロモーターURL — GAS連携 ────────────────────────────
+let allPromoUrls = [];  // 全イベント分をキャッシュ
+
+async function loadAllPromoUrls() {
+  try {
+    const d = await apiGet({ action: 'getPromoUrls' });
+    allPromoUrls = d.urls || [];
+  } catch(e) { allPromoUrls = []; }
+}
+
+function getPromoUrls(eventId) {
+  return allPromoUrls.filter(u => String(u.event_id) === String(eventId));
+}
+
+async function deletePromoUrl(eventId, promoter, type) {
+  await apiPost({ action: 'deletePromoUrl', event_id: eventId, promoter, type });
+  allPromoUrls = allPromoUrls.filter(u =>
+    !(String(u.event_id) === String(eventId) && u.promoter === promoter && u.type === type)
+  );
+  renderEventGrid();
+  toast('✦ 削除しました');
+}
+
+function renderEventGrid() {
+  const grid = document.getElementById('event-grid');
+  grid.innerHTML = '';
+  if (!allEvents.length) { grid.innerHTML = '<div class="loading">イベントがありません</div>'; return; }
+
+  const sorted = sortedEvents();
+  sorted.forEach((ev, evIndex) => {
+    const freeUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=free';
+    const paidUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid';
+    const promoList = getPromoUrls(ev.event_id);
+    const promoHtml = promoList.length
+      ? promoList.map(u => buildPromoItem(ev.event_id, u)).join('')
+      : `<div class="ev-promo-empty">まだ指定URLはありません</div>`;
+
+    const descHtml = ev.description
+      ? `<div class="ev-desc">${ev.description.replace(/\n/g, '<br>')}</div>`
+      : `<div class="ev-desc ev-desc-empty">詳細未設定</div>`;
+
+    const card = document.createElement('div');
+    card.className = 'event-card' + (evIndex === 0 ? ' event-card-latest' : '');
+    card.id = 'ev-card-' + ev.event_id;
+    card.innerHTML = `
+      ${evIndex === 0 ? '<div class="ev-latest-badge">★ 最新イベント</div>' : ''}
+      <div class="ev-name">${ev.name}</div>
+      <div class="ev-date">${ev.date}</div>
+      <span class="ev-status ${ev.status === 'active' ? 'status-active' : 'status-closed'}">${ev.status === 'active' ? '開催中' : '終了'}</span>
+      <div class="ev-desc-block">
+        <div class="ev-url-label">📋 イベント詳細</div>
+        ${descHtml}
+        <button class="btn-edit-desc" onclick="openEditDesc('${ev.event_id}')">✏️ 詳細を編集</button>
+      </div>
+      <div class="ev-url-block">
+        <div class="ev-url-label" style="color:var(--free)">🎟 無料招待URL</div>
+        <div class="ev-url-row"><div class="ev-url-text">${freeUrl}</div><button class="copy-btn" onclick="copyText('${freeUrl}',this)">📋</button></div>
+      </div>
+      <div class="ev-url-block">
+        <div class="ev-url-label" style="color:var(--gold)">💴 有料招待URL (男¥${Number(ev.price_male||0).toLocaleString()} / 女¥${Number(ev.price_female||0).toLocaleString()})</div>
+        <div class="ev-url-row"><div class="ev-url-text">${paidUrl}</div><button class="copy-btn" onclick="copyText('${paidUrl}',this)">📋</button></div>
+      </div>
+      <div class="ev-promo-section">
+        <div class="ev-promo-header">
+          <div class="ev-promo-title">📣 プロモーター指定URL</div>
+        </div>
+        <div id="promo-list-${ev.event_id}">${promoHtml}</div>
+      </div>
+      <div class="ev-actions">
+        ${ev.status === 'active'
+          ? `<button class="btn-close-ev" onclick="closeEvent('${ev.event_id}')">受付終了にする</button>`
+          : `<button class="btn-close-ev" onclick="reopenEvent('${ev.event_id}')">再開する</button>
+             <button class="btn-archive-ev" data-id="${ev.event_id}" onclick="archiveEvent('${ev.event_id}')">📦 アーカイブ</button>`}
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function copyPromoUrl(eventId, promoter, type, btn) {
+  const url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type + '&promoter=' + encodeURIComponent(promoter);
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ コピー済';
+    setTimeout(() => btn.textContent = orig, 1500);
+    toast('✦ ' + promoter + ' のURLをコピーしました');
+  });
+}
+
+async function addEvent() {
+  const name = document.getElementById('me-name').value.trim();
+  const date = document.getElementById('me-date').value;
+  const pm   = document.getElementById('me-price-male').value   || 0;
+  const pf   = document.getElementById('me-price-female').value || 0;
+  const desc = document.getElementById('me-description').value.trim();
+  if (!name || !date) { toast('イベント名と日付を入力してください'); return; }
+  const d = await apiPost({ action: 'addEvent', name, date, price_male: pm, price_female: pf, description: desc });
+  if (d.ok) {
+    document.getElementById('me-name').value = '';
+    document.getElementById('me-date').value = '';
+    document.getElementById('me-description').value = '';
+    closeModal('modal-event');
+    await loadEvents();
+    toast('✦ イベントを追加しました');
+  } else toast('エラー: ' + d.message);
+}
+
+let editDescEventId = null;
+function openEditDesc(eventId) {
+  const ev = allEvents.find(e => e.event_id === eventId);
+  if (!ev) return;
+  editDescEventId = eventId;
+  document.getElementById('edit-desc-ev-name').textContent = ev.name;
+  document.getElementById('edit-desc-text').value = ev.description || '';
+  document.getElementById('modal-edit-desc').classList.add('active');
+}
+async function saveEventDescription() {
+  if (!editDescEventId) return;
+  const desc = document.getElementById('edit-desc-text').value.trim();
+  const d = await apiPost({ action: 'updateEventDescription', event_id: editDescEventId, description: desc });
+  if (d.ok) {
+    const ev = allEvents.find(e => e.event_id === editDescEventId);
+    if (ev) ev.description = desc;
+    closeModal('modal-edit-desc');
+    renderEventGrid();
+    toast('✦ イベント詳細を保存しました');
+  } else toast('エラー: ' + d.message);
+  editDescEventId = null;
+}
+
+async function closeEvent(id)  { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'closed' }); await loadEvents(); toast('受付を終了しました'); }
+async function reopenEvent(id) { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'active' }); await loadEvents(); toast('受付を再開しました'); }
+
+async function archiveEvent(eventId) {
+  const ev = allEvents.find(e => e.event_id === eventId);
+  const evName = ev ? ev.name : eventId;
+  if (!confirm('「' + evName + '」のゲストデータをアーカイブしますか？\n\nゲストデータはguests_archiveシートに移動されます。\nアーカイブ後も管理画面から閲覧できます。')) return;
+
+  // 実行中UI
+  const btn = document.querySelector(`[data-id="${eventId}"].btn-archive-ev`) ||
+              document.querySelector('.btn-archive-ev[onclick*="' + eventId + '"]');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ アーカイブ中…';
+  }
+  toast('📦 アーカイブ中… しばらくお待ちください');
+
+  try {
+    const d = await apiPost({ action: 'archiveEvent', event_id: eventId });
+    if (d.ok) {
+      if (typeof guestCache !== 'undefined') delete guestCache[eventId];
+      toast('✅ アーカイブ完了（' + d.archived_count + '名移動）');
+      // ボタンを完了表示に変更
+      if (btn) {
+        btn.textContent = '✅ アーカイブ済み';
+        btn.style.borderColor = 'rgba(76,175,130,0.4)';
+        btn.style.color = 'var(--arrived)';
+      }
+    } else {
+      toast('❌ ' + (d.message || 'アーカイブに失敗しました'));
+      if (btn) { btn.disabled = false; btn.textContent = '📦 アーカイブ'; }
+    }
+  } catch(err) {
+    toast('❌ 通信エラーが発生しました');
+    if (btn) { btn.disabled = false; btn.textContent = '📦 アーカイブ'; }
+  }
+}
+
+// ── ゲスト ───────────────────────────────────────────
+async function onGuestEventChange() {
+  currentEventId = document.getElementById('g-event-sel').value;
+  if (!currentEventId) return;
+  await loadGuests(true);
+}
+
+const guestCache = {}; // イベント別キャッシュ
+
+async function loadGuests(force = false) {
+  if (!currentEventId) return;
+  // キャッシュがあれば再利用（forceまたは5分経過で再取得）
+  const cached = guestCache[currentEventId];
+  const now    = Date.now();
+  if (!force && cached && (now - cached.ts) < 5 * 60 * 1000) {
+    allGuests = cached.data;
+    updateGuestStats();
+    renderGuestTable();
+    return;
+  }
+  const d = await apiGet({ action: 'getGuests', event_id: currentEventId });
+  allGuests = d.guests || [];
+  guestCache[currentEventId] = { data: allGuests, ts: now };
+  updateGuestStats();
+  renderGuestTable();
+}
+
+// チェックイン後にキャッシュを無効化
+function invalidateGuestCache(eventId) {
+  if (guestCache[eventId]) delete guestCache[eventId];
+}
+
+function updateGuestStats() {
+  const total     = allGuests.length;
+  const arrived   = allGuests.filter(g => String(g.arrived).toUpperCase() === 'TRUE').length;
+  const free      = allGuests.filter(g => g.pay_type === 'free').length;
+  const paid      = allGuests.filter(g => g.pay_type === 'paid').length;
+  const confirmed = allGuests.filter(g => String(g.pay_confirmed).toUpperCase() === 'TRUE').length;
+
+  document.getElementById('gs-total').textContent     = total;
+  document.getElementById('gs-arrived').textContent   = arrived;
+  document.getElementById('gs-free').textContent      = free;
+  document.getElementById('gs-paid').textContent      = paid;
+  document.getElementById('gs-confirmed').textContent = confirmed;
+
+  document.getElementById('guest-stats').style.display = total ? 'grid' : 'none';
+}
+
+function renderGuestTable() {
+  const q  = (document.getElementById('g-search')?.value || '').toLowerCase();
+  const st = document.getElementById('g-filter-status')?.value || 'all';
+  const ty = document.getElementById('g-filter-type')?.value   || 'all';
+
+  const filtered = allGuests.filter(g => {
+    const mQ  = [g.name, g.email, g.guest_id, g.invited_by || ''].some(v => (v + '').toLowerCase().includes(q));
+    const arr = String(g.arrived).toUpperCase() === 'TRUE';
+    const mS  = st === 'all' || (st === 'arrived' && arr) || (st === 'pending' && !arr);
+    const mT  = ty === 'all' || g.pay_type === ty;
+    return mQ && mS && mT;
+  });
+
+  const tbody = document.getElementById('guest-tbody');
+  tbody.innerHTML = '';
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:32px;font-size:0.7rem;">該当するゲストがいません</td></tr>`;
+    return;
+  }
+  filtered.forEach(g => {
+    const arr    = String(g.arrived).toUpperCase() === 'TRUE';
+    const conf   = String(g.pay_confirmed).toUpperCase() === 'TRUE';
+    const method = (g.payment_method || '').toLowerCase();
+    const methodLabel = { cash:'💵 現金', card:'💳 カード', paypay:'📱 PayPay', stripe:'✅ 事前決済済み' }[method] || '';
+    const methodColor = { cash:'var(--gold)', card:'var(--cash)', paypay:'var(--free)', stripe:'var(--arrived)' }[method] || 'var(--gray)';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="muted" style="color:var(--gold-dim)">${g.guest_id}</td>
+      <td>${g.name}</td>
+      <td><span class="gender-badge">${g.gender === 'female' ? '女' : '男'}</span></td>
+      <td class="muted">${g.invited_by || '—'}</td>
+      <td><span class="badge ${g.pay_type === 'free' ? 'badge-free' : 'badge-paid'}">${g.pay_type === 'free' ? '無料' : '有料'}</span></td>
+      <td class="muted" style="font-size:0.62rem;color:${methodColor}">${g.pay_type === 'paid' ? (methodLabel || (conf ? '確認済' : '—')) : '—'}</td>
+      <td class="muted">${g.pay_type === 'paid' ? '¥' + Number(g.amount || 0).toLocaleString() : '—'}</td>
+      <td>${arr ? '<span class="badge badge-arrived">来場済</span>' : '<span class="badge badge-pending">未来場</span>'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── 招待者別集計 ─────────────────────────────────────
+function renderPromoterStats() {
+  const eventId = document.getElementById('p-event-sel').value;
+  const grid    = document.getElementById('promo-grid');
+  grid.innerHTML = '';
+  if (!eventId) { grid.innerHTML = '<div class="loading">イベントを選択してください</div>'; return; }
+
+  const guests = allGuests.filter(g => String(g.event_id) === String(eventId));
+  if (!guests.length) { grid.innerHTML = '<div class="loading">ゲストデータを読み込み中…</div>'; loadGuestsForEvent(eventId); return; }
+
+  const groups = {};
+  guests.forEach(g => {
+    const name = g.invited_by || '（未記入）';
+    if (!groups[name]) groups[name] = { total: 0, arrived: 0, free: 0, paid: 0 };
+    groups[name].total++;
+    if (String(g.arrived).toUpperCase() === 'TRUE') groups[name].arrived++;
+    if (g.pay_type === 'free') groups[name].free++;
+    else groups[name].paid++;
+  });
+
+  const maxArrived = Math.max(...Object.values(groups).map(g => g.arrived), 1);
+
+  Object.entries(groups)
+    .sort((a, b) => b[1].arrived - a[1].arrived)
+    .forEach(([name, s]) => {
+      const pct  = s.total ? Math.round(s.arrived / s.total * 100) : 0;
+      const barW = Math.round(s.arrived / maxArrived * 100);
+      const card = document.createElement('div');
+      card.className = 'promo-card';
+      card.innerHTML = `
+        <div class="promo-name">${name}</div>
+        <div class="promo-stats">
+          <div class="promo-stat"><div class="promo-stat-val">${s.total}</div><div class="promo-stat-label">招待</div></div>
+          <div class="promo-stat"><div class="promo-stat-val" style="color:var(--arrived)">${s.arrived}</div><div class="promo-stat-label">来場</div></div>
+          <div class="promo-stat"><div class="promo-stat-val" style="color:var(--white);font-size:1.1rem">${pct}%</div><div class="promo-stat-label">来場率</div></div>
+          <div class="promo-stat"><div class="promo-stat-val" style="color:var(--free)">${s.free}</div><div class="promo-stat-label">無料</div></div>
+          <div class="promo-stat"><div class="promo-stat-val">${s.paid}</div><div class="promo-stat-label">有料</div></div>
+        </div>
+        <div class="promo-bar"><div class="promo-bar-fill" style="width:${barW}%"></div></div>`;
+      grid.appendChild(card);
+    });
+}
+
+async function loadGuestsForEvent(eventId) {
+  const d = await apiGet({ action: 'getGuests', event_id: eventId });
+  allGuests = [...allGuests.filter(g => String(g.event_id) !== String(eventId)), ...(d.guests || [])];
+  renderPromoterStats();
+}
+
+// ══════════════════════════════════════════════════════
+//  QRスキャン（ZXing-js ベース）
+// ══════════════════════════════════════════════════════
+
+function initScanPage() {
+  // スキャンタブを開いたとき: ボタン表示状態をリセット
+  const sel = document.getElementById('scan-event-sel');
+  const btn = document.getElementById('btn-start-scan');
+  if (sel && sel.value) {
+    btn.style.display = 'block';
+  } else {
+    btn.style.display = 'none';
+  }
+  document.getElementById('manual-input-area').style.display = 'none';
+  setScanMsg('① イベントを選択 → ② スキャンボタンを押す', 'scanning');
+}
+
+function onScanEventChange() {
+  const sel = document.getElementById('scan-event-sel');
+  const btn = document.getElementById('btn-start-scan');
+  stopScan();
+  document.getElementById('video-container').style.display = 'none';
+  btn.textContent = '📷 QRコードをスキャン';
+  btn.onclick     = startScanManual;
+  document.getElementById('checkin-result').style.display = 'none';
+
+  if (sel.value) {
+    btn.style.display = 'block';
+    setScanMsg('スキャンボタンを押してQRを読み取ってください', 'scanning');
+  } else {
+    btn.style.display = 'none';
+    setScanMsg('① イベントを選択 → ② スキャンボタンを押す', 'scanning');
+  }
+}
+
+async function startScanManual() {
+  const sel = document.getElementById('scan-event-sel');
+  if (!sel.value) { setScanMsg('イベントを選択してください', 'err'); return; }
+
+  // ZXingライブラリでスキャン開始
+  await startZXingLiveScan();
+}
+
+// ── ZXingリアルタイムスキャン ──────────────────────────
+async function loadZXing() {
+  if (typeof ZXing !== 'undefined') return; // 既にロード済み
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+    s.onload  = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function startZXingLiveScan() {
+  stopScan();
+  setScanMsg('カメラを起動中…', 'scanning');
+
+  // ZXingを遅延ロード（初回のみダウンロード）
+  try { await loadZXing(); } catch(e) {
+    setScanMsg('ライブラリ読み込みに失敗しました', 'err');
+    document.getElementById('manual-input-area').style.display = 'block';
+    return;
+  }
+
+  try {
+    // デバイス一覧取得
+    let deviceId = undefined;
+    try {
+      const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+      if (devices && devices.length > 0) {
+        // 背面カメラ優先
+        const rear = devices.find(d => /back|rear|environment/i.test(d.label));
+        deviceId = rear ? rear.deviceId : devices[devices.length - 1].deviceId;
+      }
+    } catch(e) {
+      // デバイス列挙失敗はスキップ（ユーザーメディア時に自動選択）
+    }
+
+    codeReader = new ZXing.BrowserQRCodeReader();
+
+    document.getElementById('video-container').style.display = 'block';
+    document.getElementById('btn-start-scan').textContent    = '⏹ スキャン停止';
+    document.getElementById('btn-start-scan').onclick        = stopScanManual;
+    setScanMsg('QRコードをカメラにかざしてください', 'scanning');
+
+    await codeReader.decodeFromVideoDevice(
+      deviceId || null,
+      'scan-video',
+      (result, err) => {
+        if (result) {
+          const val = result.getText();
+          if (val && val !== lastScanned && !checkinBusy) {
+            lastScanned = val;
+            setTimeout(() => { lastScanned = ''; }, 2500);
+            processCheckIn(val);
+          }
+        }
+        // errはフレームごとに発生するため無視
+      }
+    );
+
+  } catch (e) {
+    // カメラアクセス失敗 → 撮影方式にフォールバック
+    stopScan();
+    document.getElementById('video-container').style.display = 'none';
+    document.getElementById('btn-start-scan').textContent    = '📷 QRコードをスキャン';
+    document.getElementById('btn-start-scan').onclick        = startScanManual;
+
+    if (e.name === 'NotAllowedError') {
+      setScanMsg('⚠️ カメラの使用を許可してください。設定から許可後、再度お試しください', 'err');
+    } else {
+      setScanMsg('📷 カメラが使用できません。撮影方式に切り替えます…', 'err');
+      setTimeout(() => {
+        document.getElementById('qr-file-input').click();
+      }, 800);
+    }
+    // 手動入力を表示
+    document.getElementById('manual-input-area').style.display = 'block';
+  }
+}
+
+// ── 撮影画像からQR読み取り（iOS Safari対応）──────────────
+async function handleQRCapture(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+
+  setScanMsg('QRコードを認識中…', 'scanning');
+
+  if (typeof ZXing === 'undefined') {
+    setScanMsg('❌ ライブラリ読み込みエラー。手動入力をお試しください', 'err');
+    document.getElementById('manual-input-area').style.display = 'block';
+    return;
+  }
+
+  try {
+    const reader = new ZXing.BrowserQRCodeReader();
+    const imgUrl = URL.createObjectURL(file);
+
+    try {
+      const result = await reader.decodeFromImageUrl(imgUrl);
+      URL.revokeObjectURL(imgUrl);
+      if (result && result.getText()) {
+        setScanMsg('QR認識 → チェックイン処理中…', 'scanning');
+        processCheckIn(result.getText());
+        return;
+      }
+    } catch (decodeErr) {
+      URL.revokeObjectURL(imgUrl);
+    }
+
+    // 認識失敗
+    setScanMsg('❌ QRコードを認識できませんでした。明るい場所で再度お試しください', 'err');
+    document.getElementById('manual-input-area').style.display = 'block';
+
+  } catch (e) {
+    setScanMsg('❌ エラーが発生しました: ' + e.message, 'err');
+    document.getElementById('manual-input-area').style.display = 'block';
+  }
+}
+
+// ── 手動ID入力 ────────────────────────────────────────
+function submitManualId() {
+  const val = document.getElementById('manual-guest-id').value.trim();
+  if (!val) { toast('ゲストIDを入力してください'); return; }
+  document.getElementById('manual-guest-id').value = '';
+  processCheckIn(val);
+}
+
+// ── スキャン停止 ──────────────────────────────────────
+function stopScanManual() {
+  stopScan();
+  document.getElementById('video-container').style.display = 'none';
+  document.getElementById('btn-start-scan').textContent    = '📷 QRコードをスキャン';
+  document.getElementById('btn-start-scan').onclick        = startScanManual;
+  setScanMsg('スキャンを停止しました。再度ボタンを押してください', 'scanning');
+}
+
+function stopScan() {
+  if (codeReader) {
+    try { codeReader.reset(); } catch (e) {}
+    codeReader = null;
+  }
+  if (scanStream) {
+    scanStream.getTracks().forEach(t => t.stop());
+    scanStream = null;
+  }
+  clearTimeout(scanTimer);
+}
+
+// ── チェックイン処理 ──────────────────────────────────
+async function processCheckIn(guestId) {
+  if (checkinBusy) return;
+  checkinBusy = true;
+  const eventId = document.getElementById('scan-event-sel').value;
+  if (!eventId) { setScanMsg('イベントを選択してください', 'err'); checkinBusy = false; return; }
+
+  // ① 即座にローディング表示・カメラ停止
+  showCamOverlay({ guest_id: guestId }, 'loading');
+  setScanMsg('🔍 照会中… ' + guestId, 'scanning');
+
+  // ② キャッシュで当日払いを確認（支払い選択が必要な場合のみ事前チェック）
+  const cached = allGuests.find(g =>
+    String(g.guest_id) === String(guestId) &&
+    String(g.event_id) === String(eventId)
+  );
+  if (cached &&
+      cached.pay_type === 'paid' &&
+      String(cached.pay_confirmed).toUpperCase() !== 'TRUE' &&
+      String(cached.arrived).toUpperCase() !== 'TRUE') {
+    // キャッシュで当日払いと判明 → 支払い方法選択を表示
+    pendingGuest = guestId;
+    showCamOverlay(cached, 'payment_required');
+    setScanMsg('💴 支払い受付 — ' + cached.name, 'warn');
+    checkinBusy = false; return;
+  }
+
+  // ③ checkInを直接呼ぶ（GAS1回で照会+登録を完結）
+  try {
+    const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: eventId });
+
+    if (!d.ok) {
+      if (d.status === 'not_found') {
+        setScanMsg('❌ 登録されていません: ' + guestId, 'err');
+        camHideAll();
+        // スキャン枠を戻す
+        const frame = document.getElementById('scan-frame-overlay');
+        if (frame) frame.style.display = 'flex';
+        checkinBusy = false; return;
+      }
+      if (d.status === 'duplicate') {
+        setScanMsg('⚠️ 入場済みです — ' + (d.name || ''), 'err');
+        showCamOverlay(d, 'duplicate');
+        checkinBusy = false; return;
+      }
+      if (d.status === 'payment_required') {
+        // GASから支払い未済と返ってきた場合
+        pendingGuest = guestId;
+        showCamOverlay(d, 'payment_required');
+        setScanMsg('💴 支払い受付 — ' + (d.name || ''), 'warn');
+        checkinBusy = false; return;
+      }
+      setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
+      camHideAll();
+      checkinBusy = false; return;
+    }
+
+    // ④ チェックイン成功
+    const isStripe = (d.payment_method || '').toLowerCase() === 'stripe';
+    setScanMsg((isStripe ? '✅ 事前決済済み・完了 — ' : '✅ チェックイン完了 — ') + d.name, 'ok');
+    showCamOverlay(d, 'ok');
+
+    // ローカルキャッシュ更新
+    const idx = allGuests.findIndex(g => String(g.guest_id) === String(guestId));
+    if (idx >= 0) allGuests[idx].arrived = 'TRUE';
+    invalidateGuestCache(eventId);
+
+  } catch(err) {
+    setScanMsg('❌ 通信エラー', 'err');
+    camHideAll();
+  }
+  checkinBusy = false;
+}
+
+async function confirmFree() {
+  if (!pendingGuest) return;
+  checkinBusy = true;
+  const eventId = document.getElementById('scan-event-sel').value;
+  const d = await apiPost({ action: 'checkIn', guest_id: pendingGuest, event_id: eventId });
+  if (d.ok) {
+    setScanMsg('✅ チェックイン完了 — ' + d.name, 'ok');
+    showCamOverlay(d, 'ok');
+    const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
+    if (idx >= 0) allGuests[idx].arrived = 'TRUE';
+    pendingGuest = null;
+    invalidateGuestCache(eventId); // キャッシュ無効化
+    if (currentEventId === eventId) {
+      updateGuestStats();
+      renderGuestTable();
+    }
+    toast('✅ ' + d.name + ' チェックイン完了');
+  } else {
+    setScanMsg('❌ ' + (d.message || 'チェックインに失敗しました'), 'err');
+    toast('❌ ' + (d.message || 'チェックインに失敗しました'));
+  }
+  checkinBusy = false;
+}
+
+async function confirmPayment(method) {
+  if (!pendingGuest) return;
+  checkinBusy = true;
+  const eventId     = document.getElementById('scan-event-sel').value;
+  const methodLabel = { cash:'現金', card:'カード', paypay:'PayPay' }[method] || method;
+  const d = await apiPost({ action: 'checkIn', guest_id: pendingGuest, event_id: eventId, payment_method: method });
+  if (d.ok) {
+    setScanMsg('✅ チェックイン完了（' + methodLabel + '）— ' + d.name, 'ok');
+    d.payment_method = method;
+    d.pay_type = 'paid'; // バッジ表示のため
+    showCamOverlay(d, 'ok');
+    const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
+    if (idx >= 0) {
+      allGuests[idx].arrived        = 'TRUE';
+      allGuests[idx].pay_confirmed  = 'TRUE';
+      allGuests[idx].payment_method = method;
+    }
+    pendingGuest = null;
+    invalidateGuestCache(eventId);
+    if (currentEventId === eventId) {
+      updateGuestStats();
+      renderGuestTable();
+    }
+  } else {
+    setScanMsg('❌ ' + (d.message || 'チェックインに失敗しました'), 'err');
+    toast('❌ ' + (d.message || 'チェックインに失敗しました'));
+  }
+  checkinBusy = false;
+}
+
+// ── カメラオーバーレイ制御 ──────────────────────────────
+function camHideAll() {
+  ['cam-overlay-loading','cam-overlay-ok','cam-overlay-payment','cam-overlay-duplicate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  // スキャン枠を再表示
+  const frame = document.getElementById('scan-frame-overlay');
+  if (frame) frame.style.display = 'flex';
+}
+
+function showCamOverlay(d, status) {
+  // カメラを必ず停止（照会中・完了・支払い待ち）
+  stopScan();
+  camHideAll();
+  // スキャン枠を非表示
+  const frame = document.getElementById('scan-frame-overlay');
+  if (frame) frame.style.display = 'none';
+
+  const gender = d.gender === 'female' ? '女性' : (d.gender === 'male' ? '男性' : '');
+  const invBy  = d.invited_by ? '招待者: ' + d.invited_by : '';
+  const meta   = gender + (gender && invBy ? '　|　' + invBy : invBy);
+
+  if (status === 'loading') {
+    document.getElementById('cam-loading-id').textContent = d.guest_id || '';
+    document.getElementById('cam-overlay-loading').style.display = 'flex';
+
+  } else if (status === 'ok') {
+    const isStripe = (d.payment_method || '').toLowerCase() === 'stripe';
+    const isFree   = d.pay_type === 'free';
+    const title    = document.getElementById('cam-ok-title');
+    const badge    = document.getElementById('cam-ok-badge');
+
+    title.textContent = 'チェックイン完了';
+    title.style.color = isStripe ? 'var(--cash)' : 'var(--arrived)';
+    document.getElementById('cam-ok-icon').textContent = '✅';
+    document.getElementById('cam-ok-name').textContent = d.name || '—';
+    document.getElementById('cam-ok-meta').textContent = meta;
+
+    if (isStripe) {
+      badge.className   = 'cam-ok-badge badge-stripe';
+      badge.textContent = '💳 事前決済済み ¥' + Number(d.amount || 0).toLocaleString();
+      badge.style.display = 'inline-block';
+    } else if (isFree) {
+      badge.className   = 'cam-ok-badge badge-free';
+      badge.textContent = '🎟 無料招待';
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+    document.getElementById('cam-overlay-ok').style.display = 'flex';
+
+  } else if (status === 'payment_required') {
+    document.getElementById('cam-pay-name').textContent   = d.name || '—';
+    document.getElementById('cam-pay-amount').textContent = '¥' + Number(d.amount || 0).toLocaleString();
+    document.getElementById('cam-pay-meta').textContent   = meta;
+    document.getElementById('cam-overlay-payment').style.display = 'flex';
+
+  } else if (status === 'duplicate') {
+    document.getElementById('cam-dup-name').textContent = d.name || '—';
+    document.getElementById('cam-dup-meta').textContent = meta;
+    document.getElementById('cam-overlay-duplicate').style.display = 'flex';
+  }
+}
+
+// カメラを再起動して次の読み取りへ
+async function resumeCamera() {
+  camHideAll();
+  checkinBusy = false;
+  lastScanned = '';
+  setScanMsg('QRコードをカメラにかざしてください', 'scanning');
+  await startZXingLiveScan();
+}
+
+function setScanMsg(msg, type) {
+  document.getElementById('scan-msg').textContent = msg;
+  const dot = document.getElementById('scan-dot');
+  dot.className = 'scan-dot';
+  if      (type === 'ok')   dot.classList.add('dot-ok');
+  else if (type === 'err')  dot.classList.add('dot-err');
+  else if (type === 'warn') dot.classList.add('dot-warn');
+  else                      dot.classList.add('dot-scanning');
+}
+
+// ── ユーティリティ ───────────────────────────────────
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓';
+    setTimeout(() => btn.textContent = orig, 1500);
+    toast('✦ コピーしました');
+  });
+}
+function openAddEventModal() { document.getElementById('modal-event').classList.add('active'); }
+
+function openCustomUrlModal() {
+  const sel = document.getElementById('cu-event-sel');
+  sel.innerHTML = '<option value="">選択してください…</option>';
+  allEvents.forEach(ev => {
+    const o = document.createElement('option');
+    o.value = ev.event_id;
+    o.textContent = ev.name + ' — ' + ev.date;
+    sel.appendChild(o);
+  });
+  document.getElementById('cu-url-result').style.display = 'none';
+  document.getElementById('cu-promoter').value = '';
+  document.getElementById('modal-custom-url').classList.add('active');
+}
+
+async function generateCustomUrl() {
+  const eventId  = document.getElementById('cu-event-sel').value;
+  const type     = document.getElementById('cu-type').value;
+  const promoter = document.getElementById('cu-promoter').value.trim();
+  if (!eventId)  { toast('イベントを選択してください'); return; }
+  if (!promoter) { toast('招待者名を入力してください'); return; }
+
+  const url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type + '&promoter=' + encodeURIComponent(promoter);
+  document.getElementById('cu-url-text').textContent = url;
+  document.getElementById('cu-url-result').style.display = 'block';
+
+  // GASに保存
+  const d = await apiPost({ action: 'savePromoUrl', event_id: eventId, promoter, type });
+  if (d.ok) {
+    // キャッシュに追加（already_existsの場合は重複しない）
+    if (d.message !== 'already_exists') {
+      allPromoUrls.push({ event_id: eventId, promoter, type });
+    }
+    // イベントカードのリストだけ即時再描画
+    refreshPromoList(eventId);
+    toast('✦ ' + promoter + ' のURLを保存しました');
+  } else {
+    toast('保存エラー: ' + (d.message || ''));
+  }
+}
+
+function refreshPromoList(eventId) {
+  const listEl = document.getElementById('promo-list-' + eventId);
+  if (!listEl) return;
+  const promoList = getPromoUrls(eventId);
+  listEl.innerHTML = promoList.length
+    ? promoList.map(u => buildPromoItem(eventId, u)).join('')
+    : `<div class="ev-promo-empty">まだ指定URLはありません</div>`;
+}
+
+function buildPromoItem(eventId, u) {
+  const label = u.type === 'free' ? '無料' : '有料';
+  const cls   = u.type === 'free' ? 'type-free' : 'type-paid';
+  const esc   = u.promoter.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return `<div class="promo-url-item">
+    <span class="promo-url-name" title="${u.promoter}">${u.promoter}</span>
+    <span class="promo-url-type ${cls}">${label}</span>
+    <span class="promo-url-spacer"></span>
+    <button class="promo-url-copy" onclick="copyPromoUrl('${eventId}','${esc}','${u.type}',this)">📋 コピー</button>
+    <button class="promo-url-del"  onclick="deletePromoUrl('${eventId}','${esc}','${u.type}')" title="削除">✕</button>
+  </div>`;
+}
+
+function copyCustomUrl() {
+  const url = document.getElementById('cu-url-text').textContent;
+  navigator.clipboard.writeText(url).then(() => toast('✦ URLをコピーしました'));
+}
+function closeModal(id)      { document.getElementById(id).classList.remove('active'); }
+document.querySelectorAll('.modal-overlay').forEach(o =>
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); })
+);
+
+window.addEventListener('load', async () => {
+  // GASを暖機（ログイン前から）
+  fetch(API + '?action=ping').catch(() => {});
+
+  // 単発決済から戻った場合の復元処理
+  const urlParams   = new URLSearchParams(location.search);
+  const chargeResult = urlParams.get('charge'); // 'success' or 'cancel' or null
+  const isChargeReturn = localStorage.getItem('lpt_charge_return') === '1';
+
+  if (isChargeReturn || chargeResult) {
+    try {
+      const savedHistory = localStorage.getItem('lpt_charge_history');
+      if (savedHistory) chargeHistory = JSON.parse(savedHistory);
+      const savedPw = localStorage.getItem('lpt_charge_auth');
+      if (savedPw) sessionStorage.setItem('lpt_auth', savedPw);
+      localStorage.removeItem('lpt_charge_return');
+      localStorage.removeItem('lpt_charge_history');
+      localStorage.removeItem('lpt_charge_auth');
+      // URLパラメータをクリア（履歴に残さない）
+      if (chargeResult) history.replaceState({}, '', location.pathname);
+    } catch(e) {}
+
+    // 先頭の履歴アイテムのステータスを更新
+    if (chargeHistory.length > 0) {
+      chargeHistory[0].status = chargeResult === 'success' ? 'ok' : 'cancelled';
+    }
+  }
+
+  // セッションキャッシュ確認 → 自動ログイン
+  const cached = sessionStorage.getItem('lpt_auth');
+  if (cached) {
+    const d = await apiGet({ action: 'auth', password: cached });
+    if (d.ok) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display          = 'block';
+      await init();
+      // 単発決済から戻った場合: 単発決済タブを開いて履歴を表示
+      if (isChargeReturn || chargeResult) {
+        showTab('charge');
+        renderChargeHistory();
+        if (chargeResult === 'success') toast('✅ 決済が完了しました');
+        if (chargeResult === 'cancel')  toast('⚠️ 決済をキャンセルしました');
+      }
+      return;
+    } else {
+      sessionStorage.removeItem('lpt_auth');
+    }
+  }
+});
+
+// ── レポート機能 ─────────────────────────────────────────
+let reportGroups   = [];
+let reportEventId  = '';
+let reportGuests   = [];
+
+async function onReportEventChange() {
+  reportEventId = document.getElementById('r-event-sel').value;
+  if (!reportEventId) return;
+
+  document.getElementById('r-loading').style.display          = 'block';
+  document.getElementById('r-groups-container').style.display = 'none';
+  document.getElementById('r-report-section').style.display   = 'none';
+  document.getElementById('r-ai-panel').style.display         = 'none';
+
+  const d = await apiGet({ action: 'getGuests', event_id: reportEventId });
+  reportGuests = d.guests || [];
+
+  const sg = await apiGet({ action: 'getPromoGroups', event_id: reportEventId });
+  if (sg.groups && sg.groups.length > 0) {
+    reportGroups = sg.groups;
+  } else {
+    const names = [...new Set(reportGuests.map(g => (g.invited_by||'').trim()).filter(n => n))];
+    reportGroups = names.map((name, i) => ({
+      id: 'g' + i, canonical: name, aliases: [name], confirmed: false
+    }));
+  }
+
+  document.getElementById('r-loading').style.display           = 'none';
+  document.getElementById('r-btn-ai').disabled     = false;
+  document.getElementById('r-btn-save').disabled   = false;
+  document.getElementById('r-btn-export').disabled = false;
+  document.getElementById('r-groups-container').style.display  = 'block';
+  document.getElementById('r-report-section').style.display    = 'block';
+
+  renderReportGroups();
+  renderReportTable();
+}
+
+async function runAIGrouping() {
+  const names = [...new Set(reportGuests.map(g => (g.invited_by||'').trim()).filter(n => n))];
+  if (!names.length) { toast('ゲストデータがありません'); return; }
+
+  document.getElementById('r-btn-ai').disabled = true;
+  document.getElementById('r-ai-panel').style.display = 'block';
+  document.getElementById('r-ai-status').textContent  = 'AIが名寄せを分析中…';
+
+  try {
+    const resp = await apiPost({ action: 'aiGroupNames', names });
+    if (!resp.ok) throw new Error(resp.message || 'GASエラー');
+    reportGroups = resp.groups.map((g, i) => ({
+      id: 'ai' + i, canonical: g.canonical,
+      aliases: [...new Set(g.aliases)], confirmed: false
+    }));
+    document.getElementById('r-ai-status').textContent =
+      `${reportGroups.length}グループを検出。内容を確認して「確定」してください。`;
+    toast('✦ AIグルーピング完了');
+  } catch(err) {
+    document.getElementById('r-ai-status').textContent = 'エラー: ' + err.message;
+    toast('AIエラー: ' + err.message);
+  }
+
+  document.getElementById('r-btn-ai').disabled = false;
+  renderReportGroups();
+  renderReportTable();
+}
+
+function escH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderReportGroups() {
+  const list = document.getElementById('r-groups-list');
+  list.innerHTML = '';
+  reportGroups.forEach(g => {
+    const allMembers   = reportGuests.filter(gu => g.aliases.some(a => (gu.invited_by||'').trim() === a));
+    const totalCount   = allMembers.length;
+    const arrivedCount = allMembers.filter(gu => String(gu.arrived).toUpperCase() === 'TRUE').length;
+
+    const card = document.createElement('div');
+    card.className = 'group-card' + (g.confirmed ? ' confirmed' : '');
+    card.id = 'rgc-' + g.id;
+
+    const aliasRows = g.aliases.map(a => {
+      const aliasMembers = reportGuests.filter(gu => (gu.invited_by||'').trim() === a)
+        .sort((x,y) => {
+          const xA = String(x.arrived).toUpperCase() === 'TRUE';
+          const yA = String(y.arrived).toUpperCase() === 'TRUE';
+          if (xA !== yA) return xA ? -1 : 1;
+          return (x.registered_at||'').localeCompare(y.registered_at||'');
+        });
+      const aCnt     = aliasMembers.length;
+      const aArrived = aliasMembers.filter(gu => String(gu.arrived).toUpperCase() === 'TRUE').length;
+      const uid      = g.id + '_' + encodeURIComponent(a);
+
+      const guestRows = aliasMembers.map(gu => {
+        const arr  = String(gu.arrived).toUpperCase() === 'TRUE';
+        const date = (gu.registered_at||'').substring(0,10);
+        const typeClass = gu.pay_type === 'free' ? 'agu-type-free' : 'agu-type-paid';
+        const typeLabel = gu.pay_type === 'free' ? '無料' : '有料';
+        return `<div class="alias-guest-row">
+          <span class="agu-name">${escH(gu.name)}</span>
+          <span class="agu-gender">${gu.gender === 'female' ? '女' : '男'}</span>
+          <span class="${typeClass}">${typeLabel}</span>
+          <span class="${arr ? 'agu-arrived-yes' : 'agu-arrived-no'}">${arr ? '✓ 来場' : '— 未来場'}</span>
+          <span class="agu-date">${date}</span>
+        </div>`;
+      }).join('');
+
+      return `<div class="alias-chip-row">
+        <div class="alias-chip-ex">
+          <span class="alias-name">${escH(a)}</span>
+          <span class="alias-count">${aArrived}/${aCnt}名</span>
+        </div>
+        <button class="btn-expand-alias" onclick="toggleAliasGuests('${uid}')" id="btn-ex-${uid}">▶ 詳細</button>
+        <button class="btn-remove-alias" onclick="removeAlias('${g.id}','${escH(a)}')" title="グループから除外">✕</button>
+      </div>
+      <div class="alias-guest-list" id="agl-${uid}">
+        ${guestRows || '<div style="font-size:0.58rem;color:var(--gray);padding:4px 0;">ゲストなし</div>'}
+      </div>`;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="group-header">
+        <div class="group-canonical" style="flex:1;">
+          <input type="text" value="${escH(g.canonical)}"
+            onchange="updateGroupCanonical('${g.id}',this.value)" placeholder="正規の名前">
+        </div>
+        <span class="group-count">${arrivedCount}/${totalCount}名</span>
+        <button class="btn-confirm-grp ${g.confirmed?'is-confirmed':''}"
+          onclick="toggleGroupConfirm('${g.id}')">
+          ${g.confirmed ? '✓ 確定済み' : '確定'}
+        </button>
+        <button class="btn-del-grp" onclick="deleteGroup('${g.id}')" title="グループを削除">✕</button>
+      </div>
+      <div class="group-aliases-section" id="ral-${g.id}">
+        ${aliasRows}
+      </div>
+      <div class="alias-add-row" style="margin-top:8px;">
+        <input class="alias-add-input" id="rai-${g.id}" placeholder="別名を追加…"
+          onkeydown="if(event.key==='Enter')addAlias('${g.id}')">
+        <button class="btn-add-alias" onclick="addAlias('${g.id}')">追加</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function toggleAliasGuests(uid) {
+  const list = document.getElementById('agl-' + uid);
+  const btn  = document.getElementById('btn-ex-' + uid);
+  if (!list) return;
+  const isOpen = list.classList.toggle('open');
+  btn.textContent = isOpen ? '▼ 閉じる' : '▶ 詳細';
+}
+
+function updateGroupCanonical(id, val) {
+  const g = reportGroups.find(g => g.id === id);
+  if (g) { g.canonical = val.trim(); renderReportTable(); }
+}
+function toggleGroupConfirm(id) {
+  const g = reportGroups.find(g => g.id === id);
+  if (g) { g.confirmed = !g.confirmed; renderReportGroups(); renderReportTable(); }
+}
+function deleteGroup(id) {
+  reportGroups = reportGroups.filter(g => g.id !== id);
+  renderReportGroups(); renderReportTable();
+}
+function addAlias(id) {
+  const input = document.getElementById('rai-' + id);
+  const val   = (input.value || '').trim();
+  if (!val) return;
+  const g = reportGroups.find(g => g.id === id);
+  if (g && !g.aliases.includes(val)) {
+    g.aliases.push(val); input.value = '';
+    renderReportGroups(); renderReportTable();
+  }
+}
+function removeAlias(id, alias) {
+  const g = reportGroups.find(g => g.id === id);
+  if (g) {
+    g.aliases = g.aliases.filter(a => a !== alias);
+    renderReportGroups(); renderReportTable();
+  }
+}
+function addManualGroup() {
+  const id = 'manual' + Date.now();
+  reportGroups.push({ id, canonical: '新しいプロモーター', aliases: [], confirmed: false });
+  renderReportGroups();
+  setTimeout(() => {
+    const card = document.getElementById('rgc-' + id);
+    if (card) { card.scrollIntoView({ behavior:'smooth' }); card.querySelector('input').select(); }
+  }, 100);
+}
+
+function buildReportRow(name, members, confirmed) {
+  const arrived  = members.filter(g => String(g.arrived).toUpperCase() === 'TRUE');
+  const mTotal   = members.filter(g => g.gender === 'male').length;
+  const fTotal   = members.filter(g => g.gender === 'female').length;
+  const mArrived = arrived.filter(g => g.gender === 'male').length;
+  const fArrived = arrived.filter(g => g.gender === 'female').length;
+  const free     = members.filter(g => g.pay_type === 'free').length;
+  const paid     = members.filter(g => g.pay_type === 'paid').length;
+  const cash     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'cash').length;
+  const card     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'card').length;
+  const paypay   = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'paypay').length;
+  return { name, confirmed, total:members.length, mTotal, fTotal,
+           arrived:arrived.length, mArrived, fArrived, free, paid, cash, card, paypay };
+}
+
+function renderReportTable() {
+  const tbody = document.getElementById('r-report-tbody');
+  const tfoot = document.getElementById('r-report-tfoot');
+  tbody.innerHTML = '';
+
+  const rows = reportGroups.map(g => {
+    const members = reportGuests.filter(gu =>
+      g.aliases.some(a => (gu.invited_by||'').trim() === a)
+    );
+    return buildReportRow(g.canonical, members, g.confirmed);
+  }).filter(r => r.total > 0);
+
+  const groupedNames = new Set(reportGroups.flatMap(g => g.aliases));
+  const ungrouped = reportGuests.filter(gu => {
+    const n = (gu.invited_by||'').trim();
+    return n && !groupedNames.has(n);
+  });
+  if (ungrouped.length) rows.push(buildReportRow('（未グループ）', ungrouped, false));
+
+  rows.sort((a, b) => b.total - a.total);
+
+  let tot = { total:0,mTotal:0,fTotal:0,arrived:0,mArrived:0,fArrived:0,free:0,paid:0,cash:0,card:0,paypay:0 };
+
+  rows.forEach(r => {
+    const rate = r.total ? Math.round(r.arrived / r.total * 100) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="nm">${escH(r.name)}${!r.confirmed&&r.name!=='（未グループ）'?'<span style="font-size:0.48rem;color:var(--gray);margin-left:4px;">(未確定)</span>':''}</td>
+      <td class="r hl">${r.total}</td><td class="r gm">${r.mTotal}</td><td class="r gf">${r.fTotal}</td>
+      <td class="r hl">${r.arrived}</td><td class="r gm">${r.mArrived}</td><td class="r gf">${r.fArrived}</td>
+      <td class="r">${rate}%</td>
+      <td class="r">${r.free}</td><td class="r">${r.paid}</td>
+      <td class="r">${r.cash}</td><td class="r">${r.card}</td><td class="r">${r.paypay}</td>`;
+    tbody.appendChild(tr);
+    Object.keys(tot).forEach(k => tot[k] += r[k] || 0);
+  });
+
+  const tRate = tot.total ? Math.round(tot.arrived / tot.total * 100) : 0;
+  tfoot.innerHTML = `<tr>
+    <td>合計</td>
+    <td class="r">${tot.total}</td><td class="r gm">${tot.mTotal}</td><td class="r gf">${tot.fTotal}</td>
+    <td class="r">${tot.arrived}</td><td class="r gm">${tot.mArrived}</td><td class="r gf">${tot.fArrived}</td>
+    <td class="r">${tRate}%</td>
+    <td class="r">${tot.free}</td><td class="r">${tot.paid}</td>
+    <td class="r">${tot.cash}</td><td class="r">${tot.card}</td><td class="r">${tot.paypay}</td>
+  </tr>`;
+}
+
+async function saveGroups() {
+  if (!reportEventId) { toast('イベントを選択してください'); return; }
+  document.getElementById('r-btn-save').disabled = true;
+  const d = await apiPost({ action: 'savePromoGroups', event_id: reportEventId, groups: reportGroups });
+  document.getElementById('r-btn-save').disabled = false;
+  toast(d.ok ? '✦ グループを保存しました' : '保存エラー: ' + d.message);
+}
+
+async function exportToSheet() {
+  if (!reportEventId) { toast('イベントを選択してください'); return; }
+  const ev = allEvents.find(e => e.event_id === reportEventId);
+  document.getElementById('r-btn-export').disabled = true;
+  toast('スプレッドシートに出力中…');
+
+  const rows = reportGroups.map(g => {
+    const members = reportGuests.filter(gu =>
+      g.aliases.some(a => (gu.invited_by||'').trim() === a)
+    );
+    return buildReportRow(g.canonical, members, g.confirmed);
+  }).filter(r => r.total > 0).sort((a,b) => b.total - a.total);
+
+  const detailRows = [];
+  reportGroups.forEach(g => {
+    const members = reportGuests
+      .filter(gu => g.aliases.some(a => (gu.invited_by||'').trim() === a))
+      .sort((a, b) => {
+        const aA = String(a.arrived).toUpperCase() === 'TRUE';
+        const bA = String(b.arrived).toUpperCase() === 'TRUE';
+        if (aA !== bA) return aA ? -1 : 1;
+        return (a.registered_at||'').localeCompare(b.registered_at||'');
+      });
+    members.forEach(gu => {
+      detailRows.push({
+        promoter: g.canonical, name: gu.name, gender: gu.gender,
+        pay_type: gu.pay_type, arrived: String(gu.arrived).toUpperCase() === 'TRUE',
+        payment_method: gu.payment_method || '', amount: Number(gu.amount || 0),
+        registered_at: gu.registered_at || ''
+      });
+    });
+  });
+
+  const d = await apiPost({
+    action: 'exportPromoReport',
+    event_id: reportEventId,
+    event_name: ev ? ev.name : reportEventId,
+    rows, detailRows
+  });
+  document.getElementById('r-btn-export').disabled = false;
+  toast(d.ok ? '✦ 出力完了 → ' + d.sheet_name + ' / ' + d.detail_sheet_name : '出力エラー: ' + d.message);
+}
+
+function onReportTabOpen() {
+  if (reportEventId) { renderReportGroups(); renderReportTable(); }
+}
+
+
+// ── 単発決済 ──────────────────────────────────────────────
+const VERCEL_CHECKOUT = 'https://event-system-kappa.vercel.app/api/checkout';
+let chargeHistory = [];
+
+function updateChargeBtn() {
+  const amount = Number(document.getElementById('charge-amount').value);
+  const desc   = document.getElementById('charge-desc').value.trim();
+  const btn    = document.getElementById('btn-charge');
+  const label  = document.getElementById('btn-charge-label');
+  const preview = document.getElementById('charge-preview');
+
+  if (amount > 0) {
+    btn.disabled = false;
+    label.textContent = '¥' + amount.toLocaleString() + ' を決済する';
+    preview.style.display = 'block';
+    document.getElementById('charge-preview-amount').textContent = '¥' + amount.toLocaleString();
+    document.getElementById('charge-preview-desc').textContent   = desc || '（内容未入力）';
+  } else {
+    btn.disabled = true;
+    label.textContent = '金額を入力してください';
+    preview.style.display = 'none';
+  }
+}
+
+async function startQuickCharge() {
+  const amount = Number(document.getElementById('charge-amount').value);
+  const desc   = document.getElementById('charge-desc').value.trim() || '単発決済';
+  if (!amount || amount <= 0) { toast('金額を入力してください'); return; }
+
+  const btn   = document.getElementById('btn-charge');
+  const label = document.getElementById('btn-charge-label');
+  btn.disabled = true;
+  label.textContent = '決済画面を準備中…';
+
+  try {
+    const res = await fetch(VERCEL_CHECKOUT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id:   'CHARGE-' + Date.now(),
+        event_name: desc,
+        charge_event_id: document.getElementById('charge-event-sel')?.value || '',
+        name:       'スタッフ決済',
+        email:      '',
+        gender:     '',
+        invited_by: '',
+        amount:     amount
+      })
+    });
+    const d = await res.json();
+
+    if (d.ok && d.checkout_url) {
+      // 決済前に履歴・認証情報をlocalStorageに保存（遷移後も消えない）
+      chargeHistory.unshift({ desc, amount, status: 'pending', session_id: d.session_id });
+      try {
+        localStorage.setItem('lpt_charge_history', JSON.stringify(chargeHistory));
+        // 現在のパスワードをlocalStorageに退避（sessionStorageは遷移で消える場合がある）
+        const pw = sessionStorage.getItem('lpt_auth');
+        if (pw) localStorage.setItem('lpt_charge_auth', pw);
+        localStorage.setItem('lpt_charge_return', '1'); // 単発決済からの戻りフラグ
+      } catch(e) {}
+
+      // 同タブで遷移（iPhone Safari対応・ポップアップブロック回避）
+      location.href = d.checkout_url;
+    } else {
+      toast('❌ ' + (d.message || '決済画面の準備に失敗しました'));
+      btn.disabled = false;
+      label.textContent = '金額を入力してください';
+      updateChargeBtn();
+    }
+  } catch(err) {
+    toast('❌ 通信エラー: ' + err.message);
+    btn.disabled = false;
+    label.textContent = '金額を入力してください';
+    updateChargeBtn();
+  }
+}
+
+function renderChargeHistory() {
+  if (!chargeHistory.length) return;
+  const wrap = document.getElementById('charge-history');
+  const list = document.getElementById('charge-history-list');
+  wrap.style.display = 'block';
+  list.innerHTML = chargeHistory.map(item => {
+    let statusClass, statusLabel;
+    if (item.status === 'ok') {
+      statusClass = 'chi-status-ok';
+      statusLabel = '✅ 完了';
+    } else if (item.status === 'cancelled') {
+      statusClass = 'chi-status-cancel';
+      statusLabel = '❌ キャンセル';
+    } else {
+      statusClass = 'chi-status-pending';
+      statusLabel = '⏳ 処理中';
+    }
+    return `<div class="charge-history-item">
+      <span class="chi-desc">${item.desc}</span>
+      <span class="chi-amount">¥${Number(item.amount).toLocaleString()}</span>
+      <span class="${statusClass}">${statusLabel}</span>
+    </div>`;
+  }).join('');
+}
+
+
+// ── 売上サマリー ──────────────────────────────────────────
+let salesEventId = '';
+let salesGuests  = [];
+
+function onSalesTabOpen() {
+  if (salesEventId) renderSalesSummary();
+}
+
+async function onSalesEventChange() {
+  salesEventId = document.getElementById('sales-event-sel').value;
+  if (!salesEventId) {
+    document.getElementById('sales-invite-section').style.display = 'none';
+    return;
+  }
+  // ゲストデータ取得（キャッシュ優先）
+  const cached = guestCache[salesEventId];
+  if (cached) {
+    salesGuests = cached.data;
+  } else {
+    const d = await apiGet({ action: 'getGuests', event_id: salesEventId });
+    salesGuests = d.guests || [];
+  }
+  renderSalesSummary();
+}
+
+function renderSalesSummary() {
+  document.getElementById('sales-invite-section').style.display = 'block';
+
+  // ── 招待決済集計 ──
+  const paidGuests     = salesGuests.filter(g => g.pay_type === 'paid');
+  const arrivedPaid    = paidGuests.filter(g => String(g.arrived).toUpperCase() === 'TRUE');
+  const expectedTotal  = paidGuests.reduce((s, g) => s + Number(g.amount || 0), 0);
+  const actualTotal    = arrivedPaid.reduce((s, g) => s + Number(g.amount || 0), 0);
+  const avgAmount      = paidGuests.length > 0 ? Math.round(expectedTotal / paidGuests.length) : 0;
+
+  document.getElementById('sl-expected').textContent     = '¥' + expectedTotal.toLocaleString();
+  document.getElementById('sl-expected-sub').textContent = '有料 ' + paidGuests.length + '名 × 平均 ¥' + avgAmount.toLocaleString();
+  document.getElementById('sl-actual').textContent       = '¥' + actualTotal.toLocaleString();
+  document.getElementById('sl-actual-sub').textContent   = '来場済み有料 ' + arrivedPaid.length + '名';
+
+  const byMethod = { cash:0, card:0, paypay:0, stripe:0 };
+  const byCount  = { cash:0, card:0, paypay:0, stripe:0 };
+  arrivedPaid.forEach(g => {
+    const m = (g.payment_method || '').toLowerCase();
+    if (byMethod[m] !== undefined) {
+      byMethod[m] += Number(g.amount || 0);
+      byCount[m]++;
+    }
+  });
+  ['cash','card','paypay','stripe'].forEach(m => {
+    const id = { cash:'sl-pay-cash', card:'sl-pay-card', paypay:'sl-pay-paypay', stripe:'sl-pay-stripe' }[m];
+    document.getElementById(id).textContent           = '¥' + byMethod[m].toLocaleString();
+    document.getElementById(id + '-sub').textContent  = byCount[m] + '名';
+  });
+
+  // ── 単発決済集計 ──
+  const chargeItems = chargeHistory.filter(h =>
+    h.status === 'ok' &&
+    (h.charge_event_id === salesEventId || (!h.charge_event_id && !salesEventId))
+  );
+  const chargeList  = document.getElementById('sl-charge-list');
+  const chargeTotal = chargeItems.reduce((s, h) => s + Number(h.amount || 0), 0);
+
+  if (chargeItems.length > 0) {
+    chargeList.innerHTML = chargeItems.map(h => `
+      <div class="sales-charge-item">
+        <span class="sci-desc">${h.desc}</span>
+        <span class="sci-amount">¥${Number(h.amount).toLocaleString()}</span>
+        <span class="sci-status-ok">✅ 完了</span>
+      </div>`).join('');
+    document.getElementById('sl-charge-total').style.display = 'flex';
+    document.getElementById('sl-charge-total-amount').textContent = '¥' + chargeTotal.toLocaleString();
+  } else {
+    chargeList.innerHTML = '<div style="font-size:0.65rem;color:var(--gray);padding:12px 16px;">このイベントの単発決済はありません</div>';
+    document.getElementById('sl-charge-total').style.display = 'none';
+  }
+
+  // ── 合計売上 ──
+  const grandTotal = actualTotal + chargeTotal;
+  document.getElementById('sl-grand-total-amount').textContent = '¥' + grandTotal.toLocaleString();
+}
+
+
+// ── メール配信 ──────────────────────────────────────────
+const MM_DAILY_LIMIT = 100;
+let mmGuestsFree = [];
+let mmGuestsPaid = [];
+let mmTemplates  = {};
+
+// タブ開いた時の初期化
+async function onMailmagTabOpen() {
+  // 初回はチェックボックスをオンにする
+  document.getElementById('mm-target-free').checked = true;
+  document.getElementById('mm-target-paid').checked = true;
+  await loadMmGuests();
+  loadMmTemplatesFromStorage();
+  updateMmCount();
+}
+
+// guests_archiveから配信リスト取得
+async function loadMmGuests() {
+  setScanMsg && null;
+  const scope        = document.querySelector('input[name="mm-scope"]:checked').value;
+  const excludeLatest = document.getElementById('mm-exclude-latest').checked;
+
+  const d = await apiPost({ action: 'getMailList', scope, exclude_latest: excludeLatest });
+  if (!d.ok) { toast('❌ リスト取得失敗: ' + (d.message || '')); return; }
+
+  mmGuestsFree = (d.guests || []).filter(g => g.pay_type === 'free');
+  mmGuestsPaid = (d.guests || []).filter(g => g.pay_type === 'paid');
+  updateMmCount();
+}
+
+function onMmScopeChange() {
+  const scope = document.querySelector('input[name="mm-scope"]:checked').value;
+  document.getElementById('mm-exclude-wrap').style.display = scope === 'all' ? 'block' : 'none';
+  loadMmGuests();
+}
+
+function updateMmCount() {
+  const freeChecked = document.getElementById('mm-target-free').checked;
+  const paidChecked = document.getElementById('mm-target-paid').checked;
+
+  document.getElementById('mm-count-free').textContent = mmGuestsFree.length + '名';
+  document.getElementById('mm-count-paid').textContent = mmGuestsPaid.length + '名';
+
+  const totalFree = freeChecked ? mmGuestsFree.length : 0;
+  const totalPaid = paidChecked ? mmGuestsPaid.length : 0;
+  const total     = totalFree + totalPaid;
+
+  const daysNeeded = Math.ceil(total / MM_DAILY_LIMIT);
+
+  document.getElementById('mm-summary').innerHTML = total > 0
+    ? `無料参加者: <strong style="color:var(--white)">${totalFree}名</strong>　有料参加者: <strong style="color:var(--white)">${totalPaid}名</strong>　合計: <strong style="color:var(--gold)">${total}名</strong><br>1日${MM_DAILY_LIMIT}通上限のため <strong style="color:var(--gold)">${daysNeeded}日</strong> に分けて送信されます`
+    : '対象者を選択してください';
+
+  document.getElementById('mm-btn-send-free').disabled = !freeChecked || mmGuestsFree.length === 0;
+  document.getElementById('mm-btn-send-paid').disabled = !paidChecked || mmGuestsPaid.length === 0;
+  document.getElementById('mm-btn-send-both').disabled = !(freeChecked && paidChecked) || total === 0;
+}
+
+function switchMmContent(type) {
+  document.getElementById('mm-content-free').style.display = type === 'free' ? 'block' : 'none';
+  document.getElementById('mm-content-paid').style.display = type === 'paid' ? 'block' : 'none';
+  document.getElementById('mm-tab-free').classList.toggle('active', type === 'free');
+  document.getElementById('mm-tab-paid').classList.toggle('active', type === 'paid');
+}
+
+// テンプレート保存（localStorage）
+function saveMmTemplate() {
+  const name = prompt('テンプレート名を入力してください:');
+  if (!name) return;
+  const tpl = getMmFormData();
+  mmTemplates[name] = tpl;
+  try { localStorage.setItem('lpt_mm_templates', JSON.stringify(mmTemplates)); } catch(e) {}
+  renderMmTemplateList();
+  toast('✅ テンプレートを保存しました: ' + name);
+}
+
+function loadMmTemplatesFromStorage() {
+  try {
+    const saved = localStorage.getItem('lpt_mm_templates');
+    if (saved) mmTemplates = JSON.parse(saved);
+  } catch(e) {}
+  renderMmTemplateList();
+}
+
+function renderMmTemplateList() {
+  const sel = document.getElementById('mm-template-sel');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">新規作成</option>';
+  Object.keys(mmTemplates).forEach(name => {
+    const o = document.createElement('option');
+    o.value = name;
+    o.textContent = name;
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
+}
+
+function loadMmTemplate() {
+  const name = document.getElementById('mm-template-sel').value;
+  if (!name || !mmTemplates[name]) return;
+  setMmFormData(mmTemplates[name]);
+}
+
+function deleteMmTemplate() {
+  const name = document.getElementById('mm-template-sel').value;
+  if (!name) { toast('削除するテンプレートを選択してください'); return; }
+  if (!confirm('「' + name + '」を削除しますか？')) return;
+  delete mmTemplates[name];
+  try { localStorage.setItem('lpt_mm_templates', JSON.stringify(mmTemplates)); } catch(e) {}
+  renderMmTemplateList();
+  toast('🗑 テンプレートを削除しました');
+}
+
+function getMmFormData() {
+  return {
+    free: {
+      subject:  document.getElementById('mm-free-subject').value,
+      greeting: document.getElementById('mm-free-greeting').value,
+      body:     document.getElementById('mm-free-body').value,
+      image:    document.getElementById('mm-free-image').value,
+      ctaText:  document.getElementById('mm-free-cta-text').value,
+      ctaUrl:   document.getElementById('mm-free-cta-url').value,
+    },
+    paid: {
+      subject:  document.getElementById('mm-paid-subject').value,
+      greeting: document.getElementById('mm-paid-greeting').value,
+      body:     document.getElementById('mm-paid-body').value,
+      image:    document.getElementById('mm-paid-image').value,
+      ctaText:  document.getElementById('mm-paid-cta-text').value,
+      ctaUrl:   document.getElementById('mm-paid-cta-url').value,
+    }
+  };
+}
+
+function setMmFormData(data) {
+  if (data.free) {
+    document.getElementById('mm-free-subject').value  = data.free.subject  || '';
+    document.getElementById('mm-free-greeting').value = data.free.greeting || '';
+    document.getElementById('mm-free-body').value     = data.free.body     || '';
+    document.getElementById('mm-free-image').value    = data.free.image    || '';
+    document.getElementById('mm-free-cta-text').value = data.free.ctaText  || '';
+    document.getElementById('mm-free-cta-url').value  = data.free.ctaUrl   || '';
+  }
+  if (data.paid) {
+    document.getElementById('mm-paid-subject').value  = data.paid.subject  || '';
+    document.getElementById('mm-paid-greeting').value = data.paid.greeting || '';
+    document.getElementById('mm-paid-body').value     = data.paid.body     || '';
+    document.getElementById('mm-paid-image').value    = data.paid.image    || '';
+    document.getElementById('mm-paid-cta-text').value = data.paid.ctaText  || '';
+    document.getElementById('mm-paid-cta-url').value  = data.paid.ctaUrl   || '';
+  }
+}
+
+// プレビュー
+function previewMmEmail() {
+  const type = document.getElementById('mm-tab-free').classList.contains('active') ? 'free' : 'paid';
+  const data = getMmFormData()[type];
+  const html = buildMmEmailHtml(data, type, '山田 太郎');
+  document.getElementById('mm-preview-content').innerHTML = html;
+  document.getElementById('mm-preview-modal').style.display = 'flex';
+}
+
+function closeMmPreview() {
+  document.getElementById('mm-preview-modal').style.display = 'none';
+}
+
+function buildMmEmailHtml(data, type, name) {
+  const imageRow = data.image
+    ? `<div style="margin-bottom:24px;"><img src="${data.image}" style="width:100%;max-width:480px;display:block;" alt="フライヤー"></div>`
+    : '';
+  const bodyHtml = (data.body || '').replace(/\n/g, '<br>');
+  return `<div style="background:#080808;padding:32px 20px;font-family:sans-serif;color:#F5F0E8;max-width:480px;margin:0 auto;">
+    <div style="font-size:1.3rem;color:#C9A84C;letter-spacing:0.3em;margin-bottom:4px;">LUXE PARTY TOKYO</div>
+    <div style="font-size:0.6rem;color:#888;letter-spacing:0.2em;margin-bottom:28px;">INVITATION</div>
+    ${imageRow}
+    <p style="font-size:0.9rem;margin-bottom:8px;">${name} 様</p>
+    <p style="font-size:0.78rem;color:#aaa;line-height:1.9;margin-bottom:24px;white-space:pre-wrap;">${data.greeting || ''}</p>
+    <p style="font-size:0.75rem;color:#ccc;line-height:1.9;margin-bottom:28px;">${bodyHtml}</p>
+    ${data.ctaUrl ? `<div style="text-align:center;margin-bottom:28px;"><a href="${data.ctaUrl}" style="display:inline-block;background:#C9A84C;color:#000;text-decoration:none;padding:16px 36px;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;">${data.ctaText || '詳細はこちら'}</a></div>` : ''}
+    <div style="text-align:center;margin-bottom:24px;font-size:0.6rem;color:#666;">
+      <a href="https://www.instagram.com/luxe_party_tokyo/" style="color:#C9A84C;text-decoration:none;margin:0 8px;">Instagram</a>
+      <a href="https://www.tiktok.com/@luxe.party.tokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">TikTok</a>
+      <a href="https://x.com/luxepartytokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">X</a>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">
+      このメールは LUXE PARTY TOKYO からお送りしています。<br>
+      配信停止をご希望の方は<a href="UNSUBSCRIBE_URL" style="color:#666;">こちら</a>からお手続きください。
+    </div>
+  </div>`;
+}
+
+// 送信処理
+async function sendMmEmail(target) {
+  const data = getMmFormData();
+
+  // バリデーション
+  if ((target === 'free' || target === 'both') && !data.free.subject) {
+    toast('❌ 無料参加者向けの件名を入力してください'); return;
+  }
+  if ((target === 'paid' || target === 'both') && !data.paid.subject) {
+    toast('❌ 有料参加者向けの件名を入力してください'); return;
+  }
+
+  const targetLabel = { free: '無料参加者', paid: '有料参加者', both: '両方' }[target];
+  if (!confirm(`${targetLabel}にメールを送信します。よろしいですか？\n\n※1日${MM_DAILY_LIMIT}通の上限があります。`)) return;
+
+  const logEl = document.getElementById('mm-log');
+  logEl.style.display = 'block';
+  logEl.innerHTML = '⏳ 送信中...';
+
+  const guests = target === 'free' ? mmGuestsFree
+               : target === 'paid' ? mmGuestsPaid
+               : [...mmGuestsFree, ...mmGuestsPaid];
+
+  const campaignId = document.getElementById('mm-campaign-id').value.trim();
+  if (!campaignId) {
+    toast('❌ キャンペーンIDを入力または生成してください');
+    return;
+  }
+
+  const d = await apiPost({
+    action:      'sendMailMag',
+    target,
+    campaign_id: campaignId,
+    guests_free: target !== 'paid' ? mmGuestsFree : [],
+    guests_paid: target !== 'free' ? mmGuestsPaid : [],
+    data_free:   data.free,
+    data_paid:   data.paid,
+    daily_limit: MM_DAILY_LIMIT,
+  });
+
+  if (d.ok) {
+    logEl.innerHTML = `✅ 送信完了<br>無料: ${d.sent_free || 0}通 / 有料: ${d.sent_paid || 0}通<br>配信停止除外: ${d.unsubscribed || 0}名<br>${d.message || ''}`;
+    toast('✅ メール配信が完了しました');
+  } else {
+    logEl.innerHTML = '❌ エラー: ' + (d.message || '不明なエラー');
+    toast('❌ 送信失敗: ' + (d.message || ''));
+  }
+}
+
+
+// ── キャンペーンID ──────────────────────────────────────
+function genCampaignId() {
+  const now   = new Date();
+  const date  = now.toISOString().slice(0,10); // 2026-04-26
+  const rand  = Math.random().toString(36).slice(2,6).toUpperCase();
+  const id    = date + '_' + rand;
+  document.getElementById('mm-campaign-id').value = id;
+  toast('✅ キャンペーンID生成: ' + id);
+  checkCampaignStatus(id);
+}
+
+async function checkCampaignStatus(campaignId) {
+  if (!campaignId) return;
+  const statusEl = document.getElementById('mm-campaign-status');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '⏳ 送信済み件数を確認中...';
+
+  const d = await apiPost({ action: 'getCampaignStatus', campaign_id: campaignId });
+  if (d.ok) {
+    if (d.sent_count > 0) {
+      statusEl.innerHTML = `📊 このキャンペーンの送信済み: <strong>${d.sent_count}通</strong>（${d.sent_emails.length}名）<br>続きの未送信者から再開します`;
+    } else {
+      statusEl.textContent = '✨ 新規キャンペーン — 全員に送信します';
+    }
+  } else {
+    statusEl.style.display = 'none';
+  }
+}
+
+// キャンペーンID入力時に自動チェック
+document.addEventListener('DOMContentLoaded', () => {
+  const cidEl = document.getElementById('mm-campaign-id');
+  if (cidEl) {
+    cidEl.addEventListener('blur', () => {
+      if (cidEl.value.trim()) checkCampaignStatus(cidEl.value.trim());
+    });
+  }
+});
+
+// ── テスト送信 ──────────────────────────────────────────
+async function sendMmTestEmail(type) {
+  const email = document.getElementById('mm-test-email').value.trim();
+  if (!email) { toast('❌ テスト送信先のメールアドレスを入力してください'); return; }
+  if (!email.includes('@')) { toast('❌ 正しいメールアドレスを入力してください'); return; }
+
+  const data = getMmFormData()[type];
+  if (!data.subject) {
+    toast('❌ ' + (type === 'free' ? '無料' : '有料') + '参加者向けの件名を入力してください');
+    return;
+  }
+
+  const typeLabel = type === 'free' ? '無料参加者向け' : '有料参加者向け';
+  toast('⏳ ' + typeLabel + 'のテストメールを送信中...');
+
+  const d = await apiPost({
+    action:     'sendMailMagTest',
+    email:      email,
+    type:       type,
+    data_free:  getMmFormData().free,
+    data_paid:  getMmFormData().paid,
+  });
+
+  if (d.ok) {
+    toast('✅ テストメールを送信しました → ' + email);
+  } else {
+    toast('❌ 送信失敗: ' + (d.message || '不明なエラー'));
+  }
+}
+
+</script>
+</body>
+</html>
