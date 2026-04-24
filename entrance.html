@@ -1036,8 +1036,9 @@ function populateEventSelectors() {
   const sorted = sortedEvents();
   const latest = sorted[0]; // 最新イベント
 
-  ['g-event-sel', 'p-event-sel', 'scan-event-sel', 'r-event-sel', 'sales-event-sel'].forEach(selId => {
+  ['g-event-sel', 'scan-event-sel'].forEach(selId => {
     const sel = document.getElementById(selId);
+    if (!sel) return; // 存在しない場合はスキップ
     const cur = sel.value;
     sel.innerHTML = '';
     sorted.forEach((ev, i) => {
@@ -1337,7 +1338,8 @@ function renderGuestTable() {
 
 // ── 招待者別集計 ─────────────────────────────────────
 function renderPromoterStats() {
-  const eventId = document.getElementById('p-event-sel').value;
+  const pSel = document.getElementById('p-event-sel'); if (!pSel) return;
+  const eventId = pSel.value;
   const grid    = document.getElementById('promo-grid');
   grid.innerHTML = '';
   if (!eventId) { grid.innerHTML = '<div class="loading">イベントを選択してください</div>'; return; }
@@ -1926,7 +1928,8 @@ let reportEventId  = '';
 let reportGuests   = [];
 
 async function onReportEventChange() {
-  reportEventId = document.getElementById('r-event-sel').value;
+  const rSel = document.getElementById('r-event-sel'); if (!rSel) return;
+  reportEventId = rSel.value;
   if (!reportEventId) return;
 
   document.getElementById('r-loading').style.display          = 'block';
@@ -2345,7 +2348,8 @@ function onSalesTabOpen() {
 }
 
 async function onSalesEventChange() {
-  salesEventId = document.getElementById('sales-event-sel').value;
+  const sSel = document.getElementById('sales-event-sel'); if (!sSel) return;
+  salesEventId = sSel.value;
   if (!salesEventId) {
     document.getElementById('sales-invite-section').style.display = 'none';
     return;
