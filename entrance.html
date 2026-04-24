@@ -638,33 +638,20 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">LUXE PARTY TOKYO</div>
-    <div class="login-sub">Admin Dashboard</div>
-    <div style="margin-bottom:20px;">
-      <label class="form-label">パスワード</label>
-      <input class="form-input" id="login-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
-    </div>
-    <button class="btn-login" onclick="doLogin()">ログイン</button>
-    <div class="login-err" id="login-err">パスワードが違います</div>
-  </div>
-</div>
+  
 
-<!-- APP -->
-<div id="app" style="display:none">
-  <nav id="nav">
+  <div id="app" style="display:none;">
+    <nav id="nav">
       <div class="nav-logo">ENTRANCE</div>
       <div class="nav-tabs" id="nav-tabs">
         <button class="nav-tab" onclick="showTab('guests')"  id="tab-guests">ゲスト</button>
-        <button class="nav-tab" onclick="showTab('guests')"    id="tab-scan">QRスキャン</button>
+        <button class="nav-tab" onclick="showTab('scan')"    id="tab-scan">QRスキャン</button>
         <button class="nav-tab" onclick="showTab('charge')"  id="tab-charge">単発決済</button>
       </div>
       <button class="nav-logout" onclick="doLogout()">logout</button>
     </nav>
 
-  <!-- ゲスト -->
+
   <div class="page" id="page-guests">
     <div class="page-eyebrow">Guest Management</div>
     <h1 class="page-title">ゲスト <span>一覧</span></h1>
@@ -718,7 +705,9 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   </div>
 
 
-  <!-- QRスキャン -->
+  <!-- 売上サマリー -->
+
+
   <div class="page" id="page-scan">
     <div class="page-eyebrow">Check-in</div>
     <h1 class="page-title">QR <span>スキャン</span></h1>
@@ -866,6 +855,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 
 
   <!-- 単発決済 -->
+
+
   <div class="page" id="page-charge">
     <div class="page-eyebrow">Quick Charge</div>
     <h1 class="page-title">単発 <span>決済</span></h1>
@@ -922,12 +913,9 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   </div>
 
 
-  TYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LUXE PARTY TOKYO — Entrance</title>
+  <!-- メール配信 -->
+  </div>
+
 <script>
 const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
 const BASE_URL = 'https://luxepartycom.github.io/event-system/';
@@ -964,14 +952,13 @@ function toast(msg) {
 // ── ログイン ─────────────────────────────────────────
 async function doLogin() {
   const pw = document.getElementById('login-pw').value.trim();
-  // entrance専用認証（entranceパスワードのみ許可）
   const d  = await apiGet({ action: 'auth', password: pw, mode: 'entrance' });
   if (d.ok && d.role === 'entrance') {
     sessionStorage.setItem('lpt_auth', pw);
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display          = 'block';
     await init();
-  } else if (d.ok && d.role === 'admin') {
+  } else if (d.ok) {
     document.getElementById('login-err').textContent = 'このページは管理者パスワードでは開けません';
     document.getElementById('login-err').style.display = 'block';
   } else {
