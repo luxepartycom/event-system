@@ -3035,8 +3035,20 @@ async function sendMmEmail(target) {
   });
 
   if (d.ok) {
-    logEl.innerHTML = `✅ 送信完了<br>無料: ${d.sent_free || 0}通 / 有料: ${d.sent_paid || 0}通<br>配信停止除外: ${d.unsubscribed || 0}名<br>${d.message || ''}`;
-    toast('✅ メール配信が完了しました');
+    const remaining = (d.message || '').includes('残り');
+    const icon    = remaining ? '⏳' : '✅';
+    const title   = remaining ? '本日分の送信が完了しました' : '全員への送信が完了しました';
+    const freeTotal  = target !== 'paid' ? mmGuestsFree.length : 0;
+    const paidTotal  = target !== 'free' ? mmGuestsPaid.length : 0;
+    const sentFree   = d.sent_free  || 0;
+    const sentPaid   = d.sent_paid  || 0;
+    const remFree    = Math.max(0, freeTotal  - sentFree);
+    const remPaid    = Math.max(0, paidTotal  - sentPaid);
+    logEl.innerHTML  = `${icon} ${title}<br>`
+      + `無料: ${sentFree}通 / 有料: ${sentPaid}通 送信済み<br>`
+      + (remFree + remPaid > 0 ? `<span style="color:#E8A020;">⚠️ 残り 無料:${remFree}名 / 有料:${remPaid}名 未送信（明日以降送信してください）</span><br>` : '')
+      + `配信停止除外: ${d.unsubscribed || 0}名<br>${d.message || ''}`;
+    toast(remaining ? '⏳ 本日分の送信完了（残りあり）' : '✅ メール配信が完了しました');
   } else {
     logEl.innerHTML = '❌ エラー: ' + (d.message || '不明なエラー');
     toast('❌ 送信失敗: ' + (d.message || ''));
@@ -3064,7 +3076,12 @@ async function checkCampaignStatus(campaignId) {
   const d = await apiPost({ action: 'getCampaignStatus', campaign_id: campaignId });
   if (d.ok) {
     if (d.sent_count > 0) {
-      statusEl.innerHTML = `📊 このキャンペーンの送信済み: <strong>${d.sent_count}通</strong>（${d.sent_emails.length}名）<br>続きの未送信者から再開します`;
+      statusEl.innerHTML =
+        `📊 このキャンペーンの送信済み:<br>`
+      + `　無料: <strong style="color:var(--free)">${d.sent_free || 0}通</strong>`
+      + `　有料: <strong style="color:var(--gold)">${d.sent_paid || 0}通</strong>`
+      + `　合計: <strong style="color:var(--white)">${d.sent_count}通</strong><br>`
+      + `<span style="font-size:0.58rem;color:var(--gray);">それぞれ未送信の続きから再開します</span>`;
     } else {
       statusEl.textContent = '✨ 新規キャンペーン — 全員に送信します';
     }
