@@ -1,0 +1,2351 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUXE PARTY TOKYO — エントランス オペレーション</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  :root {
+    --red:    #C0272D;
+    --red-dk: #9B1F24;
+    --black:  #1a1a1a;
+    --dgray:  #3a3a3a;
+    --mgray:  #6a6a6a;
+    --lgray:  #c8c8c8;
+    --bg:     #f4f4f4;
+    --white:  #ffffff;
+    --border: #d0d0d0;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--black);
+    font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--red);
+    padding: 14px 20px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+  .header-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .header-title {
+    color: var(--white);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .header-sub {
+    color: rgba(255,255,255,0.75);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── TAB NAV ── */
+  nav {
+    background: var(--white);
+    border-bottom: 2px solid var(--red);
+    position: sticky;
+    top: 57px;
+    z-index: 100;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  .tab-list {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+  }
+  .tab {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 12px 18px;
+    color: var(--mgray);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .tab:hover:not(.active) { color: var(--dgray); background: #f8f8f8; }
+  .tab.active {
+    color: var(--red);
+    border-bottom-color: var(--red);
+    font-weight: 700;
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── CONTENT WRAPPER ── */
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 20px 14px 60px;
+    box-sizing: border-box;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* ── PAGE TITLE (赤帯) ── */
+  .page-title-bar {
+    background: var(--red);
+    color: var(--white);
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+  .page-title-bar .sub {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: rgba(255,255,255,0.7);
+    margin-top: 2px;
+  }
+
+  /* ── SECTION HEADING (赤ダブルバー) ── */
+  .sec-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--black);
+    margin: 24px 0 12px;
+  }
+  .sec-heading::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 1.1em;
+    background: linear-gradient(to right, var(--red) 50%, var(--black) 50%);
+    flex-shrink: 0;
+  }
+
+  /* ── PHASE LABEL ── */
+  .phase-label {
+    background: var(--dgray);
+    color: var(--white);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 5px 14px;
+    margin-bottom: 2px;
+    display: inline-block;
+  }
+
+  /* ── FLOW ROW ── */
+  .flow-rows { margin-bottom: 14px; }
+  .flow-row {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-top: none;
+    display: grid;
+    grid-template-columns: 52px 1fr auto;
+    align-items: stretch;
+    min-height: 56px;
+    transition: background 0.12s;
+  }
+  .flow-rows .flow-row:first-child { border-top: 1px solid var(--border); }
+  .flow-row:hover { background: #fafafa; }
+  .flow-row.highlight { background: var(--red); border-color: var(--red); }
+  .flow-row.highlight .step-num,
+  .flow-row.highlight .step-title { color: var(--white); }
+  .flow-row.highlight .step-sub { color: rgba(255,255,255,0.8); }
+  .flow-row.highlight .step-who { background: var(--white); color: var(--red); border-color: var(--white); }
+
+  .step-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--red);
+    border-right: 1px solid var(--border);
+  }
+  .flow-row.highlight .step-num { border-right-color: rgba(255,255,255,0.3); }
+  .step-body { padding: 10px 14px; }
+  .step-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 2px; }
+  .step-sub { font-size: 0.72rem; color: var(--mgray); }
+  .step-who {
+    align-self: center;
+    margin: 0 10px;
+    padding: 3px 10px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    white-space: nowrap;
+    border: 1px solid var(--dgray);
+    color: var(--dgray);
+    background: var(--white);
+  }
+
+  /* ── ROLE HEADER ── */
+  .role-header-bar {
+    background: var(--black);
+    color: var(--white);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+  }
+  .role-circle {
+    width: 52px;
+    height: 52px;
+    background: var(--red);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .role-info {}
+  .role-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+  .role-meta { font-size: 0.7rem; color: var(--lgray); display: flex; flex-wrap: wrap; gap: 12px; }
+  .role-meta span::before { content: '▶  '; color: var(--red); }
+
+  /* ── TASK CARD ── */
+  .task-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .task-header {
+    background: var(--dgray);
+    color: var(--white);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .task-num {
+    width: 28px;
+    height: 28px;
+    background: var(--red);
+    color: var(--white);
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .task-title-txt { font-size: 0.95rem; font-weight: 700; flex: 1; }
+  .badge-required {
+    margin-left: auto;
+    padding: 2px 10px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    background: var(--red);
+    color: var(--white);
+    flex-shrink: 0;
+  }
+
+  /* ── TASK ITEMS（番号ラベル付きリスト行） ── */
+  .task-item {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    border-bottom: 1px solid var(--border);
+    min-height: 44px;
+  }
+  .task-item:last-child { border-bottom: none; }
+  .item-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--lgray);
+    color: var(--white);
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-right: 1px solid var(--border);
+  }
+  .item-text {
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    color: var(--dgray);
+    line-height: 1.65;
+  }
+  .item-note {
+    margin-top: 7px;
+    padding: 8px 12px;
+    background: #f2f2f2;
+    font-size: 0.72rem;
+    color: var(--mgray);
+    line-height: 1.65;
+    border-left: 3px solid var(--lgray);
+  }
+  .item-note::before { content: '└  '; }
+
+  /* ── ALERT BAR ── */
+  .alert-bar {
+    background: var(--red);
+    color: var(--white);
+    padding: 11px 16px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-top: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.55;
+  }
+  .alert-bar::before {
+    content: '!';
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    background: var(--white);
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 900;
+    border-radius: 50%;
+  }
+  .info-bar {
+    background: var(--dgray);
+    color: var(--lgray);
+    padding: 10px 16px;
+    font-size: 0.78rem;
+    margin-top: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.55;
+  }
+  .info-bar::before {
+    content: 'i';
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    background: var(--mgray);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 50%;
+  }
+
+
+
+  /* ── SUB TABS (役割詳細) ── */
+  .sub-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 24px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .sub-nav::-webkit-scrollbar { display: none; }
+  .sub-tab {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 10px 20px;
+    color: var(--mgray);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .sub-tab:hover:not(.active) { color: var(--dgray); background: #f8f8f8; }
+  .sub-tab.active {
+    color: var(--red);
+    border-bottom-color: var(--red);
+    font-weight: 700;
+  }
+  .sub-page { display: none; }
+  .sub-page.active { display: block; animation: fadeIn 0.2s ease; width: 100%; max-width: 100%; overflow-x: hidden; box-sizing: border-box; }
+
+  /* ── PHONE MOCKUP ── */
+  .screen-guide { margin-top: 32px; }
+  .screen-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 14px; overflow: hidden; width: 100%; max-width: 100%; }
+  .screen-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .screen-step-label { background: var(--dgray); color: var(--white); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; padding: 4px 12px; width: 100%; text-align: center; }
+  .phone { width: 175px; background: #1a1a1a; border-radius: 22px; padding: 10px 7px 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.25); flex-shrink: 0; }
+  .phone-notch { width: 48px; height: 9px; background: #2a2a2a; border-radius: 6px; margin: 0 auto 6px; }
+  .phone-screen { background: #080808; border-radius: 10px; overflow: hidden; min-height: 270px; }
+  .phone-bar { width: 38px; height: 4px; background: #333; border-radius: 3px; margin: 6px auto 0; }
+  .ps-nav { background: #080808; border-bottom: 1px solid #2a2a2a; padding: 6px 8px 4px; font-size: 6px; color: #C9A84C; letter-spacing: 0.2em; font-weight: 700; }
+  .ps-tabs { display: flex; border-bottom: 1px solid #1a1a1a; background: #111; }
+  .ps-tab { flex: 1; text-align: center; padding: 5px 2px; font-size: 5.5px; color: #666; border-bottom: 1.5px solid transparent; }
+  .ps-tab.act { color: #C9A84C; border-bottom-color: #C9A84C; }
+  .ps-body { padding: 7px; }
+  .ps-eyebrow { font-size: 5px; letter-spacing: 0.2em; color: #C9A84C; margin-bottom: 2px; }
+  .ps-title { font-size: 9px; font-weight: 700; color: #F0F0F0; margin-bottom: 7px; }
+  .ps-select { background: #191919; border: 1px solid #C9A84C; padding: 5px 7px; font-size: 6px; color: #C9A84C; font-weight: 700; margin-bottom: 7px; display: block; }
+  .ps-btn-scan { background: #111; border: 1px solid #C9A84C; color: #C9A84C; font-size: 6.5px; font-weight: 700; padding: 8px; text-align: center; margin-bottom: 6px; letter-spacing: 0.1em; }
+  .ps-status { background: #111; border: 1px solid #1e1e1e; padding: 5px 7px; font-size: 5.5px; color: #888; display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
+  .ps-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .ps-dot-gold { background: #C9A84C; }
+  .ps-dot-green { background: #4CAF82; }
+  .ps-dot-orange { background: #E8A020; }
+  .ps-camera { background: #0a0f0a; position: relative; height: 130px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .ps-camera-frame { width: 84px; height: 84px; border: 1.5px solid #C9A84C; position: relative; }
+  .ps-scan-line { position: absolute; top: 44%; left: 5%; width: 90%; height: 1px; background: linear-gradient(90deg, transparent, #C9A84C, transparent); }
+  .ps-qr { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 52px; height: 52px; display: grid; grid-template-columns: repeat(7,1fr); gap: 1px; }
+  .ps-qr-c { background: #4CAF82; border-radius: 0.5px; }
+  .ps-qr-e { background: transparent; }
+  .ps-overlay { position: absolute; inset: 0; background: rgba(8,8,8,0.94); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px; text-align: center; }
+  .ps-spinner { width: 26px; height: 26px; border: 2px solid #222; border-top-color: #C9A84C; border-radius: 50%; margin-bottom: 6px; }
+  .ps-ov-label { font-size: 5.5px; letter-spacing: 0.2em; color: #666; margin-bottom: 3px; }
+  .ps-ov-id { font-size: 5px; color: #7a6230; font-family: monospace; }
+  .ps-ok-icon { font-size: 20px; margin-bottom: 4px; line-height: 1; }
+  .ps-ok-title { font-size: 6.5px; font-weight: 700; letter-spacing: 0.12em; margin-bottom: 4px; }
+  .ps-ok-badge { font-size: 5px; letter-spacing: 0.1em; padding: 2px 8px; margin-bottom: 5px; border: 0.5px solid currentColor; display: inline-block; }
+  .ps-ok-name { font-size: 10px; color: #F0F0F0; margin-bottom: 3px; }
+  .ps-ok-meta { font-size: 5px; color: #666; margin-bottom: 8px; }
+  .ps-next-btn { border: 0.5px solid #C9A84C; color: #C9A84C; font-size: 5px; padding: 5px 12px; width: 90%; text-align: center; letter-spacing: 0.1em; }
+  .ps-pay-title { font-size: 7px; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 3px; color: #6AABFF; }
+  .ps-pay-name { font-size: 9px; color: #F0F0F0; margin-bottom: 3px; }
+  .ps-pay-amount { font-size: 15px; font-weight: 700; color: #C9A84C; margin-bottom: 8px; }
+  .ps-pay-btns { display: grid; grid-template-columns: repeat(3,1fr); gap: 3px; width: 90%; }
+  .ps-pay-btn { background: #191919; border: 0.5px solid #333; color: #F0F0F0; font-size: 5.5px; font-weight: 700; padding: 6px 2px; text-align: center; line-height: 1.5; }
+  .ps-dup-title { font-size: 7px; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 5px; color: #E8A020; }
+  .screen-caption { font-size: 0.72rem; color: var(--mgray); text-align: center; line-height: 1.5; padding: 0 4px; }
+  .screen-caption strong { color: var(--dgray); font-weight: 700; display: block; margin-bottom: 2px; }
+
+  /* ── CASE CARDS (係②) ── */
+  .case-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .case-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .case-card.dark { background: var(--black); border-color: var(--black); }
+  .case-tag {
+    background: var(--dgray);
+    color: var(--white);
+    padding: 8px 14px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .case-card.dark .case-tag { background: var(--red); }
+  .case-step {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    border-bottom: 1px solid var(--border);
+    min-height: 38px;
+  }
+  .case-card.dark .case-step { border-bottom-color: rgba(255,255,255,0.08); }
+  .case-step-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--lgray);
+    color: var(--white);
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-right: 1px solid var(--border);
+  }
+  .case-card.dark .case-step-num {
+    background: var(--dgray);
+    color: var(--lgray);
+    border-right-color: rgba(255,255,255,0.08);
+  }
+  .case-step-text {
+    padding: 9px 11px;
+    font-size: 0.78rem;
+    color: var(--dgray);
+    line-height: 1.5;
+  }
+  .case-card.dark .case-step-text { color: var(--lgray); }
+  .case-note {
+    padding: 9px 12px;
+    font-size: 0.72rem;
+    background: #f5f5f5;
+    color: var(--mgray);
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+  }
+  .case-card.dark .case-note { background: #2a2a2a; color: var(--lgray); border-top-color: rgba(255,255,255,0.08); }
+  .case-note-sub {
+    margin-top: 5px;
+    font-size: 0.67rem;
+    color: var(--mgray);
+    font-style: italic;
+    line-height: 1.6;
+  }
+  .case-card.dark .case-note-sub { color: #888; }
+
+  /* ── SECURITY ── */
+  .sec-header {
+    background: var(--black);
+    color: var(--white);
+    padding: 11px 14px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-top: 28px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .sec-header-badge {
+    background: var(--red);
+    padding: 2px 10px;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+  }
+  .sec-rule {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-top: none;
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    min-height: 58px;
+  }
+  .sec-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border-right: 1px solid var(--border);
+  }
+  .sec-badge.ok { background: var(--red); color: var(--white); }
+  .sec-badge.ng { background: var(--dgray); color: var(--white); }
+  .sec-badge.warn { background: var(--lgray); color: var(--white); }
+  .sec-text { padding: 11px 14px; }
+  .sec-rule-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 3px; }
+  .sec-rule-detail { font-size: 0.72rem; color: var(--mgray); }
+
+  /* ── OVERVIEW TABLE ── */
+  .ov-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
+  @media (max-width: 640px) {
+    .ov-grid { grid-template-columns: 1fr; }
+  }
+  .ov-col { background: var(--white); border: 1px solid var(--border); overflow: hidden; }
+  .ov-col.dark { background: var(--black); border-color: var(--black); }
+  .ov-col-head {
+    background: var(--dgray);
+    color: var(--white);
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 9px 12px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .ov-col.dark .ov-col-head { background: var(--red); }
+  .ov-col-sub {
+    font-size: 0.65rem;
+    color: var(--mgray);
+    padding: 6px 12px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: #f8f8f8;
+  }
+  .ov-col.dark .ov-col-sub { background: #222; color: #888; border-bottom-color: rgba(255,255,255,0.06); }
+  .ov-item {
+    padding: 7px 12px;
+    font-size: 0.72rem;
+    color: var(--dgray);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.5;
+  }
+  .ov-col.dark .ov-item { color: var(--lgray); border-bottom-color: rgba(255,255,255,0.06); }
+  .ov-item:last-child { border-bottom: none; }
+  .ov-item::before {
+    content: '▶';
+    font-size: 0.5rem;
+    color: var(--red);
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+  .ov-col.dark .ov-item::before { color: var(--lgray); }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* ── MOBILE / スマホ基本レイアウト ── */
+  /* wrap・カードを全幅に */
+  .wrap { padding: 16px 12px 60px; }
+  .page-title-bar { font-size: 1rem; padding: 12px 14px; }
+  .role-header-bar { padding: 12px 14px; gap: 12px; }
+  .role-circle { width: 44px; height: 44px; font-size: 1.1rem; }
+  .role-name { font-size: 0.95rem; }
+  .role-meta { font-size: 0.65rem; gap: 6px; }
+  .task-card { margin-bottom: 10px; }
+  .task-header { padding: 9px 12px; }
+  .task-title-txt { font-size: 0.88rem; }
+  .item-text { font-size: 0.78rem; padding: 9px 10px; }
+  .item-note { font-size: 0.68rem; }
+  .alert-bar { font-size: 0.75rem; padding: 10px 12px; }
+  .info-bar { font-size: 0.72rem; padding: 9px 12px; }
+  .sec-heading { font-size: 0.88rem; margin: 18px 0 10px; }
+  .divider { margin: 14px 0; }
+
+  /* フロー */
+  .flow-row { grid-template-columns: 40px 1fr; }
+  .step-who { display: none; }
+  .step-num { font-size: 1rem; }
+  .step-title { font-size: 0.82rem; }
+  .step-sub { font-size: 0.68rem; }
+  .phase-label { font-size: 0.65rem; }
+
+  /* サブタブ */
+  .sub-nav { margin-bottom: 16px; }
+  .sub-tab { padding: 9px 14px; font-size: 0.72rem; }
+
+  /* 役割カードグリッド → 縦1列 */
+  .staff-card-grid { grid-template-columns: 1fr !important; }
+
+  /* ケースカード → 縦1列 */
+  .case-grid { grid-template-columns: 1fr !important; }
+
+  /* 人員配置サマリー */
+  .staff-summary-grid { grid-template-columns: repeat(3,1fr) !important; }
+
+  /* 画面ガイド → 縦スクロール */
+  .screen-steps { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+  .phone { width: 100% !important; max-width: 160px; margin: 0 auto; }
+  .screen-caption { font-size: 0.65rem; }
+
+  /* 全体連携図 → 縦1列 */
+  .ov-grid { grid-template-columns: 1fr !important; }
+
+  /* ヘッダー */
+  .header-title { font-size: 0.9rem; }
+  .header-sub { font-size: 0.62rem; }
+
+  /* タブ */
+  .tab { padding: 10px 14px; font-size: 0.72rem; }
+  
+  @media (max-width: 360px) {
+    .screen-steps { grid-template-columns: 1fr !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="header-title">LUXE PARTY TOKYO — エントランス オペレーション</div>
+    <div class="header-sub">2025.4.26 SAT</div>
+  </div>
+</header>
+
+<!-- TAB NAV -->
+<nav>
+  <div class="tab-list">
+    <button class="tab active" onclick="showTab('flow',this)">お客様の流れ</button>
+    <button class="tab" onclick="showTab('staff',this)">スタッフの役割配置</button>
+    <button class="tab" onclick="showTab('overview',this)">全体連携図</button>
+  </div>
+</nav>
+
+
+<!-- ══════ お客様の流れ ══════ -->
+<div class="page active" id="page-flow">
+<div class="wrap">
+
+  <div class="page-title-bar">
+    お客様の流れ
+    <div class="sub">エントランスに到着してから入場まで</div>
+  </div>
+
+  <!-- フェーズ① -->
+  <div class="phase-label">フェーズ①　列に並ぶ</div>
+  <div class="flow-rows">
+    <div class="flow-row">
+      <div class="step-num">01</div>
+      <div class="step-body">
+        <div class="step-title">QRコードを準備</div>
+        <div class="step-sub">招待URLから事前登録 / マイQRを画面に表示</div>
+      </div>
+      <div class="step-who">お客様</div>
+    </div>
+    <div class="flow-row">
+      <div class="step-num">02</div>
+      <div class="step-body">
+        <div class="step-title">LINE / Instagram 追加確認</div>
+        <div class="step-sub">公式アカウントのフォロー・友達追加が必須</div>
+      </div>
+      <div class="step-who">役割①→②</div>
+    </div>
+  </div>
+
+  <!-- フェーズ② -->
+  <div class="phase-label">フェーズ②　受付する</div>
+  <div class="flow-rows">
+    <div class="flow-row">
+      <div class="step-num">03</div>
+      <div class="step-body">
+        <div class="step-title">QR読み取り チェックイン</div>
+        <div class="step-sub">役割②がスキャン / システムが自動判定</div>
+      </div>
+      <div class="step-who">役割②</div>
+    </div>
+    <div class="flow-row">
+      <div class="step-num">04</div>
+      <div class="step-body">
+        <div class="step-title">お会計</div>
+        <div class="step-sub">無料 → そのまま通過 / 有料 → 現金・PayPay</div>
+      </div>
+      <div class="step-who">役割②</div>
+    </div>
+    <div class="flow-row">
+      <div class="step-num">05</div>
+      <div class="step-body">
+        <div class="step-title">領収書 & リストバンド</div>
+        <div class="step-sub">領収書（必要な人のみ）・クローク札 / リストバンドを装着</div>
+      </div>
+      <div class="step-who">役割③</div>
+    </div>
+  </div>
+
+  <!-- フェーズ③ -->
+  <div class="phase-label">フェーズ③　入場する</div>
+  <div class="flow-rows">
+    <div class="flow-row highlight">
+      <div class="step-num">06</div>
+      <div class="step-body">
+        <div class="step-title">入場</div>
+        <div class="step-sub">リストバンド確認後 / 入場を許可</div>
+      </div>
+      <div class="step-who">Security</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+
+
+<!-- ══════ スタッフの役割配置 ══════ -->
+<div class="page" id="page-staff">
+<div class="wrap">
+
+  <div class="page-title-bar">
+    スタッフの役割配置
+    <div class="sub">本日のエントランスチームは3つの役割で構成されます</div>
+  </div>
+
+  <!-- 役割概要 -->
+  <div class="sec-heading">役割の全体像</div>
+
+  <div class="staff-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-bottom:28px;">
+
+    <!-- 役割① -->
+    <div style="background:var(--white);border:1px solid var(--border);overflow:hidden;">
+      <div style="background:var(--black);color:var(--white);padding:12px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;flex-shrink:0;">①</div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;">列整備</div>
+          <div style="font-size:0.68rem;color:var(--lgray);margin-top:2px;">1名を予定</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;line-height:1.7;">
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>ポジション：エントランス外・列の先頭</span></div>
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>目的：お客様をスムーズに役割②へ送り出す</span></div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+          <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;">主なタスク</div>
+          <div style="font-size:0.78rem;color:var(--dgray);line-height:2;">
+            ✓ 列整備・間隔調整<br>
+            ✓ QRコードの準備を案内<br>
+            ✓ LINE / Instagram の登録確認
+          </div>
+        </div>
+      </div>
+      <button onclick="showTab('staff', document.querySelector('.tab:nth-child(2)')); setTimeout(()=>{ document.querySelectorAll('.sub-page').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active')); document.getElementById('sub-role1').classList.add('active'); document.querySelector('.sub-tab:first-child').classList.add('active'); }, 50)" style="width:100%;background:var(--dgray);color:var(--white);border:none;padding:10px;font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:0.08em;transition:background 0.15s;" onmouseover="this.style.background='#C0272D'" onmouseout="this.style.background='#3a3a3a'">詳細を確認する ▶</button>
+    </div>
+
+    <!-- 役割② -->
+    <div style="background:var(--white);border:1px solid var(--border);overflow:hidden;">
+      <div style="background:var(--black);color:var(--white);padding:12px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;flex-shrink:0;">②</div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;">QRスキャン</div>
+          <div style="font-size:0.68rem;color:var(--lgray);margin-top:2px;">2名を予定</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;line-height:1.7;">
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>ポジション：受付台前</span></div>
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>目的：チェックイン確定・支払い完結</span></div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+          <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;">主なタスク</div>
+          <div style="font-size:0.78rem;color:var(--dgray);line-height:2;">
+            ✓ QRスキャン・チェックイン<br>
+            ✓ 支払い受付（現金 / PayPay）<br>
+            ✓ クローク利用確認・代金回収<br>
+            ✓ LINE / Instagram 確認
+          </div>
+        </div>
+      </div>
+      <button onclick="showTab('staff', document.querySelector('.tab:nth-child(2)')); setTimeout(()=>{ document.querySelectorAll('.sub-page').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active')); document.getElementById('sub-role2').classList.add('active'); document.querySelectorAll('.sub-tab')[1].classList.add('active'); }, 50)" style="width:100%;background:var(--dgray);color:var(--white);border:none;padding:10px;font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:0.08em;transition:background 0.15s;" onmouseover="this.style.background='#C0272D'" onmouseout="this.style.background='#3a3a3a'">詳細を確認する ▶</button>
+    </div>
+
+    <!-- 役割③ -->
+    <div style="background:var(--white);border:1px solid var(--border);overflow:hidden;">
+      <div style="background:var(--black);color:var(--white);padding:12px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;flex-shrink:0;">③</div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;">配布</div>
+          <div style="font-size:0.68rem;color:var(--lgray);margin-top:2px;">人数調整中</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;line-height:1.7;">
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>ポジション：役割②の隣</span></div>
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>目的：入場準備・仕上げ</span></div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+          <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;">主なタスク</div>
+          <div style="font-size:0.78rem;color:var(--dgray);line-height:2;">
+            ✓ 領収書の配布（必要な人のみ）<br>
+            ✓ クローク札を渡す<br>
+            ✓ LINE / Instagram 再確認<br>
+            ✓ リストバンドを装着
+          </div>
+        </div>
+      </div>
+      <button onclick="showTab('staff', document.querySelector('.tab:nth-child(2)')); setTimeout(()=>{ document.querySelectorAll('.sub-page').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active')); document.getElementById('sub-role3').classList.add('active'); document.querySelectorAll('.sub-tab')[2].classList.add('active'); }, 50)" style="width:100%;background:var(--dgray);color:var(--white);border:none;padding:10px;font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:0.08em;transition:background 0.15s;" onmouseover="this.style.background='#C0272D'" onmouseout="this.style.background='#3a3a3a'">詳細を確認する ▶</button>
+    </div>
+
+  </div>
+
+  <!-- 人員配置サマリー -->
+  <div class="sec-heading">人員配置サマリー</div>
+  <div style="background:var(--white);border:1px solid var(--border);overflow:hidden;margin-bottom:10px;">
+    <div class="staff-summary-grid" style="display:grid;grid-template-columns:repeat(3,1fr);">
+      <div style="padding:14px 16px;border-right:1px solid var(--border);text-align:center;">
+        <div style="font-size:0.6rem;letter-spacing:0.15em;color:var(--mgray);margin-bottom:6px;">役割①　列整備</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--red);line-height:1;">1</div>
+        <div style="font-size:0.68rem;color:var(--mgray);margin-top:4px;">名</div>
+      </div>
+      <div style="padding:14px 16px;border-right:1px solid var(--border);text-align:center;">
+        <div style="font-size:0.6rem;letter-spacing:0.15em;color:var(--mgray);margin-bottom:6px;">役割②　QRスキャン</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--red);line-height:1;">2</div>
+        <div style="font-size:0.68rem;color:var(--mgray);margin-top:4px;">名</div>
+      </div>
+      <div style="padding:14px 16px;text-align:center;">
+        <div style="font-size:0.6rem;letter-spacing:0.15em;color:var(--mgray);margin-bottom:6px;">役割③　配布</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--red);line-height:1;">—</div>
+        <div style="font-size:0.68rem;color:var(--mgray);margin-top:4px;">調整中</div>
+      </div>
+    </div>
+    <div style="background:var(--dgray);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:0.72rem;color:var(--lgray);">エントランスチーム 合計</div>
+      <div style="font-size:0.88rem;font-weight:700;color:var(--white);">3名以上を予定</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="sec-heading">各役割の詳細タスク</div>
+
+  <!-- サブタブナビ -->
+  <div class="sub-nav">
+    <button class="sub-tab active" onclick="showSubTab('sub-role1', this)">役割①　列整備</button>
+    <button class="sub-tab" onclick="showSubTab('sub-role2', this)">役割②　QRスキャン</button>
+    <button class="sub-tab" onclick="showSubTab('sub-role3', this)">役割③　配布</button>
+  </div>
+
+  <!-- サブページ: 役割① -->
+  <div class="sub-page active" id="sub-role1">
+
+  <div class="role-header-bar">
+    <div class="role-circle">①</div>
+    <div class="role-info">
+      <div class="role-name">役割①：列整備</div>
+      <div class="role-meta">
+        <span>1名を予定</span>
+        <span>ポジション：エントランス外・列の先頭</span>
+        <span>目的：お客様をスムーズに役割②へ</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="sec-heading">タスク一覧</div>
+
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">1</div>
+      <div class="task-title-txt">列を整備する</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">お客様が来たら列に並んでもらう</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">2</div>
+      <div class="item-text">密集しすぎないよう間隔を調整</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">3</div>
+      <div class="item-text">列が長くなったら折り返し位置を指示</div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">2</div>
+      <div class="task-title-txt">QRコードを準備させる</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        スクリーンショットでも可。「見つからない」→ 招待メールを確認するよう案内
+        <div class="item-note">未申込の方には、その場でURLから申し込み・決済していただく。カード希望の場合は事前決済URLへ案内する</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">3</div>
+      <div class="task-title-txt">LINE / Instagram の追加確認</div>
+      <div class="badge-required">必須確認</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">「公式LINEとInstagramの登録はお済みですか？」と確認</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">2</div>
+      <div class="item-text">未済の場合 → スマホを見せてその場で登録してもらう</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">3</div>
+      <div class="item-text">登録完了を確認してから役割②へ通す</div>
+    </div>
+  </div>
+
+  <div class="alert-bar">LINE / Instagram 未登録のお客様は入場できない旨を伝え、登録させてから役割②へ通す</div>
+
+  </div>
+
+  <!-- サブページ: 役割② -->
+  <div class="sub-page" id="sub-role2">
+
+
+
+  <div class="role-header-bar">
+    <div class="role-circle">②</div>
+    <div class="role-info">
+      <div class="role-name">役割②：QRスキャン</div>
+      <div class="role-meta">
+        <span>2名を予定</span>
+        <span>ポジション：受付台前</span>
+        <span>目的：チェックイン確定・支払い完結</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-bar">システムの操作方法は「エントランスシステム操作ガイド」を別途確認してください</div>
+
+  <!-- タスク一覧 -->
+  <div class="sec-heading">タスク一覧</div>
+
+  <!-- タスク① QRスキャン -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">1</div>
+      <div class="task-title-txt">QRを表示させ、読み取る</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        お客様のQRコードを画面に表示してもらい、スキャンする
+        <div class="item-note">申し込みが完了していない場合は、その場で申し込みをしてもらう</div>
+        <div class="item-note">VIP来場 → インカムで中野龍之介に案内</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タスク② ゲスト種別対応 -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">2</div>
+      <div class="task-title-txt">ゲスト種別ごとに対応する</div>
+    </div>
+    <!-- 無料招待 -->
+    <div class="task-item" style="background:#fafafa;">
+      <div class="item-num" style="background:#888;">無料</div>
+      <div class="item-text" style="padding-bottom:0;">
+        <div style="font-weight:700;margin-bottom:6px;">無料招待</div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:2px 8px;font-size:0.78rem;color:var(--mgray);margin-bottom:8px;">
+          <span>1</span><span>QRをスキャン → 自動チェックインされます</span>
+          <span>2</span><span>「チェックイン完了」緑画面を確認</span>
+          <span>3</span><span>役割③へ案内</span>
+        </div>
+      </div>
+    </div>
+    <!-- 事前決済 -->
+    <div class="task-item" style="background:#fafafa;">
+      <div class="item-num" style="background:#888;">事前</div>
+      <div class="item-text" style="padding-bottom:0;">
+        <div style="font-weight:700;margin-bottom:6px;">事前決済（Stripe）</div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:2px 8px;font-size:0.78rem;color:var(--mgray);margin-bottom:8px;">
+          <span>1</span><span>QRをスキャン → 自動チェックインされます</span>
+          <span>2</span><span>「事前決済済み」青バッジを確認</span>
+          <span>3</span><span>役割③へ案内</span>
+        </div>
+      </div>
+    </div>
+    <!-- 有料当日払い -->
+    <div class="task-item" style="background:var(--black);">
+      <div class="item-num" style="background:var(--red);color:#fff;">有料</div>
+      <div class="item-text" style="padding-bottom:0;">
+        <div style="font-weight:700;margin-bottom:6px;color:var(--red);">有料（当日払い）</div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:2px 8px;font-size:0.78rem;color:var(--lgray);margin-bottom:4px;">
+          <span>1</span><span>QRをスキャン</span>
+          <span>2</span><span>「支払い受付」画面で金額・氏名を確認</span>
+          <span>3</span>
+          <span>
+            支払方法を選択し金銭授受（現金 / PayPay）
+            <div style="margin-top:4px;padding:6px 10px;background:rgba(255,255,255,0.06);font-size:0.72rem;color:#999;line-height:1.6;">└ カード払い希望の場合は当日払いQRを使わず、事前決済URLから再申込・決済させ新しいQRでチェックイン</div>
+          </span>
+          <span>4</span><span>役割③へ案内</span>
+        </div>
+        <div style="margin-bottom:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タスク③ クローク -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">3</div>
+      <div class="task-title-txt">クローク利用の有無を確認</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        「クロークはご利用になりますか？」と確認し、利用する場合は役割③に伝える
+        <div class="item-note">クローク代金を回収する　女性：0円 / 男性：1,000円（現金 または PayPay）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タスク④ LINE/Instagram -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">4</div>
+      <div class="task-title-txt">LINE / Instagram の登録確認</div>
+      <div class="badge-required">必須確認</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">公式LINEとInstagramのフォロー・友達追加が完了しているか確認する</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">2</div>
+      <div class="item-text">完了したら役割③へ案内し、リアルタイムで連携する</div>
+    </div>
+  </div>
+
+
+  <!-- システム画面ガイド -->
+  <div class="screen-guide">
+    <div class="sec-heading">システム画面ガイド</div>
+    <div class="screen-steps">
+
+      <!-- STEP 02: イベント選択・スキャン準備 -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 02　イベント選択・スキャン準備</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-body">
+              <div class="ps-eyebrow">Check-in</div>
+              <div class="ps-title">QR スキャン</div>
+              <div class="ps-select">★ LUXE 4/26 【開催中】</div>
+              <div class="ps-btn-scan">📷 QRコードをスキャン</div>
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-gold"></div>
+                <span>スキャンボタンを押してください</span>
+              </div>
+              <div style="font-size:5px;color:#444;padding:4px 0;">手動でゲストIDを入力</div>
+              <div style="display:flex;gap:3px;">
+                <div style="flex:1;background:#191919;border:0.5px solid #333;padding:4px 5px;font-size:5px;color:#444;">G-XXXXXXXX</div>
+                <div style="background:#C9A84C;padding:4px 6px;font-size:5px;font-weight:700;color:#000;">実行</div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>①イベントを確認 → ②スキャンボタンをタップ</strong>
+          ★マークが本日分。必ず確認すること
+        </div>
+      </div>
+
+      <!-- STEP 03a: スキャン中 -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 03a　スキャン中</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-camera-frame">
+                <div class="ps-scan-line"></div>
+                <div class="ps-qr">
+                  <div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-e"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div>
+                </div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-gold"></div>
+                <span>QRコードをかざしてください</span>
+              </div>
+              <div style="background:#111;border:0.5px solid #1e1e1e;padding:4px 6px;font-size:5px;color:#444;text-align:center;">⏹ スキャン停止</div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>ゴールドの枠にQRを合わせる</strong>
+          ラインが光れば自動認識
+        </div>
+      </div>
+
+      <!-- STEP 03b: 照会中 -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 03b　照会中</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-overlay">
+                <div class="ps-spinner"></div>
+                <div class="ps-ov-label">照会中...</div>
+                <div class="ps-ov-id">G-A3K9XF2</div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-gold"></div>
+                <span>照会中… G-A3K9XF2</span>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>画面が暗くなり自動照会</strong>
+          そのまま待つ
+        </div>
+      </div>
+
+      <!-- STEP 04a: 無料 / 事前決済 完了 -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 04a　無料招待 / 事前決済</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-overlay">
+                <div class="ps-ok-icon">✅</div>
+                <div class="ps-ok-title" style="color:#4CAF82;">チェックイン完了</div>
+                <div class="ps-ok-badge" style="color:#9B8EC4;border-color:#9B8EC4;">FREE　無料招待</div>
+                <div class="ps-ok-name">田中 美咲</div>
+                <div class="ps-ok-meta">女性　|　招待者: 中野</div>
+                <div class="ps-next-btn">📷 次の読み取りへ</div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-green"></div>
+                <span>チェックイン完了 — 田中 美咲</span>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>緑画面 → 自動チェックイン完了</strong>
+          そのまま役割③へ案内
+        </div>
+      </div>
+
+      <!-- STEP 04b: 有料当日払い -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 04b　有料（当日払い）</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-overlay" style="background:rgba(8,8,8,0.95);">
+                <div style="font-size:18px;margin-bottom:4px;">💴</div>
+                <div class="ps-pay-title">支払い受付</div>
+                <div class="ps-pay-name">山本 翔</div>
+                <div class="ps-pay-amount">¥3,000</div>
+                <div class="ps-pay-btns">
+                  <div class="ps-pay-btn">💵<br>現金</div>
+                  <div class="ps-pay-btn">💳<br>カード</div>
+                  <div class="ps-pay-btn">📱<br>PayPay</div>
+                </div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-gold"></div>
+                <span style="color:#6AABFF;">支払い受付 — 山本 翔</span>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>金額・氏名を確認 → 支払方法をタップ</strong>
+          現金 / PayPay のみ（カードは別対応）
+        </div>
+      </div>
+
+      <!-- STEP 04c: 入場済み -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 04c　入場済み（警告）</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-overlay" style="background:rgba(8,6,0,0.95);">
+                <div style="font-size:20px;margin-bottom:4px;color:#E8A020;">⚠️</div>
+                <div class="ps-dup-title">入場済み</div>
+                <div class="ps-ok-name">山本 翔</div>
+                <div class="ps-ok-meta">男性　|　招待者: 中野</div>
+                <div class="ps-next-btn" style="border-color:#C9A84C;">📷 次の読み取りへ</div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-orange"></div>
+                <span style="color:#E8A020;">入場済み — 山本 翔</span>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>オレンジ画面 = 入場済み</strong>
+          入場させずリーダーへ即報告
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="alert-bar">「入場済み」オレンジ画面 → 入場させずリーダーへ即報告</div>
+
+
+  </div>
+
+  <!-- サブページ: 役割③ -->
+  <div class="sub-page" id="sub-role3">
+
+
+
+  <div class="role-header-bar">
+    <div class="role-circle">③</div>
+    <div class="role-info">
+      <div class="role-name">役割③：配布</div>
+      <div class="role-meta">
+        <span>ポジション：役割②の隣</span>
+        <span>目的：入場準備・仕上げ</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-heading">タスク一覧</div>
+
+  <!-- タスク① 領収書 -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">1</div>
+      <div class="task-title-txt">領収書を渡す</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        領収書が必要なゲストのみに渡す
+        <div class="item-note">事前決済（Stripe）の場合は、確認メールから領収書を取得できる旨を案内する</div>
+        <div class="item-note">品目は「飲食代として」で統一（事前に準備済み）</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">2</div>
+      <div class="task-title-txt">クローク札を渡す</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        役割②からクローク利用ありと聞いたゲストのみに渡す
+        <div class="item-note">番号順に渡すこと</div>
+        <div class="item-note" style="border-left-color:#C0272D;background:#fff5f5;color:#C0272D;">クロークのオペレーション詳細は当日説明します</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タスク③ LINE/Instagram -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">3</div>
+      <div class="task-title-txt">LINE / Instagram に登録させる</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">公式QRコードを見せてフォロー済みか再確認。未済の場合はここで必ず登録させる。</div>
+    </div>
+  </div>
+
+  <!-- タスク④ リストバンド -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">4</div>
+      <div class="task-title-txt">リストバンドを巻く</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">左手首に装着。きつすぎず緩すぎないよう確認。入場証のため必ず全員に装着すること。</div>
+    </div>
+  </div>
+
+  <!-- Security -->
+  <div class="sec-header">
+    <div>Security — 入場ゲート</div>
+    <div class="sec-header-badge">Next Step</div>
+    <div style="font-size:0.7rem;color:#999;width:100%;margin-top:2px;">ポジション：会場入口</div>
+  </div>
+  <div class="sec-rule">
+    <div class="sec-badge ok">OK</div>
+    <div class="sec-text">
+      <div class="sec-rule-title">リストバンド装着を確認</div>
+      <div class="sec-rule-detail">装着済みのゲストのみ入場を許可する。</div>
+    </div>
+  </div>
+  <div class="sec-rule">
+    <div class="sec-badge ng">NG</div>
+    <div class="sec-text">
+      <div class="sec-rule-title">未装着者は差し戻す</div>
+      <div class="sec-rule-detail">「受付はお済みですか？」と確認。未受付の場合は役割①の列へ戻す。</div>
+    </div>
+  </div>
+  <div class="sec-rule">
+    <div class="sec-badge warn">！</div>
+    <div class="sec-text">
+      <div class="sec-rule-title">判断に迷う場合はリーダーへ</div>
+      <div class="sec-rule-detail">独断での対応はせず、必ずリーダーに確認してから判断する。</div>
+    </div>
+  </div>
+  <div class="alert-bar">リストバンドなし = 入場不可。例外なし。</div>
+
+
+  </div>
+
+</div>
+</div>
+
+<!-- ══════ 役割① ══════ -->
+<!-- ══════ 全体連携図 ══════ -->
+<script>
+function showSubTab(id, btn) {
+  document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  // サブタブに移動したらスクロールはそのまま維持
+}
+function showTabById(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => { if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + id + "'")) t.classList.add('active'); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function showTab(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════ 全体連携図 ══════ -->
+<div class="page" id="page-overview">
+<div class="wrap">
+
+  <div class="page-title-bar">
+    エントランス 全体連携図
+    <div class="sub">TEAM COORDINATION OVERVIEW</div>
+  </div>
+
+  <div class="ov-grid">
+    <div class="ov-col">
+      <div class="ov-col-head">お客様</div>
+      <div class="ov-item">QRコードを準備</div>
+      <div class="ov-item">LINE/Instagram 表示</div>
+      <div class="ov-item">お会計</div>
+      <div class="ov-item">受け取り・リストバンド装着</div>
+    </div>
+    <div class="ov-col">
+      <div class="ov-col-head">役割①</div>
+      <div class="ov-col-sub">列整備</div>
+      <div class="ov-item">列整備</div>
+      <div class="ov-item">QR準備を案内</div>
+      <div class="ov-item">未申込→その場で申込</div>
+      <div class="ov-item">LINE/Instagram 登録確認</div>
+    </div>
+    <div class="ov-col">
+      <div class="ov-col-head">役割②</div>
+      <div class="ov-col-sub">QRスキャン</div>
+      <div class="ov-item">QRスキャン・チェックイン</div>
+      <div class="ov-item">種別ごとの対応</div>
+      <div class="ov-item">支払い受付（現金/PayPay）</div>
+      <div class="ov-item">クローク確認・代金回収</div>
+      <div class="ov-item">LINE/Instagram 確認</div>
+      <div class="ov-item">VIP→中野龍之介に連携</div>
+    </div>
+    <div class="ov-col">
+      <div class="ov-col-head">役割③</div>
+      <div class="ov-col-sub">配布</div>
+      <div class="ov-item">領収書（必要な人のみ）</div>
+      <div class="ov-item">クローク札（番号順）</div>
+      <div class="ov-item">LINE/Insta 再確認</div>
+      <div class="ov-item">リストバンド装着</div>
+    </div>
+    <div class="ov-col">
+      <div class="ov-col-head">Security</div>
+      <div class="ov-col-sub">入場ゲート</div>
+      <div class="ov-item">リストバンド確認</div>
+      <div class="ov-item">未装着→差し戻す</div>
+      <div class="ov-item">判断迷う→リーダーへ</div>
+    </div>
+  </div>
+
+  <div class="alert-bar" style="margin-top:10px;">問題発生・判断に迷う場合は必ずリーダーへ。独断での対応はしない。</div>
+
+</div>
+</div>
+
+
+<script>
+function showSubTab(id, btn) {
+  document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  // サブタブに移動したらスクロールはそのまま維持
+}
+function showTabById(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => { if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + id + "'")) t.classList.add('active'); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function showTab(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html><div class="page" id="page-staff">
+<div class="wrap">
+
+  <div class="page-title-bar">
+    スタッフの役割配置
+    <div class="sub">本日のエントランスチームは3つの役割で構成されます</div>
+  </div>
+
+  <!-- 役割概要 -->
+  <div class="sec-heading">役割の全体像</div>
+
+  <div class="staff-card-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-bottom:28px;">
+
+    <!-- 役割① -->
+    <div style="background:var(--white);border:1px solid var(--border);overflow:hidden;">
+      <div style="background:var(--black);color:var(--white);padding:12px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;flex-shrink:0;">①</div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;">列整備</div>
+          <div style="font-size:0.68rem;color:var(--lgray);margin-top:2px;">1名を予定</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;line-height:1.7;">
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>ポジション：エントランス外・列の先頭</span></div>
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>目的：お客様をスムーズに役割②へ送り出す</span></div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+          <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;">主なタスク</div>
+          <div style="font-size:0.78rem;color:var(--dgray);line-height:2;">
+            ✓ 列整備・間隔調整<br>
+            ✓ QRコードの準備を案内<br>
+            ✓ LINE / Instagram の登録確認
+          </div>
+        </div>
+      </div>
+      <button onclick="showTab('staff', document.querySelector('.tab:nth-child(2)')); setTimeout(()=>{ document.querySelectorAll('.sub-page').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active')); document.getElementById('sub-role1').classList.add('active'); document.querySelector('.sub-tab:first-child').classList.add('active'); }, 50)" style="width:100%;background:var(--dgray);color:var(--white);border:none;padding:10px;font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:0.08em;transition:background 0.15s;" onmouseover="this.style.background='#C0272D'" onmouseout="this.style.background='#3a3a3a'">詳細を確認する ▶</button>
+    </div>
+
+    <!-- 役割② -->
+    <div style="background:var(--white);border:1px solid var(--border);overflow:hidden;">
+      <div style="background:var(--black);color:var(--white);padding:12px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;flex-shrink:0;">②</div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;">QRスキャン</div>
+          <div style="font-size:0.68rem;color:var(--lgray);margin-top:2px;">2名を予定</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;line-height:1.7;">
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>ポジション：受付台前</span></div>
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>目的：チェックイン確定・支払い完結</span></div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+          <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;">主なタスク</div>
+          <div style="font-size:0.78rem;color:var(--dgray);line-height:2;">
+            ✓ QRスキャン・チェックイン<br>
+            ✓ 支払い受付（現金 / PayPay）<br>
+            ✓ クローク利用確認・代金回収<br>
+            ✓ LINE / Instagram 確認
+          </div>
+        </div>
+      </div>
+      <button onclick="showTab('staff', document.querySelector('.tab:nth-child(2)')); setTimeout(()=>{ document.querySelectorAll('.sub-page').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active')); document.getElementById('sub-role2').classList.add('active'); document.querySelectorAll('.sub-tab')[1].classList.add('active'); }, 50)" style="width:100%;background:var(--dgray);color:var(--white);border:none;padding:10px;font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:0.08em;transition:background 0.15s;" onmouseover="this.style.background='#C0272D'" onmouseout="this.style.background='#3a3a3a'">詳細を確認する ▶</button>
+    </div>
+
+    <!-- 役割③ -->
+    <div style="background:var(--white);border:1px solid var(--border);overflow:hidden;">
+      <div style="background:var(--black);color:var(--white);padding:12px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;flex-shrink:0;">③</div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;">配布</div>
+          <div style="font-size:0.68rem;color:var(--lgray);margin-top:2px;">人数調整中</div>
+        </div>
+      </div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;line-height:1.7;">
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>ポジション：役割②の隣</span></div>
+          <div style="display:flex;gap:6px;margin-bottom:4px;"><span style="color:var(--red);font-weight:700;">▶</span><span>目的：入場準備・仕上げ</span></div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+          <div style="font-size:0.72rem;color:var(--mgray);margin-bottom:8px;">主なタスク</div>
+          <div style="font-size:0.78rem;color:var(--dgray);line-height:2;">
+            ✓ 領収書の配布（必要な人のみ）<br>
+            ✓ クローク札を渡す<br>
+            ✓ LINE / Instagram 再確認<br>
+            ✓ リストバンドを装着
+          </div>
+        </div>
+      </div>
+      <button onclick="showTab('staff', document.querySelector('.tab:nth-child(2)')); setTimeout(()=>{ document.querySelectorAll('.sub-page').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active')); document.getElementById('sub-role3').classList.add('active'); document.querySelectorAll('.sub-tab')[2].classList.add('active'); }, 50)" style="width:100%;background:var(--dgray);color:var(--white);border:none;padding:10px;font-family:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:0.08em;transition:background 0.15s;" onmouseover="this.style.background='#C0272D'" onmouseout="this.style.background='#3a3a3a'">詳細を確認する ▶</button>
+    </div>
+
+  </div>
+
+  <!-- 人員配置サマリー -->
+  <div class="sec-heading">人員配置サマリー</div>
+  <div style="background:var(--white);border:1px solid var(--border);overflow:hidden;margin-bottom:10px;">
+    <div class="staff-summary-grid" style="display:grid;grid-template-columns:repeat(3,1fr);">
+      <div style="padding:14px 16px;border-right:1px solid var(--border);text-align:center;">
+        <div style="font-size:0.6rem;letter-spacing:0.15em;color:var(--mgray);margin-bottom:6px;">役割①　列整備</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--red);line-height:1;">1</div>
+        <div style="font-size:0.68rem;color:var(--mgray);margin-top:4px;">名</div>
+      </div>
+      <div style="padding:14px 16px;border-right:1px solid var(--border);text-align:center;">
+        <div style="font-size:0.6rem;letter-spacing:0.15em;color:var(--mgray);margin-bottom:6px;">役割②　QRスキャン</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--red);line-height:1;">2</div>
+        <div style="font-size:0.68rem;color:var(--mgray);margin-top:4px;">名</div>
+      </div>
+      <div style="padding:14px 16px;text-align:center;">
+        <div style="font-size:0.6rem;letter-spacing:0.15em;color:var(--mgray);margin-bottom:6px;">役割③　配布</div>
+        <div style="font-size:2rem;font-weight:700;color:var(--red);line-height:1;">—</div>
+        <div style="font-size:0.68rem;color:var(--mgray);margin-top:4px;">調整中</div>
+      </div>
+    </div>
+    <div style="background:var(--dgray);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:0.72rem;color:var(--lgray);">エントランスチーム 合計</div>
+      <div style="font-size:0.88rem;font-weight:700;color:var(--white);">3名以上を予定</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="sec-heading">各役割の詳細タスク</div>
+
+  <!-- サブタブナビ -->
+  <div class="sub-nav">
+    <button class="sub-tab active" onclick="showSubTab('sub-role1', this)">役割①　列整備</button>
+    <button class="sub-tab" onclick="showSubTab('sub-role2', this)">役割②　QRスキャン</button>
+    <button class="sub-tab" onclick="showSubTab('sub-role3', this)">役割③　配布</button>
+  </div>
+
+  <!-- サブページ: 役割① -->
+  <div class="sub-page active" id="sub-role1">
+
+
+  <div class="role-header-bar">
+    <div class="role-circle">①</div>
+    <div class="role-info">
+      <div class="role-name">役割①：列整備</div>
+      <div class="role-meta">
+        <span>1名を予定</span>
+        <span>ポジション：エントランス外・列の先頭</span>
+        <span>目的：お客様をスムーズに役割②へ</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="sec-heading">タスク一覧</div>
+
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">1</div>
+      <div class="task-title-txt">列を整備する</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">お客様が来たら列に並んでもらう</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">2</div>
+      <div class="item-text">密集しすぎないよう間隔を調整</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">3</div>
+      <div class="item-text">列が長くなったら折り返し位置を指示</div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">2</div>
+      <div class="task-title-txt">QRコードを準備させる</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        スクリーンショットでも可。「見つからない」→ 招待メールを確認するよう案内
+        <div class="item-note">未申込の方には、その場でURLから申し込み・決済していただく。カード希望の場合は事前決済URLへ案内する</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">3</div>
+      <div class="task-title-txt">LINE / Instagram の追加確認</div>
+      <div class="badge-required">必須確認</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">「公式LINEとInstagramの登録はお済みですか？」と確認</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">2</div>
+      <div class="item-text">未済の場合 → スマホを見せてその場で登録してもらう</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">3</div>
+      <div class="item-text">登録完了を確認してから役割②へ通す</div>
+    </div>
+  </div>
+
+  <div class="alert-bar">LINE / Instagram 未登録のお客様は入場できない旨を伝え、登録させてから役割②へ通す</div>
+
+  </div>
+  </div>
+
+  <!-- サブページ: 役割② -->
+  <div class="sub-page" id="sub-role2">
+
+
+
+
+  <div class="role-header-bar">
+    <div class="role-circle">②</div>
+    <div class="role-info">
+      <div class="role-name">役割②：QRスキャン</div>
+      <div class="role-meta">
+        <span>2名を予定</span>
+        <span>ポジション：受付台前</span>
+        <span>目的：チェックイン確定・支払い完結</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-bar">システムの操作方法は「エントランスシステム操作ガイド」を別途確認してください</div>
+
+  <!-- タスク一覧 -->
+  <div class="sec-heading">タスク一覧</div>
+
+  <!-- タスク① QRスキャン -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">1</div>
+      <div class="task-title-txt">QRを表示させ、読み取る</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        お客様のQRコードを画面に表示してもらい、スキャンする
+        <div class="item-note">申し込みが完了していない場合は、その場で申し込みをしてもらう</div>
+        <div class="item-note">VIP来場 → インカムで中野龍之介に案内</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タスク② ゲスト種別対応 -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">2</div>
+      <div class="task-title-txt">ゲスト種別ごとに対応する</div>
+    </div>
+    <!-- 無料招待 -->
+    <div class="task-item" style="background:#fafafa;">
+      <div class="item-num" style="background:#888;">無料</div>
+      <div class="item-text" style="padding-bottom:0;">
+        <div style="font-weight:700;margin-bottom:6px;">無料招待</div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:2px 8px;font-size:0.78rem;color:var(--mgray);margin-bottom:8px;">
+          <span>1</span><span>QRをスキャン → 自動チェックインされます</span>
+          <span>2</span><span>「チェックイン完了」緑画面を確認</span>
+          <span>3</span><span>役割③へ案内</span>
+        </div>
+      </div>
+    </div>
+    <!-- 事前決済 -->
+    <div class="task-item" style="background:#fafafa;">
+      <div class="item-num" style="background:#888;">事前</div>
+      <div class="item-text" style="padding-bottom:0;">
+        <div style="font-weight:700;margin-bottom:6px;">事前決済（Stripe）</div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:2px 8px;font-size:0.78rem;color:var(--mgray);margin-bottom:8px;">
+          <span>1</span><span>QRをスキャン → 自動チェックインされます</span>
+          <span>2</span><span>「事前決済済み」青バッジを確認</span>
+          <span>3</span><span>役割③へ案内</span>
+        </div>
+      </div>
+    </div>
+    <!-- 有料当日払い -->
+    <div class="task-item" style="background:var(--black);">
+      <div class="item-num" style="background:var(--red);color:#fff;">有料</div>
+      <div class="item-text" style="padding-bottom:0;">
+        <div style="font-weight:700;margin-bottom:6px;color:var(--red);">有料（当日払い）</div>
+        <div style="display:grid;grid-template-columns:24px 1fr;gap:2px 8px;font-size:0.78rem;color:var(--lgray);margin-bottom:4px;">
+          <span>1</span><span>QRをスキャン</span>
+          <span>2</span><span>「支払い受付」画面で金額・氏名を確認</span>
+          <span>3</span>
+          <span>
+            支払方法を選択し金銭授受（現金 / PayPay）
+            <div style="margin-top:4px;padding:6px 10px;background:rgba(255,255,255,0.06);font-size:0.72rem;color:#999;line-height:1.6;">└ カード払い希望の場合は当日払いQRを使わず、事前決済URLから再申込・決済させ新しいQRでチェックイン</div>
+          </span>
+          <span>4</span><span>役割③へ案内</span>
+        </div>
+        <div style="margin-bottom:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タスク③ クローク -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">3</div>
+      <div class="task-title-txt">クローク利用の有無を確認</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        「クロークはご利用になりますか？」と確認し、利用する場合は役割③に伝える
+        <div class="item-note">クローク代金を回収する　女性：0円 / 男性：1,000円（現金 または PayPay）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タスク④ LINE/Instagram -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">4</div>
+      <div class="task-title-txt">LINE / Instagram の登録確認</div>
+      <div class="badge-required">必須確認</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">公式LINEとInstagramのフォロー・友達追加が完了しているか確認する</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">2</div>
+      <div class="item-text">完了したら役割③へ案内し、リアルタイムで連携する</div>
+    </div>
+  </div>
+
+
+  <!-- システム画面ガイド -->
+  <div class="screen-guide">
+    <div class="sec-heading">システム画面ガイド</div>
+    <div class="screen-steps">
+
+      <!-- STEP 02: イベント選択・スキャン準備 -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 02　イベント選択・スキャン準備</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-body">
+              <div class="ps-eyebrow">Check-in</div>
+              <div class="ps-title">QR スキャン</div>
+              <div class="ps-select">★ LUXE 4/26 【開催中】</div>
+              <div class="ps-btn-scan">📷 QRコードをスキャン</div>
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-gold"></div>
+                <span>スキャンボタンを押してください</span>
+              </div>
+              <div style="font-size:5px;color:#444;padding:4px 0;">手動でゲストIDを入力</div>
+              <div style="display:flex;gap:3px;">
+                <div style="flex:1;background:#191919;border:0.5px solid #333;padding:4px 5px;font-size:5px;color:#444;">G-XXXXXXXX</div>
+                <div style="background:#C9A84C;padding:4px 6px;font-size:5px;font-weight:700;color:#000;">実行</div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>①イベントを確認 → ②スキャンボタンをタップ</strong>
+          ★マークが本日分。必ず確認すること
+        </div>
+      </div>
+
+      <!-- STEP 03a: スキャン中 -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 03a　スキャン中</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-camera-frame">
+                <div class="ps-scan-line"></div>
+                <div class="ps-qr">
+                  <div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-e"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div>
+                  <div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-e"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div><div class="ps-qr-c"></div>
+                </div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-gold"></div>
+                <span>QRコードをかざしてください</span>
+              </div>
+              <div style="background:#111;border:0.5px solid #1e1e1e;padding:4px 6px;font-size:5px;color:#444;text-align:center;">⏹ スキャン停止</div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>ゴールドの枠にQRを合わせる</strong>
+          ラインが光れば自動認識
+        </div>
+      </div>
+
+      <!-- STEP 03b: 照会中 -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 03b　照会中</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-overlay">
+                <div class="ps-spinner"></div>
+                <div class="ps-ov-label">照会中...</div>
+                <div class="ps-ov-id">G-A3K9XF2</div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-gold"></div>
+                <span>照会中… G-A3K9XF2</span>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>画面が暗くなり自動照会</strong>
+          そのまま待つ
+        </div>
+      </div>
+
+      <!-- STEP 04a: 無料 / 事前決済 完了 -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 04a　無料招待 / 事前決済</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-overlay">
+                <div class="ps-ok-icon">✅</div>
+                <div class="ps-ok-title" style="color:#4CAF82;">チェックイン完了</div>
+                <div class="ps-ok-badge" style="color:#9B8EC4;border-color:#9B8EC4;">FREE　無料招待</div>
+                <div class="ps-ok-name">田中 美咲</div>
+                <div class="ps-ok-meta">女性　|　招待者: 中野</div>
+                <div class="ps-next-btn">📷 次の読み取りへ</div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-green"></div>
+                <span>チェックイン完了 — 田中 美咲</span>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>緑画面 → 自動チェックイン完了</strong>
+          そのまま役割③へ案内
+        </div>
+      </div>
+
+      <!-- STEP 04b: 有料当日払い -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 04b　有料（当日払い）</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-overlay" style="background:rgba(8,8,8,0.95);">
+                <div style="font-size:18px;margin-bottom:4px;">💴</div>
+                <div class="ps-pay-title">支払い受付</div>
+                <div class="ps-pay-name">山本 翔</div>
+                <div class="ps-pay-amount">¥3,000</div>
+                <div class="ps-pay-btns">
+                  <div class="ps-pay-btn">💵<br>現金</div>
+                  <div class="ps-pay-btn">💳<br>カード</div>
+                  <div class="ps-pay-btn">📱<br>PayPay</div>
+                </div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-gold"></div>
+                <span style="color:#6AABFF;">支払い受付 — 山本 翔</span>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>金額・氏名を確認 → 支払方法をタップ</strong>
+          現金 / PayPay のみ（カードは別対応）
+        </div>
+      </div>
+
+      <!-- STEP 04c: 入場済み -->
+      <div class="screen-col">
+        <div class="screen-step-label">STEP 04c　入場済み（警告）</div>
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="ps-nav">ENTRANCE</div>
+            <div class="ps-tabs">
+              <div class="ps-tab">ゲスト</div>
+              <div class="ps-tab act">QRスキャン</div>
+              <div class="ps-tab">単発</div>
+            </div>
+            <div class="ps-camera">
+              <div class="ps-overlay" style="background:rgba(8,6,0,0.95);">
+                <div style="font-size:20px;margin-bottom:4px;color:#E8A020;">⚠️</div>
+                <div class="ps-dup-title">入場済み</div>
+                <div class="ps-ok-name">山本 翔</div>
+                <div class="ps-ok-meta">男性　|　招待者: 中野</div>
+                <div class="ps-next-btn" style="border-color:#C9A84C;">📷 次の読み取りへ</div>
+              </div>
+            </div>
+            <div class="ps-body" style="padding-top:5px;">
+              <div class="ps-status">
+                <div class="ps-dot ps-dot-orange"></div>
+                <span style="color:#E8A020;">入場済み — 山本 翔</span>
+              </div>
+            </div>
+          </div>
+          <div class="phone-bar"></div>
+        </div>
+        <div class="screen-caption">
+          <strong>オレンジ画面 = 入場済み</strong>
+          入場させずリーダーへ即報告
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="alert-bar">「入場済み」オレンジ画面 → 入場させずリーダーへ即報告</div>
+
+
+  </div>
+  </div>
+
+  <!-- サブページ: 役割③ -->
+  <div class="sub-page" id="sub-role3">
+<div class="role-header-bar">
+    <div class="role-circle">③</div>
+    <div class="role-info">
+      <div class="role-name">役割③：配布</div>
+      <div class="role-meta">
+        <span>ポジション：役割②の隣</span>
+        <span>目的：入場準備・仕上げ</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-heading">タスク一覧</div>
+
+  <!-- タスク① 領収書 -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">1</div>
+      <div class="task-title-txt">領収書を渡す</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        領収書が必要なゲストのみに渡す
+        <div class="item-note">事前決済（Stripe）の場合は、確認メールから領収書を取得できる旨を案内する</div>
+        <div class="item-note">品目は「飲食代として」で統一（事前に準備済み）</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">2</div>
+      <div class="task-title-txt">クローク札を渡す</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">
+        役割②からクローク利用ありと聞いたゲストのみに渡す
+        <div class="item-note">番号順に渡すこと</div>
+        <div class="item-note" style="border-left-color:#C0272D;background:#fff5f5;color:#C0272D;">クロークのオペレーション詳細は当日説明します</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タスク③ LINE/Instagram -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">3</div>
+      <div class="task-title-txt">LINE / Instagram に登録させる</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">公式QRコードを見せてフォロー済みか再確認。未済の場合はここで必ず登録させる。</div>
+    </div>
+  </div>
+
+  <!-- タスク④ リストバンド -->
+  <div class="task-card">
+    <div class="task-header">
+      <div class="task-num">4</div>
+      <div class="task-title-txt">リストバンドを巻く</div>
+    </div>
+    <div class="task-item">
+      <div class="item-num">1</div>
+      <div class="item-text">左手首に装着。きつすぎず緩すぎないよう確認。入場証のため必ず全員に装着すること。</div>
+    </div>
+  </div>
+
+  <!-- Security -->
+  <div class="sec-header">
+    <div>Security — 入場ゲート</div>
+    <div class="sec-header-badge">Next Step</div>
+    <div style="font-size:0.7rem;color:#999;width:100%;margin-top:2px;">ポジション：会場入口</div>
+  </div>
+  <div class="sec-rule">
+    <div class="sec-badge ok">OK</div>
+    <div class="sec-text">
+      <div class="sec-rule-title">リストバンド装着を確認</div>
+      <div class="sec-rule-detail">装着済みのゲストのみ入場を許可する。</div>
+    </div>
+  </div>
+  <div class="sec-rule">
+    <div class="sec-badge ng">NG</div>
+    <div class="sec-text">
+      <div class="sec-rule-title">未装着者は差し戻す</div>
+      <div class="sec-rule-detail">「受付はお済みですか？」と確認。未受付の場合は役割①の列へ戻す。</div>
+    </div>
+  </div>
+  <div class="sec-rule">
+    <div class="sec-badge warn">！</div>
+    <div class="sec-text">
+      <div class="sec-rule-title">判断に迷う場合はリーダーへ</div>
+      <div class="sec-rule-detail">独断での対応はせず、必ずリーダーに確認してから判断する。</div>
+    </div>
+  </div>
+  <div class="alert-bar">リストバンドなし = 入場不可。例外なし。</div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════ 全体連携図 ══════ -->
+<script>
+function showSubTab(id, btn) {
+  document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  // サブタブに移動したらスクロールはそのまま維持
+}
+function showTabById(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => { if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + id + "'")) t.classList.add('active'); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function showTab(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════ 全体連携図 ══════ -->
+<div class="page" id="page-overview">
+<div class="wrap">
+
+  <div class="page-title-bar">
+    エントランス 全体連携図
+    <div class="sub">TEAM COORDINATION OVERVIEW</div>
+  </div>
+
+  <div class="ov-grid">
+    <div class="ov-col">
+      <div class="ov-col-head">お客様</div>
+      <div class="ov-item">QRコードを準備</div>
+      <div class="ov-item">LINE/Instagram 表示</div>
+      <div class="ov-item">お会計</div>
+      <div class="ov-item">受け取り・リストバンド装着</div>
+    </div>
+    <div class="ov-col">
+      <div class="ov-col-head">役割①</div>
+      <div class="ov-col-sub">列整備</div>
+      <div class="ov-item">列整備</div>
+      <div class="ov-item">QR準備を案内</div>
+      <div class="ov-item">未申込→その場で申込</div>
+      <div class="ov-item">LINE/Instagram 登録確認</div>
+    </div>
+    <div class="ov-col">
+      <div class="ov-col-head">役割②</div>
+      <div class="ov-col-sub">QRスキャン</div>
+      <div class="ov-item">QRスキャン・チェックイン</div>
+      <div class="ov-item">種別ごとの対応</div>
+      <div class="ov-item">支払い受付（現金/PayPay）</div>
+      <div class="ov-item">クローク確認・代金回収</div>
+      <div class="ov-item">LINE/Instagram 確認</div>
+      <div class="ov-item">VIP→中野龍之介に連携</div>
+    </div>
+    <div class="ov-col">
+      <div class="ov-col-head">役割③</div>
+      <div class="ov-col-sub">配布</div>
+      <div class="ov-item">領収書（必要な人のみ）</div>
+      <div class="ov-item">クローク札（番号順）</div>
+      <div class="ov-item">LINE/Insta 再確認</div>
+      <div class="ov-item">リストバンド装着</div>
+    </div>
+    <div class="ov-col">
+      <div class="ov-col-head">Security</div>
+      <div class="ov-col-sub">入場ゲート</div>
+      <div class="ov-item">リストバンド確認</div>
+      <div class="ov-item">未装着→差し戻す</div>
+      <div class="ov-item">判断迷う→リーダーへ</div>
+    </div>
+  </div>
+
+  <div class="alert-bar" style="margin-top:10px;">問題発生・判断に迷う場合は必ずリーダーへ。独断での対応はしない。</div>
+
+</div>
+</div>
+
+
+<script>
+function showSubTab(id, btn) {
+  document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  // サブタブに移動したらスクロールはそのまま維持
+}
+function showTabById(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => { if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + id + "'")) t.classList.add('active'); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function showTab(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
