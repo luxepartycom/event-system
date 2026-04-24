@@ -638,7 +638,23 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 </head>
 <body>
 
-  
+  <!-- LOGIN -->
+  <div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">LUXE PARTY TOKYO</div>
+    <div class="login-sub">Entrance Staff</div>
+    <div style="margin-bottom:20px;">
+      <label class="form-label">パスワード</label>
+      <input class="form-input" id="login-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-login" onclick="doLogin()">ログイン</button>
+    <div class="login-err" id="login-err">パスワードが違います</div>
+  </div>
+</div>
+
+<!-- APP -->
+
+  <div class="toast" id="toast"></div>
 
   <div id="app" style="display:none;">
     <nav id="nav">
