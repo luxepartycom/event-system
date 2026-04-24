@@ -30,7 +30,7 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 
 /* APP */
 #app{display:none;}
-#nav{position:sticky;top:0;z-index:100;background:rgba(8,8,8,0.99);border-bottom:1px solid rgba(201,168,76,0.18);height:56px;display:flex;align-items:center;padding:0 32px;justify-content:space-between;}
+#nav{position:sticky;top:0;z-index:100;background:rgba(8,8,8,0.99);border-bottom:1px solid rgba(201,168,76,0.18);height:56px;display:flex;align-items:center;padding:0 16px;justify-content:space-between;}
 .nav-logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:0.8rem;color:var(--gold);letter-spacing:0.3em;}
 .nav-tabs{display:flex;gap:0;height:56px;}
 .nav-tab{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;padding:0 20px;font-family:inherit;font-size:0.6rem;letter-spacing:0.18em;color:var(--gray);transition:all 0.2s;text-transform:uppercase;height:100%;}
@@ -39,7 +39,7 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .btn-logout:hover{color:var(--white);}
 
 /* PAGES */
-.page{display:none;padding:36px 40px;}
+.page{display:none;padding:24px 16px;}
 .page.active{display:block;}
 .page-eyebrow{font-size:0.52rem;letter-spacing:0.35em;color:var(--gold);text-transform:uppercase;margin-bottom:6px;}
 .page-title{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.8rem;font-weight:300;margin-bottom:24px;}
@@ -93,7 +93,7 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .btn-refresh{background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--gray);padding:9px 14px;cursor:pointer;font-family:inherit;font-size:0.58rem;letter-spacing:0.14em;transition:all 0.3s;}
 .btn-refresh:hover{border-color:rgba(201,168,76,0.4);color:var(--gold);}
 .table-scroll{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;min-width:600px;}
+table{width:100%;border-collapse:collapse;min-width:500px;}
 thead tr{border-bottom:1px solid rgba(201,168,76,0.2);}
 th{text-align:left;padding:9px 12px;font-size:0.48rem;font-weight:500;letter-spacing:0.2em;color:var(--gold-dim);text-transform:uppercase;}
 tbody tr{border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.2s;}
@@ -634,6 +634,15 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .mm-btn-test:hover{background:rgba(201,168,76,0.1);}
 
 .mm-campaign-status{margin-top:10px;padding:10px 14px;background:var(--dark2);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gold);line-height:1.8;}
+
+@media(max-width:480px){
+  .page{padding:16px 12px;}
+  #nav{padding:0 12px;}
+  .nav-tab{padding:0 8px;font-size:0.5rem;}
+  table{min-width:460px;}
+  .page-title{font-size:1.4rem;}
+  .charge-card{padding:20px 16px;}
+}
 </style>
 </head>
 <body>
