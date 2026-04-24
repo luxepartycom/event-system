@@ -634,6 +634,13 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .mm-btn-test:hover{background:rgba(201,168,76,0.1);}
 
 .mm-campaign-status{margin-top:10px;padding:10px 14px;background:var(--dark2);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gold);line-height:1.8;}
+
+/* ── メール送信可能数 ── */
+.mm-quota-wrap{margin-bottom:12px;}
+.mm-quota-inner{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--dark2);border:1px solid rgba(255,255,255,0.08);font-size:0.62rem;}
+.mm-quota-ok{border-color:rgba(76,175,130,0.4)!important;color:var(--arrived);}
+.mm-quota-warn{border-color:rgba(232,160,32,0.4)!important;color:#E8A020;}
+.mm-quota-ng{border-color:rgba(207,68,68,0.4)!important;color:#CF4444;}
 </style>
 </head>
 <body>
@@ -1151,6 +1158,15 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <div class="mm-test-btns">
           <button class="mm-btn-test" onclick="sendMmTestEmail('free')">📧 無料向けをテスト送信</button>
           <button class="mm-btn-test" onclick="sendMmTestEmail('paid')">📧 有料向けをテスト送信</button>
+        </div>
+      </div>
+
+      <!-- 送信可能数表示 -->
+      <div class="mm-quota-wrap" id="mm-quota-wrap">
+        <div class="mm-quota-inner" id="mm-quota-inner">
+          <span id="mm-quota-icon">⏳</span>
+          <span id="mm-quota-text">送信可能数を確認中...</span>
+          <button class="mm-btn-sm" onclick="checkMailQuota()" style="margin-left:auto;font-size:0.5rem;padding:5px 10px;">🔄 更新</button>
         </div>
       </div>
 
@@ -2811,12 +2827,49 @@ let mmTemplates  = {};
 
 // タブ開いた時の初期化
 async function onMailmagTabOpen() {
-  // 初回はチェックボックスをオンにする
   document.getElementById('mm-target-free').checked = true;
   document.getElementById('mm-target-paid').checked = true;
-  await loadMmGuests();
+  await Promise.all([loadMmGuests(), checkMailQuota()]);
   loadMmTemplatesFromStorage();
   updateMmCount();
+}
+
+async function checkMailQuota() {
+  const inner = document.getElementById('mm-quota-inner');
+  const icon  = document.getElementById('mm-quota-icon');
+  const text  = document.getElementById('mm-quota-text');
+  if (!inner) return;
+
+  const d = await apiPost({ action: 'getMailQuota' });
+  if (!d.ok) {
+    inner.className = 'mm-quota-inner mm-quota-warn';
+    icon.textContent = '⚠️';
+    text.textContent = '送信可能数の取得に失敗しました';
+    return;
+  }
+
+  const rem   = d.remaining;
+  const used  = d.used;
+  const reset = d.reset_time_jst;
+  const hReset = d.hours_until_reset;
+  const mReset = d.minutes_remainder;
+  const resetStr = hReset > 0
+    ? `約${hReset}時間${mReset}分後（${reset} JST）にリセット`
+    : `約${mReset}分後（${reset} JST）にリセット`;
+
+  if (rem === 0) {
+    inner.className = 'mm-quota-inner mm-quota-ng';
+    icon.textContent = '🚫';
+    text.innerHTML = `<strong>本日の送信上限に達しています</strong>（使用済み: ${used}/100通）<br><span style="font-size:0.55rem;">${resetStr}</span>`;
+  } else if (rem <= 20) {
+    inner.className = 'mm-quota-inner mm-quota-warn';
+    icon.textContent = '⚠️';
+    text.innerHTML = `残り <strong>${rem}通</strong> 送信可能（使用済み: ${used}/100通）<br><span style="font-size:0.55rem;">${resetStr}</span>`;
+  } else {
+    inner.className = 'mm-quota-inner mm-quota-ok';
+    icon.textContent = '✅';
+    text.innerHTML = `本日 <strong>${rem}通</strong> 送信可能（使用済み: ${used}/100通）<br><span style="font-size:0.55rem;">${resetStr}</span>`;
+  }
 }
 
 // guests_archiveから配信リスト取得
