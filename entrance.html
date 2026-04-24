@@ -991,15 +991,10 @@ function logout() {
 // ── 初期化 ───────────────────────────────────────────
 async function init() {
   fetch(API + '?action=ping').catch(() => {});
-  // 並列取得してから1回だけ描画（速度改善）
-  const [evResult, puResult] = await Promise.all([
-    apiGet({ action: 'getEvents' }),
-    apiGet({ action: 'getPromoUrls' })
-  ]);
-  allEvents    = evResult.events || [];
-  allPromoUrls = puResult.urls   || [];
+  const evResult = await apiGet({ action: 'getEvents' });
+  allEvents = evResult.events || [];
   populateEventSelectors();
-  renderEventGrid();
+  // renderEventGrid は entrance では不要
 }
 
 // ── タブ切替 ─────────────────────────────────────────
@@ -1063,7 +1058,7 @@ function populateEventSelectors() {
       // 各タブの自動ロード
       if (selId === 'g-event-sel') {
         currentEventId = latest.event_id;
-        loadGuests(true);
+        // entrance: ログイン時はQRスキャンを表示するため自動ロードしない
       }
     }
   });
