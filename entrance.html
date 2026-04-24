@@ -974,8 +974,8 @@ async function doLogin() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display          = 'block';
     await init();
-
-      showTab('scan');  } else if (d.ok) {
+    showTab('scan');
+  } else if (d.ok) {
     document.getElementById('login-err').textContent = 'このページは管理者パスワードでは開けません';
     document.getElementById('login-err').style.display = 'block';
   } else {
@@ -1909,8 +1909,8 @@ window.addEventListener('load', async () => {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display          = 'block';
       await init();
-
-      showTab('scan');      // 単発決済から戻った場合: 単発決済タブを開いて履歴を表示
+      showTab('scan');
+      // 単発決済から戻った場合: 単発決済タブを開いて履歴を表示
       if (isChargeReturn || chargeResult) {
         showTab('charge');
         renderChargeHistory();
