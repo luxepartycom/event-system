@@ -2386,14 +2386,25 @@ function renderChargeHistory() {
     } else if (item.status === 'cancelled') {
       statusClass = 'chi-status-cancel';
       statusLabel = '❌ キャンセル';
+    } else if (item.type === 'qr' && item.status === 'pending') {
+      statusClass = 'chi-status-pending';
+      statusLabel = '📱 QR発行済（顧客決済待ち）';
     } else {
       statusClass = 'chi-status-pending';
       statusLabel = '⏳ 処理中';
     }
+    const idx = chargeHistory.indexOf(item);
+    const confirmBtn = (item.type === 'qr' && item.status === 'pending')
+      ? `<button onclick="confirmQrPayment(${idx})"
+           style="background:rgba(76,175,130,0.15);border:1px solid rgba(76,175,130,0.4);color:var(--arrived);padding:4px 10px;cursor:pointer;font-family:inherit;font-size:0.52rem;letter-spacing:0.1em;margin-left:6px;white-space:nowrap;">
+           ✅ 確認済み
+         </button>`
+      : '';
     return `<div class="charge-history-item">
       <span class="chi-desc">${item.desc}</span>
       <span class="chi-amount">¥${Number(item.amount).toLocaleString()}</span>
       <span class="${statusClass}">${statusLabel}</span>
+      ${confirmBtn}
     </div>`;
   }).join('');
 }
@@ -2844,6 +2855,17 @@ async function generateQrPayment() {
       qrCurrentUrl    = d.checkout_url;
       qrCurrentDesc   = desc;
       qrCurrentAmount = amount;
+
+      // QR発行履歴を記録（pending = 顧客の決済待ち）
+      chargeHistory.unshift({
+        desc:       '[QR] ' + desc,
+        amount:     amount,
+        status:     'pending',
+        session_id: d.session_id || '',
+        type:       'qr'
+      });
+      renderChargeHistory();
+
       showQrModal(d.checkout_url, desc, amount);
     } else {
       toast('❌ ' + (d.message || 'QRコードの生成に失敗しました'));
@@ -2879,6 +2901,19 @@ function closeQrModal() {
 async function regenerateQr() {
   closeQrModal();
   await generateQrPayment();
+}
+
+
+// ── QR決済確認済み処理 ────────────────────────────────────
+function confirmQrPayment(idx) {
+  if (!confirm('Stripeで決済完了を確認しましたか？\n\n「確認済み」にすると売上サマリーに反映されます。')) return;
+  chargeHistory[idx].status = 'ok';
+  renderChargeHistory();
+  toast('✅ QR決済を確認済みにしました');
+  // 売上サマリーが開いていれば再描画
+  if (document.getElementById('page-sales')?.classList.contains('active')) {
+    renderSalesSummary();
+  }
 }
 
 </script>
