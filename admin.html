@@ -1007,6 +1007,54 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         </div>
       </div>
 
+      <!-- QRコード決済 -->
+      <div class="charge-card" style="margin-bottom:20px;">
+        <div style="font-size:0.52rem;letter-spacing:0.25em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;">QR CODE PAYMENT</div>
+        <div class="charge-group">
+          <label class="charge-label">QR決済 — イベント（任意）</label>
+          <select class="charge-input" id="qr-event-sel" style="padding:11px 0;cursor:pointer;color:var(--white);">
+            <option value="">選択なし</option>
+          </select>
+        </div>
+        <div class="charge-group">
+          <label class="charge-label">内容（任意）</label>
+          <input class="charge-input" id="qr-desc" placeholder="例: ドリンク、ボトル など" maxlength="40">
+        </div>
+        <div class="charge-group">
+          <label class="charge-label">金額</label>
+          <div class="charge-amount-wrap">
+            <span class="charge-yen">¥</span>
+            <input class="charge-input charge-amount-input" id="qr-amount"
+              type="number" min="1" max="999999" placeholder="0"
+              oninput="updateQrBtn()">
+          </div>
+        </div>
+
+        <button class="btn-charge" id="btn-qr-charge" onclick="generateQrPayment()" disabled
+          style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);">
+          <span class="btn-charge-icon">📱</span>
+          <span id="btn-qr-label">金額を入力してください</span>
+        </button>
+        <div class="charge-note">顧客のスマホでQRを読み取って決済してもらいます。</div>
+      </div>
+
+      <!-- QRコード表示モーダル -->
+      <div id="qr-payment-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:24px;">
+        <div style="background:var(--dark);border:1px solid rgba(201,168,76,0.3);padding:32px 28px;max-width:360px;width:100%;text-align:center;">
+          <div style="font-size:0.52rem;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;">QR CODE PAYMENT</div>
+          <div id="qr-modal-desc" style="font-size:0.85rem;color:var(--white);margin-bottom:4px;"></div>
+          <div id="qr-modal-amount" style="font-family:'Hiragino Mincho ProN',serif;font-size:2rem;color:var(--gold);margin-bottom:20px;"></div>
+          <div id="qr-code-display" style="background:#fff;padding:16px;display:inline-block;margin-bottom:16px;"></div>
+          <div style="font-size:0.62rem;color:var(--gray);margin-bottom:20px;line-height:1.8;">
+            顧客のスマホでQRコードを読み取って<br>決済を完了してもらってください
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button onclick="closeQrModal()" style="flex:1;background:transparent;border:1px solid rgba(255,255,255,0.2);color:var(--gray);padding:12px;cursor:pointer;font-family:inherit;font-size:0.62rem;letter-spacing:0.1em;">閉じる</button>
+            <button onclick="regenerateQr()" style="flex:1;background:var(--gold);border:none;color:var(--black);padding:12px;cursor:pointer;font-family:inherit;font-size:0.62rem;font-weight:700;letter-spacing:0.1em;">🔄 再生成</button>
+          </div>
+        </div>
+      </div>
+
       <div class="charge-history" id="charge-history" style="display:none;">
         <div class="charge-history-title">今回の決済履歴</div>
         <div id="charge-history-list"></div>
@@ -1467,18 +1515,20 @@ function populateEventSelectors() {
   });
 
   // 単発決済のイベント選択（選択なしあり）
-  const chargeSel = document.getElementById('charge-event-sel');
-  if (chargeSel) {
-    const curVal = chargeSel.value;
-    chargeSel.innerHTML = '<option value="">選択なし</option>';
-    sortedEvents().forEach(ev => {
-      const o = document.createElement('option');
-      o.value = ev.event_id;
-      o.textContent = ev.name + ' — ' + ev.date;
-      chargeSel.appendChild(o);
-    });
-    if (curVal) chargeSel.value = curVal;
-  }
+  ['charge-event-sel', 'qr-event-sel'].forEach(function(selId) {
+    const chargeSel = document.getElementById(selId);
+    if (chargeSel) {
+      const curVal = chargeSel.value;
+      chargeSel.innerHTML = '<option value="">選択なし</option>';
+      sortedEvents().forEach(ev => {
+        const o = document.createElement('option');
+        o.value = ev.event_id;
+        o.textContent = ev.name + ' — ' + ev.date;
+        chargeSel.appendChild(o);
+      });
+      if (curVal) chargeSel.value = curVal;
+    }
+  });
 }
 
 // ── プロモーターURL — GAS連携 ────────────────────────────
@@ -3181,6 +3231,121 @@ async function sendMmTestEmail(type) {
   } else {
     toast('❌ 送信失敗: ' + (d.message || '不明なエラー'));
   }
+}
+
+
+// ── QRコード決済 ─────────────────────────────────────────
+let qrCurrentUrl = '';
+let qrCurrentDesc = '';
+let qrCurrentAmount = 0;
+
+// QRコード生成ライブラリ（軽量インライン実装）
+function generateQRMatrix(text) {
+  // QRコードはStripe URLをそのままencodeして外部ライブラリで生成
+  return text;
+}
+
+function updateQrBtn() {
+  const amount = Number(document.getElementById('qr-amount').value);
+  const btn    = document.getElementById('btn-qr-charge');
+  const label  = document.getElementById('btn-qr-label');
+  if (amount > 0) {
+    btn.disabled = false;
+    btn.style.background = 'rgba(201,168,76,0.15)';
+    label.textContent = '📱 ¥' + amount.toLocaleString() + ' のQRコードを生成';
+  } else {
+    btn.disabled = true;
+    label.textContent = '金額を入力してください';
+  }
+}
+
+async function generateQrPayment() {
+  const amount  = Number(document.getElementById('qr-amount').value);
+  const desc    = document.getElementById('qr-desc').value.trim() || 'QR決済';
+  const eventId = document.getElementById('qr-event-sel')?.value || '';
+  if (!amount || amount <= 0) { toast('金額を入力してください'); return; }
+
+  const btn   = document.getElementById('btn-qr-charge');
+  const label = document.getElementById('btn-qr-label');
+  btn.disabled = true;
+  label.textContent = 'QRコードを準備中...';
+
+  try {
+    const res = await fetch(VERCEL_CHECKOUT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_id:        'CHARGE-' + Date.now(),
+        event_name:      desc,
+        charge_event_id: eventId,
+        name:            'QR決済',
+        email:           '',
+        gender:          '',
+        invited_by:      '',
+        amount:          amount
+      })
+    });
+    const d = await res.json();
+
+    if (d.ok && d.checkout_url) {
+      qrCurrentUrl    = d.checkout_url;
+      qrCurrentDesc   = desc;
+      qrCurrentAmount = amount;
+      showQrModal(d.checkout_url, desc, amount);
+    } else {
+      toast('❌ ' + (d.message || 'QRコードの生成に失敗しました'));
+    }
+  } catch(err) {
+    toast('❌ 通信エラー: ' + err.message);
+  }
+
+  btn.disabled = false;
+  label.textContent = '📱 ¥' + amount.toLocaleString() + ' のQRコードを生成';
+}
+
+function showQrModal(url, desc, amount) {
+  document.getElementById('qr-modal-desc').textContent   = desc;
+  document.getElementById('qr-modal-amount').textContent = '¥' + Number(amount).toLocaleString();
+
+  // QRコードをSVGで生成
+  const qrDisplay = document.getElementById('qr-code-display');
+  qrDisplay.innerHTML = '';
+
+  // Google Charts APIでQRコード生成（軽量・確実）
+  const qrSize = 200;
+  const qrImg  = document.createElement('img');
+  qrImg.src    = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSize + 'x' + qrSize + '&data=' + encodeURIComponent(url);
+  qrImg.width  = qrSize;
+  qrImg.height = qrSize;
+  qrImg.style.display = 'block';
+  qrDisplay.appendChild(qrImg);
+
+  const modal = document.getElementById('qr-payment-modal');
+  modal.style.display = 'flex';
+}
+
+function closeQrModal() {
+  document.getElementById('qr-payment-modal').style.display = 'none';
+}
+
+async function regenerateQr() {
+  closeQrModal();
+  await generateQrPayment();
+}
+
+// qr-event-selを他のセレクターと同期
+function populateQrEventSelector() {
+  const sel = document.getElementById('qr-event-sel');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">選択なし</option>';
+  sortedEvents().forEach(ev => {
+    const o = document.createElement('option');
+    o.value = ev.event_id;
+    o.textContent = ev.name + ' — ' + ev.date;
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
 }
 
 </script>
