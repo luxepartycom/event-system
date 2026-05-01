@@ -1452,7 +1452,8 @@ function logout() {
 // ── 初期化 ───────────────────────────────────────────
 async function init() {
   fetch(API + '?action=ping').catch(() => {});
-  // 並列取得してから1回だけ描画（速度改善）
+
+  // ── STEP1: イベント一覧を取得 ──────────────────────
   const [evResult, puResult] = await Promise.all([
     apiGet({ action: 'getEvents' }),
     apiGet({ action: 'getPromoUrls' })
@@ -1461,6 +1462,32 @@ async function init() {
   allPromoUrls = puResult.urls   || [];
   populateEventSelectors();
   renderEventGrid();
+
+  // ── STEP2: 最新イベントのゲストをバックグラウンドで先読み ──
+  // → ユーザーがタブを開いた時には既にキャッシュに入っている
+  const sorted = sortedEvents();
+  if (sorted.length > 0) {
+    const latestId = sorted[0].event_id;
+    // バックグラウンドで先読み（awaitしない）
+    prefetchGuests(latestId);
+  }
+}
+
+// バックグラウンド先読み関数
+async function prefetchGuests(eventId) {
+  if (!eventId) return;
+  if (guestCache[eventId]) return; // 既にキャッシュあり
+  try {
+    const d = await apiGet({ action: 'getGuests', event_id: eventId });
+    const guests = d.guests || [];
+    guestCache[eventId] = { data: guests, ts: Date.now() };
+    // ゲストタブが既に開かれていれば即時反映
+    if (currentEventId === eventId) {
+      allGuests = guests;
+      updateGuestStats();
+      renderGuestTable();
+    }
+  } catch(e) {}
 }
 
 // ── タブ切替 ─────────────────────────────────────────
@@ -1469,12 +1496,26 @@ function showTab(id) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   document.getElementById('tab-'  + id).classList.add('active');
+
   if (id === 'scan')      initScanPage();
   else                    stopScan();
   if (id === 'promoters') renderPromoterStats();
   if (id === 'report')    onReportTabOpen();
   if (id === 'sales')     onSalesTabOpen();
   if (id === 'mailmag')   onMailmagTabOpen();
+
+  // タブ切替時: 選択済みイベントがあればバックグラウンドで先読み
+  const selMap = {
+    guests: 'g-event-sel',
+    scan:   'scan-event-sel',
+    sales:  'sales-event-sel',
+    report: 'r-event-sel',
+  };
+  const selId = selMap[id];
+  if (selId) {
+    const sel = document.getElementById(selId);
+    if (sel && sel.value) prefetchGuests(sel.value);
+  }
 }
 
 // ── イベント ─────────────────────────────────────────
@@ -1716,22 +1757,33 @@ async function archiveEvent(eventId) {
 async function onGuestEventChange() {
   currentEventId = document.getElementById('g-event-sel').value;
   if (!currentEventId) return;
-  await loadGuests(true);
+  // forceしない → キャッシュがあれば即表示・なければ取得
+  await loadGuests(false);
 }
 
 const guestCache = {}; // イベント別キャッシュ
 
 async function loadGuests(force = false) {
   if (!currentEventId) return;
-  // キャッシュがあれば再利用（forceまたは5分経過で再取得）
   const cached = guestCache[currentEventId];
   const now    = Date.now();
+
+  // キャッシュヒット → 即時表示
   if (!force && cached && (now - cached.ts) < 5 * 60 * 1000) {
     allGuests = cached.data;
     updateGuestStats();
     renderGuestTable();
     return;
   }
+
+  // キャッシュあるが古い → まず古いデータを表示してから更新
+  if (cached) {
+    allGuests = cached.data;
+    updateGuestStats();
+    renderGuestTable();
+  }
+
+  // バックグラウンドで最新データ取得
   const d = await apiGet({ action: 'getGuests', event_id: currentEventId });
   allGuests = d.guests || [];
   guestCache[currentEventId] = { data: allGuests, ts: now };
