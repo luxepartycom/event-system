@@ -1272,14 +1272,28 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <div class="section-eyebrow" style="margin-bottom:12px;">集計レポート</div>
       <div class="report-table-wrap">
         <table class="report-table">
-          <thead><tr>
-            <th>プロモーター</th>
-            <th class="r">招待計</th><th class="r gm">男招待</th><th class="r gf">女招待</th>
-            <th class="r">来場計</th><th class="r gm">男来場</th><th class="r gf">女来場</th>
-            <th class="r">来場率</th>
-            <th class="r">無料</th><th class="r">有料</th>
-            <th class="r">現金</th><th class="r">カード</th><th class="r">PayPay</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th rowspan="2">プロモーター</th>
+              <th rowspan="2" class="r">招待計</th>
+              <th colspan="4" style="text-align:center;border-bottom:1px solid rgba(201,168,76,0.2);">招待内訳</th>
+              <th rowspan="2" class="r">来場計</th>
+              <th rowspan="2" class="r">来場率</th>
+              <th colspan="4" style="text-align:center;border-bottom:1px solid rgba(201,168,76,0.2);">来場内訳</th>
+              <th colspan="3" style="text-align:center;border-bottom:1px solid rgba(201,168,76,0.2);">支払</th>
+            </tr>
+            <tr>
+              <th class="r" style="color:var(--gold);">有料男</th>
+              <th class="r" style="color:var(--gold);">有料女</th>
+              <th class="r" style="color:var(--free);">無料男</th>
+              <th class="r" style="color:var(--free);">無料女</th>
+              <th class="r" style="color:var(--gold);">有料男</th>
+              <th class="r" style="color:var(--gold);">有料女</th>
+              <th class="r" style="color:var(--free);">無料男</th>
+              <th class="r" style="color:var(--free);">無料女</th>
+              <th class="r">現金</th><th class="r">カード</th><th class="r">PayPay</th>
+            </tr>
+          </thead>
           <tbody id="r-report-tbody"></tbody>
           <tfoot id="r-report-tfoot"></tfoot>
         </table>
@@ -2574,8 +2588,19 @@ function buildReportRow(name, members, confirmed) {
   const cash     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'cash').length;
   const card     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'card').length;
   const paypay   = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'paypay').length;
+  // 有料/無料 × 男/女 内訳
+  const paidM  = members.filter(g => g.pay_type === 'paid' && g.gender === 'male').length;
+  const paidF  = members.filter(g => g.pay_type === 'paid' && g.gender === 'female').length;
+  const freeM  = members.filter(g => g.pay_type === 'free' && g.gender === 'male').length;
+  const freeF  = members.filter(g => g.pay_type === 'free' && g.gender === 'female').length;
+  const paidMA = arrived.filter(g => g.pay_type === 'paid' && g.gender === 'male').length;
+  const paidFA = arrived.filter(g => g.pay_type === 'paid' && g.gender === 'female').length;
+  const freeMA = arrived.filter(g => g.pay_type === 'free' && g.gender === 'male').length;
+  const freeFA = arrived.filter(g => g.pay_type === 'free' && g.gender === 'female').length;
   return { name, confirmed, total:members.length, mTotal, fTotal,
-           arrived:arrived.length, mArrived, fArrived, free, paid, cash, card, paypay };
+           arrived:arrived.length, mArrived, fArrived, free, paid, cash, card, paypay,
+           paidMTotal:paidM, paidFTotal:paidF, freeMTotal:freeM, freeFTotal:freeF,
+           paidMArrived:paidMA, paidFArrived:paidFA, freeMArrived:freeMA, freeFArrived:freeFA };
 }
 
 function renderReportTable() {
@@ -2606,22 +2631,45 @@ function renderReportTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="nm">${escH(r.name)}${!r.confirmed&&r.name!=='（未グループ）'?'<span style="font-size:0.48rem;color:var(--gray);margin-left:4px;">(未確定)</span>':''}</td>
-      <td class="r hl">${r.total}</td><td class="r gm">${r.mTotal}</td><td class="r gf">${r.fTotal}</td>
-      <td class="r hl">${r.arrived}</td><td class="r gm">${r.mArrived}</td><td class="r gf">${r.fArrived}</td>
+      <td class="r hl">${r.total}</td>
+      <td class="r" style="color:var(--gold);">${r.paidMTotal||0}</td>
+      <td class="r" style="color:var(--gold);">${r.paidFTotal||0}</td>
+      <td class="r" style="color:var(--free);">${r.freeMTotal||0}</td>
+      <td class="r" style="color:var(--free);">${r.freeFTotal||0}</td>
+      <td class="r hl">${r.arrived}</td>
       <td class="r">${rate}%</td>
-      <td class="r">${r.free}</td><td class="r">${r.paid}</td>
+      <td class="r" style="color:var(--gold);">${r.paidMArrived||0}</td>
+      <td class="r" style="color:var(--gold);">${r.paidFArrived||0}</td>
+      <td class="r" style="color:var(--free);">${r.freeMTotal||0}</td>
+      <td class="r" style="color:var(--free);">${r.freeFArrived||0}</td>
       <td class="r">${r.cash}</td><td class="r">${r.card}</td><td class="r">${r.paypay}</td>`;
     tbody.appendChild(tr);
     Object.keys(tot).forEach(k => tot[k] += r[k] || 0);
   });
 
   const tRate = tot.total ? Math.round(tot.arrived / tot.total * 100) : 0;
+  // 合計行の有料/無料×男/女集計
+  const totPaidM  = rows.reduce((s,r) => s+(r.paidMTotal||0), 0);
+  const totPaidF  = rows.reduce((s,r) => s+(r.paidFTotal||0), 0);
+  const totFreeM  = rows.reduce((s,r) => s+(r.freeMTotal||0), 0);
+  const totFreeF  = rows.reduce((s,r) => s+(r.freeFTotal||0), 0);
+  const totPaidMA = rows.reduce((s,r) => s+(r.paidMArrived||0), 0);
+  const totPaidFA = rows.reduce((s,r) => s+(r.paidFArrived||0), 0);
+  const totFreeMA = rows.reduce((s,r) => s+(r.freeMArrived||0), 0);
+  const totFreeFA = rows.reduce((s,r) => s+(r.freeFArrived||0), 0);
   tfoot.innerHTML = `<tr>
     <td>合計</td>
-    <td class="r">${tot.total}</td><td class="r gm">${tot.mTotal}</td><td class="r gf">${tot.fTotal}</td>
-    <td class="r">${tot.arrived}</td><td class="r gm">${tot.mArrived}</td><td class="r gf">${tot.fArrived}</td>
+    <td class="r">${tot.total}</td>
+    <td class="r" style="color:var(--gold);">${totPaidM}</td>
+    <td class="r" style="color:var(--gold);">${totPaidF}</td>
+    <td class="r" style="color:var(--free);">${totFreeM}</td>
+    <td class="r" style="color:var(--free);">${totFreeF}</td>
+    <td class="r">${tot.arrived}</td>
     <td class="r">${tRate}%</td>
-    <td class="r">${tot.free}</td><td class="r">${tot.paid}</td>
+    <td class="r" style="color:var(--gold);">${totPaidMA}</td>
+    <td class="r" style="color:var(--gold);">${totPaidFA}</td>
+    <td class="r" style="color:var(--free);">${totFreeMA}</td>
+    <td class="r" style="color:var(--free);">${totFreeFA}</td>
     <td class="r">${tot.cash}</td><td class="r">${tot.card}</td><td class="r">${tot.paypay}</td>
   </tr>`;
 }
