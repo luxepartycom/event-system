@@ -2589,6 +2589,56 @@ function renderReportGroups() {
       </div>`;
     list.appendChild(card);
   });
+
+  // ── 未グループのゲストを表示 ──────────────────────────
+  const groupedNamesSet = new Set(reportGroups.flatMap(g => g.aliases.map(a => String(a).trim())));
+  const ungroupedGuests = reportGuests.filter(gu => {
+    const n = (gu.invited_by||'').trim();
+    return !n || !groupedNamesSet.has(n);
+  });
+
+  if (ungroupedGuests.length > 0) {
+    const ugCard = document.createElement('div');
+    ugCard.className = 'group-card';
+    ugCard.style.borderColor = 'rgba(232,160,32,0.4)';
+
+    const arrived  = ungroupedGuests.filter(g => String(g.arrived).toUpperCase() === 'TRUE').length;
+    const ugRows = ungroupedGuests
+      .sort((a,b) => {
+        const aA = String(a.arrived).toUpperCase() === 'TRUE';
+        const bA = String(b.arrived).toUpperCase() === 'TRUE';
+        if (aA !== bA) return aA ? -1 : 1;
+        return (a.name||'').localeCompare(b.name||'');
+      })
+      .map(gu => {
+        const arr  = String(gu.arrived).toUpperCase() === 'TRUE';
+        const typeClass = gu.pay_type === 'free' ? 'agu-type-free' : 'agu-type-paid';
+        const typeLabel = gu.pay_type === 'free' ? '無料' : '有料';
+        const invBy = gu.invited_by ? gu.invited_by : '（空）';
+        return `<div class="alias-guest-row">
+          <span class="agu-name">${escH(gu.name)}</span>
+          <span class="agu-gender">${gu.gender === 'female' ? '女' : '男'}</span>
+          <span class="${typeClass}">${typeLabel}</span>
+          <span style="font-size:0.5rem;color:var(--gray);margin:0 4px;">招待: ${escH(invBy)}</span>
+          <span class="${arr ? 'agu-arrived-yes' : 'agu-arrived-no'}">${arr ? '✓ 来場' : '— 未来場'}</span>
+        </div>`;
+      }).join('');
+
+    ugCard.innerHTML = `
+      <div class="group-header">
+        <div class="group-canonical" style="flex:1;">
+          <span style="font-size:0.88rem;color:#E8A020;font-weight:600;">⚠️ 未グループ</span>
+        </div>
+        <span class="group-count" style="color:#E8A020;">${arrived}/${ungroupedGuests.length}名</span>
+      </div>
+      <div style="font-size:0.58rem;color:var(--gray);margin-bottom:10px;padding:0 2px;">
+        どのグループにも属していないゲストです。招待者名を確認してグループに追加してください。
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
+        ${ugRows}
+      </div>`;
+    list.appendChild(ugCard);
+  }
 }
 
 function toggleAliasGuests(uid) {
