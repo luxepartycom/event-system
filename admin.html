@@ -2458,7 +2458,7 @@ function renderReportGroups() {
   const list = document.getElementById('r-groups-list');
   list.innerHTML = '';
   reportGroups.forEach(g => {
-    const allMembers   = reportGuests.filter(gu => g.aliases.some(a => (gu.invited_by||'').trim() === a));
+    const allMembers   = reportGuests.filter(gu => g.aliases.some(a => (gu.invited_by||'').trim() === String(a).trim()));
     const totalCount   = allMembers.length;
     const arrivedCount = allMembers.filter(gu => String(gu.arrived).toUpperCase() === 'TRUE').length;
 
@@ -2610,12 +2610,12 @@ function renderReportTable() {
 
   const rows = reportGroups.map(g => {
     const members = reportGuests.filter(gu =>
-      g.aliases.some(a => (gu.invited_by||'').trim() === a)
+      g.aliases.some(a => (gu.invited_by||'').trim() === String(a).trim())
     );
     return buildReportRow(g.canonical, members, g.confirmed);
   }).filter(r => r.total > 0);
 
-  const groupedNames = new Set(reportGroups.flatMap(g => g.aliases));
+  const groupedNames = new Set(reportGroups.flatMap(g => g.aliases.map(a => String(a).trim())));
   const ungrouped = reportGuests.filter(gu => {
     const n = (gu.invited_by||'').trim();
     return n && !groupedNames.has(n);
@@ -2690,15 +2690,26 @@ async function exportToSheet() {
 
   const rows = reportGroups.map(g => {
     const members = reportGuests.filter(gu =>
-      g.aliases.some(a => (gu.invited_by||'').trim() === a)
+      g.aliases.some(a => (gu.invited_by||'').trim() === String(a).trim())
     );
     return buildReportRow(g.canonical, members, g.confirmed);
   }).filter(r => r.total > 0).sort((a,b) => b.total - a.total);
 
+  // 未グループ（invited_byが空 or どのグループにも属さない）を追加
+  const groupedNames = new Set(reportGroups.flatMap(g => g.aliases.map(a => String(a).trim())));
+  const ungroupedExport = reportGuests.filter(gu => {
+    const n = (gu.invited_by||'').trim();
+    return !n || !groupedNames.has(n);
+  });
+  if (ungroupedExport.length > 0) {
+    rows.push(buildReportRow('（未グループ）', ungroupedExport, false));
+  }
+
   const detailRows = [];
+  // グループ済みメンバー
   reportGroups.forEach(g => {
     const members = reportGuests
-      .filter(gu => g.aliases.some(a => (gu.invited_by||'').trim() === a))
+      .filter(gu => g.aliases.some(a => (gu.invited_by||'').trim() === String(a).trim()))
       .sort((a, b) => {
         const aA = String(a.arrived).toUpperCase() === 'TRUE';
         const bA = String(b.arrived).toUpperCase() === 'TRUE';
@@ -2714,6 +2725,17 @@ async function exportToSheet() {
       });
     });
   });
+  // 未グループメンバーも詳細に追加
+  ungroupedExport
+    .sort((a, b) => (a.registered_at||'').localeCompare(b.registered_at||''))
+    .forEach(gu => {
+      detailRows.push({
+        promoter: '（未グループ）', name: gu.name, gender: gu.gender,
+        pay_type: gu.pay_type, arrived: String(gu.arrived).toUpperCase() === 'TRUE',
+        payment_method: gu.payment_method || '', amount: Number(gu.amount || 0),
+        registered_at: gu.registered_at || ''
+      });
+    });
 
   const d = await apiPost({
     action: 'exportPromoReport',
