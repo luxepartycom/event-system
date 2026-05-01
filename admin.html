@@ -2442,7 +2442,8 @@ let reportEventId  = '';
 let reportGuests   = [];
 
 async function onReportEventChange() {
-  reportEventId = document.getElementById('r-event-sel').value;
+  const rSel = document.getElementById('r-event-sel');
+  if (rSel) reportEventId = rSel.value;
   if (!reportEventId) return;
 
   document.getElementById('r-loading').style.display          = 'block';
@@ -2450,8 +2451,16 @@ async function onReportEventChange() {
   document.getElementById('r-report-section').style.display   = 'none';
   document.getElementById('r-ai-panel').style.display         = 'none';
 
-  const d = await apiGet({ action: 'getGuests', event_id: reportEventId });
-  reportGuests = d.guests || [];
+  // キャッシュがあれば即時使用
+  const cached = guestCache[reportEventId];
+  const now    = Date.now();
+  if (cached && (now - cached.ts) < 5 * 60 * 1000) {
+    reportGuests = cached.data;
+  } else {
+    const d = await apiGet({ action: 'getGuests', event_id: reportEventId });
+    reportGuests = d.guests || [];
+    guestCache[reportEventId] = { data: reportGuests, ts: now };
+  }
 
   const sg = await apiGet({ action: 'getPromoGroups', event_id: reportEventId });
   if (sg.groups && sg.groups.length > 0) {
@@ -2799,8 +2808,20 @@ async function exportToSheet() {
   toast(d.ok ? '✦ 出力完了 → ' + d.sheet_name + ' / ' + d.detail_sheet_name : '出力エラー: ' + d.message);
 }
 
-function onReportTabOpen() {
-  if (reportEventId) { renderReportGroups(); renderReportTable(); }
+async function onReportTabOpen() {
+  if (!reportEventId) {
+    // 最新イベントを自動選択して読み込み
+    const sorted = sortedEvents();
+    if (sorted.length > 0) {
+      reportEventId = sorted[0].event_id;
+      const sel = document.getElementById('r-event-sel');
+      if (sel) sel.value = reportEventId;
+      await onReportEventChange();
+    }
+  } else {
+    renderReportGroups();
+    renderReportTable();
+  }
 }
 
 
@@ -2923,24 +2944,45 @@ function renderChargeHistory() {
 let salesEventId = '';
 let salesGuests  = [];
 
-function onSalesTabOpen() {
-  if (salesEventId) renderSalesSummary();
+async function onSalesTabOpen() {
+  if (!salesEventId) {
+    // 最新イベントを自動選択して読み込み
+    const sorted = sortedEvents();
+    if (sorted.length > 0) {
+      salesEventId = sorted[0].event_id;
+      const sel = document.getElementById('sales-event-sel');
+      if (sel) sel.value = salesEventId;
+      await onSalesEventChange();
+    }
+  } else {
+    renderSalesSummary();
+  }
 }
 
 async function onSalesEventChange() {
-  salesEventId = document.getElementById('sales-event-sel').value;
+  const sel = document.getElementById('sales-event-sel');
+  if (sel) salesEventId = sel.value;
   if (!salesEventId) {
     document.getElementById('sales-invite-section').style.display = 'none';
     return;
   }
-  // ゲストデータ取得（キャッシュ優先）
+  // キャッシュがあれば即時表示
   const cached = guestCache[salesEventId];
+  const now    = Date.now();
+  if (cached && (now - cached.ts) < 5 * 60 * 1000) {
+    salesGuests = cached.data;
+    renderSalesSummary();
+    return;
+  }
+  // 古いキャッシュあれば先に表示
   if (cached) {
     salesGuests = cached.data;
-  } else {
-    const d = await apiGet({ action: 'getGuests', event_id: salesEventId });
-    salesGuests = d.guests || [];
+    renderSalesSummary();
   }
+  // バックグラウンドで最新取得
+  const d = await apiGet({ action: 'getGuests', event_id: salesEventId });
+  salesGuests = d.guests || [];
+  guestCache[salesEventId] = { data: salesGuests, ts: now };
   renderSalesSummary();
 }
 
