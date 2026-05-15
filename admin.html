@@ -641,6 +641,45 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .mm-quota-ok{border-color:rgba(76,175,130,0.4)!important;color:var(--arrived);}
 .mm-quota-warn{border-color:rgba(232,160,32,0.4)!important;color:#E8A020;}
 .mm-quota-ng{border-color:rgba(207,68,68,0.4)!important;color:#CF4444;}
+
+
+/* ── プラン管理 ── */
+
+.plan-item{background:var(--dark2);border:1px solid rgba(255,255,255,0.06);padding:10px 12px;margin-bottom:6px;}
+
+.plan-item.plan-active{border-color:rgba(201,168,76,0.3);}
+
+.plan-item.plan-full{border-color:rgba(207,68,68,0.3);opacity:0.7;}
+
+.plan-item.plan-closed{border-color:rgba(255,255,255,0.05);opacity:0.5;}
+
+.plan-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+
+.plan-name{font-size:0.78rem;color:var(--white);font-weight:600;flex:1;}
+
+.plan-status-badge{font-size:0.44rem;letter-spacing:0.12em;padding:2px 8px;text-transform:uppercase;}
+
+.plan-status-active{background:rgba(76,175,130,0.15);color:var(--arrived);border:1px solid rgba(76,175,130,0.3);}
+
+.plan-status-full{background:rgba(207,68,68,0.15);color:#CF4444;border:1px solid rgba(207,68,68,0.3);}
+
+.plan-status-closed{background:rgba(255,255,255,0.05);color:var(--gray);border:1px solid rgba(255,255,255,0.1);}
+
+.plan-info{display:flex;gap:16px;font-size:0.62rem;color:var(--gray);margin-bottom:8px;}
+
+.plan-info span{color:var(--white);}
+
+.plan-actions{display:flex;gap:6px;flex-wrap:wrap;}
+
+.btn-plan-sm{background:transparent;border:1px solid rgba(255,255,255,0.12);color:var(--gray);padding:4px 10px;cursor:pointer;font-family:inherit;font-size:0.52rem;letter-spacing:0.1em;transition:all 0.2s;}
+
+.btn-plan-sm:hover{border-color:rgba(201,168,76,0.4);color:var(--gold);}
+
+.btn-plan-close{border-color:rgba(207,68,68,0.3);color:#CF4444;}
+
+.btn-plan-close:hover{background:rgba(207,68,68,0.1);}
+
+.plan-empty{font-size:0.6rem;color:rgba(255,255,255,0.2);padding:8px 0;}
 </style>
 </head>
 <body>
@@ -1394,6 +1433,601 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <button class="btn-confirm" onclick="generateCustomUrl()">URLを生成</button>
     </div>
   </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+const BASE_URL = 'https://luxepartycom.github.io/event-system/';
+
+let allEvents      = [];
+let allGuests      = [];
+let currentEventId = '';
+let codeReader     = null;
+let scanStream     = null;
+let scanTimer      = null;
+let checkinBusy    = false;
+let lastScanned    = '';
+let pendingGuest   = null;
+
+async function apiGet(p)  { const r = await fetch(API + '?' + new URLSearchParams(p)); return r.json(); }
+async function apiPost(b) {
+  const r = await fetch(API, {
+    method:  'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body:    JSON.stringify(b)
+  });
+  return r.json();
+}
+
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── ログイン ─────────────────────────────────────────
+async function doLogin() {
+  const pw = document.getElementById('login-pw').value.trim();
+  const d  = await apiGet({ action: 'auth', password: pw });
+  if (d.ok) {
+    sessionStorage.setItem('lpt_auth', pw); // セッションキャッシュ
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display          = 'block';
+    await init();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+function logout() {
+  sessionStorage.removeItem('lpt_auth');
+  location.reload();
+}
+
+// ── 初期化 ───────────────────────────────────────────
+async function init() {
+  fetch(API + '?action=ping').catch(() => {});
+
+  // ── STEP1: イベント一覧を取得 ──────────────────────
+  const [evResult, puResult] = await Promise.all([
+    apiGet({ action: 'getEvents' }),
+    apiGet({ action: 'getPromoUrls' })
+  ]);
+  allEvents    = evResult.events || [];
+  allPromoUrls = puResult.urls   || [];
+  populateEventSelectors();
+  renderEventGrid();
+
+  // ── STEP2: 最新イベントのゲストをバックグラウンドで先読み ──
+  // → ユーザーがタブを開いた時には既にキャッシュに入っている
+  const sorted = sortedEvents();
+  if (sorted.length > 0) {
+    const latestId = sorted[0].event_id;
+    // バックグラウンドで先読み（awaitしない）
+    prefetchGuests(latestId);
+  }
+}
+
+// バックグラウンド先読み関数
+async function prefetchGuests(eventId) {
+  if (!eventId) return;
+  if (guestCache[eventId]) return; // 既にキャッシュあり
+  try {
+    const d = await apiGet({ action: 'getGuests', event_id: eventId });
+    const guests = d.guests || [];
+    guestCache[eventId] = { data: guests, ts: Date.now() };
+    // ゲストタブが既に開かれていれば即時反映
+    if (currentEventId === eventId) {
+      allGuests = guests;
+      updateGuestStats();
+      renderGuestTable();
+    }
+  } catch(e) {}
+}
+
+// ── タブ切替 ─────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('tab-'  + id).classList.add('active');
+
+  if (id === 'scan')      initScanPage();
+  else                    stopScan();
+  if (id === 'promoters') renderPromoterStats();
+  if (id === 'report')    onReportTabOpen();
+  if (id === 'sales')     onSalesTabOpen();
+  if (id === 'mailmag')   onMailmagTabOpen();
+
+  // タブ切替時: 選択済みイベントがあればバックグラウンドで先読み
+  const selMap = {
+    guests: 'g-event-sel',
+    scan:   'scan-event-sel',
+    sales:  'sales-event-sel',
+    report: 'r-event-sel',
+  };
+  const selId = selMap[id];
+  if (selId) {
+    const sel = document.getElementById(selId);
+    if (sel && sel.value) prefetchGuests(sel.value);
+  }
+}
+
+// ── イベント ─────────────────────────────────────────
+async function loadEvents() {
+  const d = await apiGet({ action: 'getEvents' });
+  allEvents = d.events || [];
+  renderEventGrid();
+  populateEventSelectors();
+}
+
+function sortedEvents() {
+  // 日付降順（最新が先頭）
+  return [...allEvents].sort((a, b) => {
+    const da = String(a.date).substring(0, 10);
+    const db = String(b.date).substring(0, 10);
+    return db.localeCompare(da);
+  });
+}
+
+function populateEventSelectors() {
+  const sorted = sortedEvents();
+  const latest = sorted[0]; // 最新イベント
+
+  ['g-event-sel', 'p-event-sel', 'scan-event-sel', 'r-event-sel', 'sales-event-sel'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    const cur = sel.value;
+    sel.innerHTML = '';
+    sorted.forEach((ev, i) => {
+      const o = document.createElement('option');
+      o.value = ev.event_id;
+      // 最新イベントにマーカー
+      if (i === 0) {
+        o.textContent = '★ ' + ev.name + ' — ' + ev.date + (ev.status === 'active' ? ' 【開催中】' : '');
+        o.style.color = '#C9A84C';
+        o.style.fontWeight = 'bold';
+      } else {
+        o.textContent = ev.name + ' — ' + ev.date;
+      }
+      sel.appendChild(o);
+    });
+    // 現在選択中を維持 or 最新を自動選択
+    if (cur && sorted.find(e => e.event_id === cur)) {
+      sel.value = cur;
+    } else if (latest) {
+      sel.value = latest.event_id;
+      // 各タブの自動ロード
+      if (selId === 'g-event-sel') {
+        currentEventId = latest.event_id;
+        loadGuests(true);
+      }
+    }
+  });
+
+  // 単発決済のイベント選択（選択なしあり）
+  ['charge-event-sel', 'qr-event-sel'].forEach(function(selId) {
+    const chargeSel = document.getElementById(selId);
+    if (chargeSel) {
+      const curVal = chargeSel.value;
+      chargeSel.innerHTML = '<option value="">選択なし</option>';
+      sortedEvents().forEach(ev => {
+        const o = document.createElement('option');
+        o.value = ev.event_id;
+        o.textContent = ev.name + ' — ' + ev.date;
+        chargeSel.appendChild(o);
+      });
+      if (curVal) chargeSel.value = curVal;
+    }
+  });
+}
+
+// ── プロモーターURL — GAS連携 ────────────────────────────
+let allPromoUrls = [];  // 全イベント分をキャッシュ
+
+async function loadAllPromoUrls() {
+  try {
+    const d = await apiGet({ action: 'getPromoUrls' });
+    allPromoUrls = d.urls || [];
+  } catch(e) { allPromoUrls = []; }
+}
+
+function getPromoUrls(eventId) {
+  return allPromoUrls.filter(u => String(u.event_id) === String(eventId));
+}
+
+async function deletePromoUrl(eventId, promoter, type) {
+  await apiPost({ action: 'deletePromoUrl', event_id: eventId, promoter, type });
+  allPromoUrls = allPromoUrls.filter(u =>
+    !(String(u.event_id) === String(eventId) && u.promoter === promoter && u.type === type)
+  );
+  renderEventGrid();
+  toast('✦ 削除しました');
+}
+
+function renderEventGrid() {
+  const grid = document.getElementById('event-grid');
+  grid.innerHTML = '';
+  if (!allEvents.length) { grid.innerHTML = '<div class="loading">イベントがありません</div>'; return; }
+
+  const sorted = sortedEvents();
+  sorted.forEach((ev, evIndex) => {
+    const freeUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=free';
+    const paidUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid';
+    const promoList = getPromoUrls(ev.event_id);
+    const promoHtml = promoList.length
+      ? promoList.map(u => buildPromoItem(ev.event_id, u)).join('')
+      : `<div class="ev-promo-empty">まだ指定URLはありません</div>`;
+
+    const descHtml = ev.description
+      ? `<div class="ev-desc">${ev.description.replace(/\n/g, '<br>')}</div>`
+      : `<div class="ev-desc ev-desc-empty">詳細未設定</div>`;
+
+    const card = document.createElement('div');
+    card.className = 'event-card' + (evIndex === 0 ? ' event-card-latest' : '');
+    card.id = 'ev-card-' + ev.event_id;
+    card.innerHTML = `
+      ${evIndex === 0 ? '<div class="ev-latest-badge">★ 最新イベント</div>' : ''}
+      <div class="ev-name">${ev.name}</div>
+      <div class="ev-date">${ev.date}</div>
+      <span class="ev-status ${ev.status === 'active' ? 'status-active' : 'status-closed'}">${ev.status === 'active' ? '開催中' : '終了'}</span>
+      <div class="ev-desc-block">
+        <div class="ev-url-label">📋 イベント詳細</div>
+        ${descHtml}
+        <button class="btn-edit-desc" onclick="openEditDesc('${ev.event_id}')">✏️ 詳細を編集</button>
+      </div>
+      <div class="ev-url-block">
+        <div class="ev-url-label" style="color:var(--free)">🎟 無料招待URL</div>
+        <div class="ev-url-row"><div class="ev-url-text">${freeUrl}</div><button class="copy-btn" onclick="copyText('${freeUrl}',this)">📋</button></div>
+      </div>
+      <div class="ev-url-block">
+        <div class="ev-url-label" style="color:var(--gold)">💴 有料招待URL (男¥${Number(ev.price_male||0).toLocaleString()} / 女¥${Number(ev.price_female||0).toLocaleString()})</div>
+        <div class="ev-url-row"><div class="ev-url-text">${paidUrl}</div><button class="copy-btn" onclick="copyText('${paidUrl}',this)">📋</button></div>
+      </div>
+      <div class="ev-promo-section">
+        <div class="ev-promo-header">
+          <div class="ev-promo-title">📣 プロモーター指定URL</div>
+        </div>
+        <div id="promo-list-${ev.event_id}">${promoHtml}</div>
+      </div>
+      <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.05);padding-top:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;">💳 料金プラン</div>
+          <button class="copy-btn" onclick="openAddPlanModal('${ev.event_id}')" style="font-size:0.52rem;padding:4px 10px;">+ プラン追加</button>
+        </div>
+        <div id="plan-list-${ev.event_id}">${renderPlanListHtml(ev.event_id, ev.plans || [])}</div>
+      </div>
+      
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+const BASE_URL = 'https://luxepartycom.github.io/event-system/';
+
+let allEvents      = [];
+let allGuests      = [];
+let currentEventId = '';
+let codeReader     = null;
+let scanStream     = null;
+let scanTimer      = null;
+let checkinBusy    = false;
+let lastScanned    = '';
+let pendingGuest   = null;
+
+async function apiGet(p)  { const r = await fetch(API + '?' + new URLSearchParams(p)); return r.json(); }
+async function apiPost(b) {
+  const r = await fetch(API, {
+    method:  'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body:    JSON.stringify(b)
+  });
+  return r.json();
+}
+
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── ログイン ─────────────────────────────────────────
+async function doLogin() {
+  const pw = document.getElementById('login-pw').value.trim();
+  const d  = await apiGet({ action: 'auth', password: pw });
+  if (d.ok) {
+    sessionStorage.setItem('lpt_auth', pw); // セッションキャッシュ
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display          = 'block';
+    await init();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+function logout() {
+  sessionStorage.removeItem('lpt_auth');
+  location.reload();
+}
+
+// ── 初期化 ───────────────────────────────────────────
+async function init() {
+  fetch(API + '?action=ping').catch(() => {});
+
+  // ── STEP1: イベント一覧を取得 ──────────────────────
+  const [evResult, puResult] = await Promise.all([
+    apiGet({ action: 'getEvents' }),
+    apiGet({ action: 'getPromoUrls' })
+  ]);
+  allEvents    = evResult.events || [];
+  allPromoUrls = puResult.urls   || [];
+  populateEventSelectors();
+  renderEventGrid();
+
+  // ── STEP2: 最新イベントのゲストをバックグラウンドで先読み ──
+  // → ユーザーがタブを開いた時には既にキャッシュに入っている
+  const sorted = sortedEvents();
+  if (sorted.length > 0) {
+    const latestId = sorted[0].event_id;
+    // バックグラウンドで先読み（awaitしない）
+    prefetchGuests(latestId);
+  }
+}
+
+// バックグラウンド先読み関数
+async function prefetchGuests(eventId) {
+  if (!eventId) return;
+  if (guestCache[eventId]) return; // 既にキャッシュあり
+  try {
+    const d = await apiGet({ action: 'getGuests', event_id: eventId });
+    const guests = d.guests || [];
+    guestCache[eventId] = { data: guests, ts: Date.now() };
+    // ゲストタブが既に開かれていれば即時反映
+    if (currentEventId === eventId) {
+      allGuests = guests;
+      updateGuestStats();
+      renderGuestTable();
+    }
+  } catch(e) {}
+}
+
+// ── タブ切替 ─────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('tab-'  + id).classList.add('active');
+
+  if (id === 'scan')      initScanPage();
+  else                    stopScan();
+  if (id === 'promoters') renderPromoterStats();
+  if (id === 'report')    onReportTabOpen();
+  if (id === 'sales')     onSalesTabOpen();
+  if (id === 'mailmag')   onMailmagTabOpen();
+
+  // タブ切替時: 選択済みイベントがあればバックグラウンドで先読み
+  const selMap = {
+    guests: 'g-event-sel',
+    scan:   'scan-event-sel',
+    sales:  'sales-event-sel',
+    report: 'r-event-sel',
+  };
+  const selId = selMap[id];
+  if (selId) {
+    const sel = document.getElementById(selId);
+    if (sel && sel.value) prefetchGuests(sel.value);
+  }
+}
+
+// ── イベント ─────────────────────────────────────────
+async function loadEvents() {
+  const d = await apiGet({ action: 'getEvents' });
+  allEvents = d.events || [];
+  renderEventGrid();
+  populateEventSelectors();
+}
+
+function sortedEvents() {
+  // 日付降順（最新が先頭）
+  return [...allEvents].sort((a, b) => {
+    const da = String(a.date).substring(0, 10);
+    const db = String(b.date).substring(0, 10);
+    return db.localeCompare(da);
+  });
+}
+
+function populateEventSelectors() {
+  const sorted = sortedEvents();
+  const latest = sorted[0]; // 最新イベント
+
+  ['g-event-sel', 'p-event-sel', 'scan-event-sel', 'r-event-sel', 'sales-event-sel'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    const cur = sel.value;
+    sel.innerHTML = '';
+    sorted.forEach((ev, i) => {
+      const o = document.createElement('option');
+      o.value = ev.event_id;
+      // 最新イベントにマーカー
+      if (i === 0) {
+        o.textContent = '★ ' + ev.name + ' — ' + ev.date + (ev.status === 'active' ? ' 【開催中】' : '');
+        o.style.color = '#C9A84C';
+        o.style.fontWeight = 'bold';
+      } else {
+        o.textContent = ev.name + ' — ' + ev.date;
+      }
+      sel.appendChild(o);
+    });
+    // 現在選択中を維持 or 最新を自動選択
+    if (cur && sorted.find(e => e.event_id === cur)) {
+      sel.value = cur;
+    } else if (latest) {
+      sel.value = latest.event_id;
+      // 各タブの自動ロード
+      if (selId === 'g-event-sel') {
+        currentEventId = latest.event_id;
+        loadGuests(true);
+      }
+    }
+  });
+
+  // 単発決済のイベント選択（選択なしあり）
+  ['charge-event-sel', 'qr-event-sel'].forEach(function(selId) {
+    const chargeSel = document.getElementById(selId);
+    if (chargeSel) {
+      const curVal = chargeSel.value;
+      chargeSel.innerHTML = '<option value="">選択なし</option>';
+      sortedEvents().forEach(ev => {
+        const o = document.createElement('option');
+        o.value = ev.event_id;
+        o.textContent = ev.name + ' — ' + ev.date;
+        chargeSel.appendChild(o);
+      });
+      if (curVal) chargeSel.value = curVal;
+    }
+  });
+}
+
+// ── プロモーターURL — GAS連携 ────────────────────────────
+let allPromoUrls = [];  // 全イベント分をキャッシュ
+
+async function loadAllPromoUrls() {
+  try {
+    const d = await apiGet({ action: 'getPromoUrls' });
+    allPromoUrls = d.urls || [];
+  } catch(e) { allPromoUrls = []; }
+}
+
+function getPromoUrls(eventId) {
+  return allPromoUrls.filter(u => String(u.event_id) === String(eventId));
+}
+
+async function deletePromoUrl(eventId, promoter, type) {
+  await apiPost({ action: 'deletePromoUrl', event_id: eventId, promoter, type });
+  allPromoUrls = allPromoUrls.filter(u =>
+    !(String(u.event_id) === String(eventId) && u.promoter === promoter && u.type === type)
+  );
+  renderEventGrid();
+  toast('✦ 削除しました');
+}
+
+function renderEventGrid() {
+  const grid = document.getElementById('event-grid');
+  grid.innerHTML = '';
+  if (!allEvents.length) { grid.innerHTML = '<div class="loading">イベントがありません</div>'; return; }
+
+  const sorted = sortedEvents();
+  sorted.forEach((ev, evIndex) => {
+    const freeUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=free';
+    const paidUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid';
+    const promoList = getPromoUrls(ev.event_id);
+    const promoHtml = promoList.length
+      ? promoList.map(u => buildPromoItem(ev.event_id, u)).join('')
+      : `<div class="ev-promo-empty">まだ指定URLはありません</div>`;
+
+    const descHtml = ev.description
+      ? `<div class="ev-desc">${ev.description.replace(/\n/g, '<br>')}</div>`
+      : `<div class="ev-desc ev-desc-empty">詳細未設定</div>`;
+
+    const card = document.createElement('div');
+    card.className = 'event-card' + (evIndex === 0 ? ' event-card-latest' : '');
+    card.id = 'ev-card-' + ev.event_id;
+    card.innerHTML = `
+      ${evIndex === 0 ? '<div class="ev-latest-badge">★ 最新イベント</div>' : ''}
+      <div class="ev-name">${ev.name}</div>
+      <div class="ev-date">${ev.date}</div>
+      <span class="ev-status ${ev.status === 'active' ? 'status-active' : 'status-closed'}">${ev.status === 'active' ? '開催中' : '終了'}</span>
+      <div class="ev-desc-block">
+        <div class="ev-url-label">📋 イベント詳細</div>
+        ${descHtml}
+        <button class="btn-edit-desc" onclick="openEditDesc('${ev.event_id}')">✏️ 詳細を編集</button>
+      </div>
+      <div class="ev-url-block">
+        <div class="ev-url-label" style="color:var(--free)">🎟 無料招待URL</div>
+        <div class="ev-url-row"><div class="ev-url-text">${freeUrl}</div><button class="copy-btn" onclick="copyText('${freeUrl}',this)">📋</button></div>
+      </div>
+      <div class="ev-url-block">
+        <div class="ev-url-label" style="color:var(--gold)">💴 有料招待URL (男¥${Number(ev.price_male||0).toLocaleString()} / 女¥${Number(ev.price_female||0).toLocaleString()})</div>
+        <div class="ev-url-row"><div class="ev-url-text">${paidUrl}</div><button class="copy-btn" onclick="copyText('${paidUrl}',this)">📋</button></div>
+      </div>
+      <div class="ev-promo-section">
+        <div class="ev-promo-header">
+          <div class="ev-promo-title">📣 プロモーター指定URL</div>
+        </div>
+        <div id="promo-list-${ev.event_id}">${promoHtml}</div>
+      </div>
+
+
+<!-- プラン追加モーダル -->
+
+<div class="modal-overlay" id="modal-add-plan">
+
+  <div class="modal">
+
+    <div class="modal-title">💳 料金プランを追加</div>
+
+    <input type="hidden" id="plan-event-id">
+
+    <div class="modal-group">
+
+      <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">プラン名</label>
+
+      <input class="form-input" id="plan-name" placeholder="例: プランA（一般）" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.85rem;outline:none;">
+
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+
+      <div>
+
+        <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">男性料金（円）</label>
+
+        <input class="form-input" id="plan-price-male" type="number" placeholder="20000" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.85rem;outline:none;">
+
+      </div>
+
+      <div>
+
+        <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">女性料金（円）</label>
+
+        <input class="form-input" id="plan-price-female" type="number" placeholder="0" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.85rem;outline:none;">
+
+      </div>
+
+    </div>
+
+    <div class="modal-group">
+
+      <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">上限人数（0=無制限）</label>
+
+      <input class="form-input" id="plan-capacity" type="number" value="0" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.85rem;outline:none;">
+
+    </div>
+
+    <div class="modal-group">
+
+      <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">上限到達時の誘導先プランID（任意）</label>
+
+      <input class="form-input" id="plan-redirect" placeholder="PLAN-XXXXXXX" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.75rem;outline:none;">
+
+      <div style="font-size:0.52rem;color:var(--gray);margin-top:6px;">上限到達時に別プランへ誘導する場合のみ設定</div>
+
+    </div>
+
+    <div class="modal-actions">
+
+      <button class="btn-cancel" onclick="closeModal('modal-add-plan')">キャンセル</button>
+
+      <button class="btn-confirm" onclick="addPlan()">追加</button>
+
+    </div>
+
+  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -3600,6 +4234,243 @@ function confirmQrPayment(idx) {
   if (document.getElementById('page-sales')?.classList.contains('active')) {
     renderSalesSummary();
   }
+}
+
+
+// ── プラン管理 ──────────────────────────────────────
+
+function renderPlanListHtml(eventId, plans) {
+
+  if (!plans || plans.length === 0) {
+
+    return '<div class="plan-empty">プランが未設定です。「+ プラン追加」から追加してください。</div>';
+
+  }
+
+  return plans.map(p => {
+
+    const cap     = Number(p.capacity || 0);
+
+    const cnt     = Number(p.current_count || 0);
+
+    const isFull  = cap > 0 && cnt >= cap;
+
+    const status  = String(p.status || 'active');
+
+    const isActive = status === 'active' && !isFull;
+
+    const statusLabel = isFull ? '上限到達' : (status === 'closed' ? '受付終了' : (status === 'full' ? '上限到達' : '受付中'));
+
+    const statusClass = isActive ? 'plan-status-active' : (isFull || status === 'full' ? 'plan-status-full' : 'plan-status-closed');
+
+    const itemClass   = isActive ? 'plan-active' : (isFull || status === 'full' ? 'plan-full' : 'plan-closed');
+
+    const capText     = cap > 0 ? `${cnt}/${cap}名` : `${cnt}名（無制限）`;
+
+    const planUrl     = `${BASE_URL}index.html?e=${eventId}&type=paid&plan=${p.plan_id}`;
+
+    return `<div class="plan-item ${itemClass}" id="plan-item-${p.plan_id}">
+
+      <div class="plan-header">
+
+        <div class="plan-name">${p.plan_name}</div>
+
+        <span class="plan-status-badge ${statusClass}">${statusLabel}</span>
+
+      </div>
+
+      <div class="plan-info">
+
+        <div>男性: <span>¥${Number(p.price_male||0).toLocaleString()}</span></div>
+
+        <div>女性: <span>¥${Number(p.price_female||0).toLocaleString()}</span></div>
+
+        <div>申込数: <span>${capText}</span></div>
+
+      </div>
+
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+
+        <div style="font-size:0.55rem;color:var(--gray);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${planUrl}</div>
+
+        <button class="copy-btn" onclick="copyText('${planUrl}',this)">📋</button>
+
+      </div>
+
+      <div class="plan-actions">
+
+        ${isActive
+
+          ? `<button class="btn-plan-sm btn-plan-close" onclick="closePlan('${p.plan_id}','${eventId}')">受付終了にする</button>`
+
+          : `<button class="btn-plan-sm" onclick="reopenPlan('${p.plan_id}','${eventId}')">再開する</button>`
+
+        }
+
+        <button class="btn-plan-sm" onclick="openEditCapacityModal('${p.plan_id}','${p.plan_name}',${cap},'${p.redirect_plan_id||''}')">上限設定</button>
+
+        <button class="btn-plan-sm" style="color:#CF4444;border-color:rgba(207,68,68,0.25);" onclick="deletePlan('${p.plan_id}','${eventId}')">削除</button>
+
+      </div>
+
+    </div>`;
+
+  }).join('');
+
+}
+
+function getEventPlans(eventId) {
+
+  const ev = allEvents.find(e => e.event_id === eventId);
+
+  return ev ? (ev.plans || []) : [];
+
+}
+
+function openAddPlanModal(eventId) {
+
+  document.getElementById('plan-event-id').value = eventId;
+
+  document.getElementById('plan-name').value = '';
+
+  document.getElementById('plan-price-male').value = '';
+
+  document.getElementById('plan-price-female').value = '0';
+
+  document.getElementById('plan-capacity').value = '0';
+
+  document.getElementById('plan-redirect').value = '';
+
+  document.getElementById('modal-add-plan').classList.add('active');
+
+}
+
+async function addPlan() {
+
+  const eventId   = document.getElementById('plan-event-id').value;
+
+  const planName  = document.getElementById('plan-name').value.trim();
+
+  const priceMale = Number(document.getElementById('plan-price-male').value || 0);
+
+  const priceFem  = Number(document.getElementById('plan-price-female').value || 0);
+
+  const capacity  = Number(document.getElementById('plan-capacity').value || 0);
+
+  const redirect  = document.getElementById('plan-redirect').value.trim();
+
+  if (!planName) { toast('❌ プラン名を入力してください'); return; }
+
+  const d = await apiPost({
+
+    action: 'addPlan',
+
+    event_id: eventId,
+
+    plan_name: planName,
+
+    price_male: priceMale,
+
+    price_female: priceFem,
+
+    capacity: capacity,
+
+    redirect_plan_id: redirect
+
+  });
+
+  if (d.ok) {
+
+    closeModal('modal-add-plan');
+
+    toast('✅ プランを追加しました（ID: ' + d.plan_id + '）');
+
+    await loadEvents();
+
+  } else {
+
+    toast('❌ ' + (d.message || 'エラー'));
+
+  }
+
+}
+
+async function closePlan(planId, eventId) {
+
+  if (!confirm('このプランの受付を終了しますか？')) return;
+
+  const d = await apiPost({ action: 'updatePlanStatus', plan_id: planId, status: 'closed' });
+
+  if (d.ok) {
+
+    toast('✅ 受付を終了しました');
+
+    await loadEvents();
+
+  } else toast('❌ ' + d.message);
+
+}
+
+async function reopenPlan(planId, eventId) {
+
+  const d = await apiPost({ action: 'updatePlanStatus', plan_id: planId, status: 'active' });
+
+  if (d.ok) {
+
+    toast('✅ 受付を再開しました');
+
+    await loadEvents();
+
+  } else toast('❌ ' + d.message);
+
+}
+
+async function deletePlan(planId, eventId) {
+
+  if (!confirm('このプランを削除しますか？')) return;
+
+  const d = await apiPost({ action: 'deletePlan', plan_id: planId });
+
+  if (d.ok) {
+
+    toast('✅ プランを削除しました');
+
+    await loadEvents();
+
+  } else toast('❌ ' + d.message);
+
+}
+
+async function openEditCapacityModal(planId, planName, currentCap, currentRedirect) {
+
+  const newCap = prompt(`「${planName}」の上限人数を入力してください。\n（0=無制限、現在: ${currentCap === 0 ? '無制限' : currentCap + '名'}）`, currentCap);
+
+  if (newCap === null) return;
+
+  const newRedirect = prompt('上限到達時の誘導先プランIDを入力してください。\n（不要な場合は空欄）', currentRedirect || '');
+
+  if (newRedirect === null) return;
+
+  const d = await apiPost({
+
+    action: 'updatePlanCapacity',
+
+    plan_id: planId,
+
+    capacity: Number(newCap || 0),
+
+    redirect_plan_id: newRedirect
+
+  });
+
+  if (d.ok) {
+
+    toast('✅ 上限を更新しました');
+
+    await loadEvents();
+
+  } else toast('❌ ' + d.message);
+
 }
 
 </script>
