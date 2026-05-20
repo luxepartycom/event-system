@@ -249,16 +249,16 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 <script>
 const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
 const BASE_URL = 'https://luxepartycom.github.io/event-system/';
-let currentEvent=null,currentPayType='paid',selectedGender='',termsAgreed=false,hiddenPromoter='';
+let currentEvent=null,currentPayType='paid',selectedGender='',termsAgreed=false,hiddenPromoter='',currentPlanId='',currentPlanName='';
 async function apiGet(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
 async function apiPost(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});return r.json();}
 
 window.addEventListener('load', async () => {
   const params=new URLSearchParams(location.search);
   const eventId=params.get('e')||'',type=params.get('type')||'paid',promoter=params.get('promoter')||'';
+  const planId=params.get('plan')||''; // プランID
   if(!eventId){showError('URLにイベントIDが含まれていません');return;}
   try {
-    // pingとgetEventsを同時送信（GASコールドスタート対策）
     const [data] = await Promise.all([
       apiGet({action:'getEvents'}),
       fetch(API+'?action=ping').catch(()=>{})
@@ -271,8 +271,51 @@ window.addEventListener('load', async () => {
     document.getElementById('ev-name').textContent=ev.name;
     document.getElementById('ev-date').textContent=ev.date;
     const badge=document.getElementById('invite-type-badge');
-    if(currentPayType==='free'){badge.textContent='無料招待';badge.className='invite-type type-free';}
-    else{const pm=Number(ev.price_male||0).toLocaleString(),pf=Number(ev.price_female||0).toLocaleString();badge.textContent=`有料招待 男¥${pm} / 女¥${pf}`;badge.className='invite-type type-paid';}
+
+    // プランチェック
+    if(currentPayType==='paid' && planId) {
+      const planData = await apiPost({action:'checkPlan', plan_id: planId});
+      if(planData.ok) {
+        if(!planData.is_active) {
+          // 受付終了・上限到達
+          const redirectPlan = planData.redirect_plan;
+          if(redirectPlan && redirectPlan.status === 'active') {
+            // 誘導先プランがある場合
+            const redirectUrl = location.href.replace('plan='+planId, 'plan='+redirectPlan.plan_id);
+            showError(
+              `「${planData.plan_name}」の受付は終了しました。<br><br>` +
+              `<a href="${redirectUrl}" style="display:inline-block;background:#C9A84C;color:#000;` +
+              `padding:12px 24px;text-decoration:none;font-weight:700;margin-top:8px;font-size:0.8rem;">` +
+              `「${redirectPlan.plan_name}」で申し込む →</a>`
+            );
+          } else {
+            showError(`「${planData.plan_name}」の受付は終了しました。`);
+          }
+          return;
+        }
+        // プランが有効: 料金をプランから取得
+        currentPlanId = planId;
+        currentPlanName = planData.plan_name;
+        const pm = Number(planData.price_male||0).toLocaleString();
+        const pf = Number(planData.price_female||0).toLocaleString();
+        const capInfo = planData.capacity > 0
+          ? ` （残り${Math.max(0, planData.capacity - planData.current_count)}名）`
+          : '';
+        badge.textContent=`${planData.plan_name} 男¥${pm} / 女¥${pf}${capInfo}`;
+        badge.className='invite-type type-paid';
+      }
+    } else if(currentPayType==='free'){
+      currentPlanId = '';
+      currentPlanName = '';
+      badge.textContent='無料招待';
+      badge.className='invite-type type-free';
+    } else {
+      currentPlanId = '';
+      currentPlanName = '';
+      const pm=Number(ev.price_male||0).toLocaleString(),pf=Number(ev.price_female||0).toLocaleString();
+      badge.textContent=`有料招待 男¥${pm} / 女¥${pf}`;
+      badge.className='invite-type type-paid';
+    }
     if(promoter){hiddenPromoter=promoter;document.getElementById('f-invited-by-section').style.display='none';document.getElementById('f-invited-by-hidden').value=promoter;}
     const descEl=document.getElementById('ev-description');
     if(ev.description&&String(ev.description).trim()){const dh=String(ev.description).trim().replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--gold);word-break:break-all;">$1</a>');descEl.innerHTML=dh;descEl.style.display='block';}
@@ -345,7 +388,7 @@ async function submitForm(){
   const btn=currentPayType==='paid'?document.getElementById('btn-walkin'):document.getElementById('btn-submit');
   btn.disabled=true;
   try {
-    const data=await apiPost({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType});
+    const data=await apiPost({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType,plan_id:currentPlanId||''});
     if(!data.ok){document.getElementById('form-error').textContent=data.message||'エラーが発生しました';document.getElementById('form-error').style.display='block';btn.disabled=false;return;}
     showResult(data,name,email,invitedBy);
     apiPost({action:'sendQREmail',guest_id:data.guest_id,email,name,pay_type:data.pay_type,amount:data.amount,event_name:currentEvent.name,description:currentEvent.description||''}).catch(()=>{});
