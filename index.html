@@ -296,11 +296,17 @@ window.addEventListener('load', async () => {
         // プランが有効: 料金をプランから取得
         currentPlanId = planId;
         currentPlanName = planData.plan_name;
+        window._planData = planData; // 性別選択時に参照
         const pm = Number(planData.price_male||0).toLocaleString();
         const pf = Number(planData.price_female||0).toLocaleString();
-        const capInfo = planData.capacity > 0
-          ? ` （残り${Math.max(0, planData.capacity - planData.current_count)}名）`
-          : '';
+        // 男性上限がある場合は残り枠を表示
+        let capInfo = '';
+        if (planData.capacity_male > 0) {
+          const remM = Math.max(0, planData.capacity_male - (planData.count_male||0));
+          capInfo = ` （男性残り${remM}名）`;
+        } else if (planData.capacity > 0) {
+          capInfo = ` （残り${Math.max(0, planData.capacity - planData.current_count)}名）`;
+        }
         badge.textContent=`${planData.plan_name} 男¥${pm} / 女¥${pf}${capInfo}`;
         badge.className='invite-type type-paid';
       }
@@ -325,8 +331,42 @@ window.addEventListener('load', async () => {
   document.getElementById('terms-box').addEventListener('scroll',function(){const h=document.getElementById('scroll-hint');if(h)h.style.opacity='0';},{passive:true});
 });
 
-function showError(msg){document.getElementById('loading-screen').style.display='none';document.getElementById('error-screen').style.display='block';document.querySelector('#error-screen .error-body').innerHTML=msg;}
-function selectGender(g){selectedGender=g;document.getElementById('g-male').classList.toggle('active',g==='male');document.getElementById('g-female').classList.toggle('active',g==='female');}
+function showError(msg){
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('form-screen').style.display='none';
+  const errScreen = document.getElementById('error-screen');
+  errScreen.style.display='block';
+  document.querySelector('#error-screen .error-body').innerHTML=msg;
+}
+function selectGender(g){
+  selectedGender=g;
+  document.getElementById('g-male').classList.toggle('active',g==='male');
+  document.getElementById('g-female').classList.toggle('active',g==='female');
+  // 男女別残り枠をバッジに反映
+  updatePlanBadgeByGender(g);
+}
+
+function updatePlanBadgeByGender(gender) {
+  if (!currentPlanId || !window._planData) return;
+  const p = window._planData;
+  const badge = document.getElementById('invite-type-badge');
+  const pm = Number(p.price_male||0).toLocaleString();
+  const pf = Number(p.price_female||0).toLocaleString();
+  let capInfo = '';
+  if (gender === 'male' && p.capacity_male > 0) {
+    const rem = Math.max(0, p.capacity_male - p.count_male);
+    capInfo = ` （男性残り${rem}名）`;
+    if (rem === 0) capInfo = ' （男性枠満員）';
+  } else if (gender === 'female' && p.capacity_female > 0) {
+    const rem = Math.max(0, p.capacity_female - p.count_female);
+    capInfo = ` （女性残り${rem}名）`;
+    if (rem === 0) capInfo = ' （女性枠満員）';
+  } else if (p.capacity > 0) {
+    const rem = Math.max(0, p.capacity - p.current_count);
+    capInfo = ` （残り${rem}名）`;
+  }
+  badge.textContent = `${p.plan_name} 男¥${pm} / 女¥${pf}${capInfo}`;
+}
 
 function toggleAgree(){
   termsAgreed=!termsAgreed;
@@ -388,6 +428,26 @@ async function submitForm(){
   const btn=currentPayType==='paid'?document.getElementById('btn-walkin'):document.getElementById('btn-submit');
   btn.disabled=true;
   try {
+    // 有料プランの場合、送信直前に男女別上限を再チェック
+    if(currentPayType==='paid' && currentPlanId) {
+      const recheck = await apiPost({action:'checkPlan', plan_id:currentPlanId, gender:selectedGender});
+      if(recheck.ok && !recheck.is_active) {
+        const rp = recheck.redirect_plan;
+        if(rp && rp.status==='active') {
+          const redirectUrl = location.href.replace('plan='+currentPlanId, 'plan='+rp.plan_id);
+          showError(
+            `「${recheck.plan_name}」の受付は終了しました。<br><br>` +
+            `<a href="${redirectUrl}" style="display:inline-block;background:#C9A84C;color:#000;` +
+            `padding:12px 24px;text-decoration:none;font-weight:700;margin-top:8px;font-size:0.8rem;">` +
+            `「${rp.plan_name}」で申し込む →</a>`
+          );
+        } else {
+          showError(`「${recheck.plan_name}」の受付は終了しました。`);
+        }
+        btn.disabled=false;
+        return;
+      }
+    }
     const data=await apiPost({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType,plan_id:currentPlanId||''});
     if(!data.ok){document.getElementById('form-error').textContent=data.message||'エラーが発生しました';document.getElementById('form-error').style.display='block';btn.disabled=false;return;}
     showResult(data,name,email,invitedBy);
