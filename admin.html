@@ -1390,28 +1390,15 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       </select>
     </div>
     <div class="modal-group">
-      <label class="form-label">招待種別</label>
-      <select class="modal-select" id="cu-type" onchange="onCuTypeChange()">
-        <option value="free">無料招待</option>
-        <option value="paid_noplan">有料招待（プランなし）</option>
-        <option value="paid_plan">有料招待（プランあり）</option>
-      </select>
+      <label class="form-label">招待者名（プロモーター）</label>
+      <input class="form-input" id="cu-promoter" placeholder="例：たかし">
+      <div class="modal-note">ゲストには表示されません。スプレッドシートの「invited_by」列に自動記録されます。</div>
     </div>
-    <!-- プランあり: プラン選択 -->
-    <div class="modal-group" id="cu-plan-group" style="display:none;">
-      <label class="form-label">料金プラン</label>
-      <select class="modal-select" id="cu-plan" onchange="onCuPlanChange()">
-        <option value="">プランを選択してください</option>
-      </select>
-      <div class="modal-note" id="cu-plan-note"></div>
-    </div>
-    <!-- 上限到達時の遷移先設定 -->
-    <div class="modal-group" id="cu-redirect-group" style="display:none;">
-      <label class="form-label" style="color:#E8A020;">上限到達時の遷移先プラン（任意）</label>
-      <select class="modal-select" id="cu-redirect-plan">
-        <option value="">遷移先なし（受付終了のみ表示）</option>
-      </select>
-      <div class="modal-note">プランAの上限到達時にプランBへ誘導する場合に設定</div>
+    <div class="modal-group">
+      <label class="form-label">種別・プランを選択</label>
+      <div id="cu-plan-list" style="margin-top:8px;">
+        <div style="font-size:0.62rem;color:var(--gray);">先にイベントを選択してください</div>
+      </div>
     </div>
     <div class="modal-group">
       <label class="form-label">招待者名（プロモーター）</label>
@@ -2405,141 +2392,19 @@ function copyText(text, btn) {
 }
 function openAddEventModal() { document.getElementById('modal-event').classList.add('active'); }
 
-function openCustomUrlModal() {
-  const sel = document.getElementById('cu-event-sel');
-  sel.innerHTML = '<option value="">選択してください…</option>';
-  allEvents.forEach(ev => {
-    const o = document.createElement('option');
-    o.value = ev.event_id;
-    o.textContent = ev.name + ' — ' + ev.date;
-    sel.appendChild(o);
-  });
-  document.getElementById('cu-url-result').style.display = 'none';
-  document.getElementById('cu-promoter').value = '';
-  document.getElementById('modal-custom-url').classList.add('active');
-}
 
-async function onCuEventChange() {
-  // イベント変更時にプラン選択をリセット
-  document.getElementById('cu-url-result').style.display = 'none';
-  onCuTypeChange();
-}
 
-function onCuTypeChange() {
-  const type    = document.getElementById('cu-type').value;
-  const planGrp = document.getElementById('cu-plan-group');
-  const redirGrp = document.getElementById('cu-redirect-group');
-  const eventId = document.getElementById('cu-event-sel').value;
-  document.getElementById('cu-url-result').style.display = 'none';
+async 
 
-  if (type === 'paid_plan') {
-    planGrp.style.display = 'block';
-    if (eventId) populateCuPlanSelect(eventId);
-  } else {
-    planGrp.style.display = 'none';
-    redirGrp.style.display = 'none';
-  }
-}
 
-function populateCuPlanSelect(eventId) {
-  const sel      = document.getElementById('cu-plan');
-  const redirSel = document.getElementById('cu-redirect-plan');
-  sel.innerHTML      = '<option value="">プランを選択してください</option>';
-  redirSel.innerHTML = '<option value="">遷移先なし（受付終了のみ表示）</option>';
 
-  const plans = getEventPlans(eventId);
-  plans.forEach(p => {
-    const statusLabel = p.status === 'active' ? '受付中' : '受付終了';
-    const capLabel    = Number(p.capacity_male||0) > 0
-      ? ` 男性上限${p.capacity_male}名` : '';
 
-    // メインプラン選択
-    const o = document.createElement('option');
-    o.value = p.plan_id;
-    o.textContent = `${p.plan_name}（${statusLabel}${capLabel}）`;
-    sel.appendChild(o);
 
-    // 遷移先プラン選択（メインと同じ選択肢）
-    const o2 = o.cloneNode(true);
-    redirSel.appendChild(o2);
-  });
-}
 
-function onCuPlanChange() {
-  const planId  = document.getElementById('cu-plan').value;
-  const redirGrp = document.getElementById('cu-redirect-group');
-  const noteEl  = document.getElementById('cu-plan-note');
 
-  if (planId) {
-    // 選択したプランの情報を表示
-    const eventId = document.getElementById('cu-event-sel').value;
-    const plans   = getEventPlans(eventId);
-    const plan    = plans.find(p => p.plan_id === planId);
-    if (plan) {
-      const capM = Number(plan.capacity_male||0);
-      const capF = Number(plan.capacity_female||0);
-      const cntM = Number(plan.count_male||0);
-      const cntF = Number(plan.count_female||0);
-      let info = `男¥${Number(plan.price_male||0).toLocaleString()} / 女¥${Number(plan.price_female||0).toLocaleString()}`;
-      if (capM > 0) info += ` | 男性: ${cntM}/${capM}名`;
-      if (capF > 0) info += ` | 女性: ${cntF}/${capF}名`;
-      noteEl.textContent = info;
-    }
-    redirGrp.style.display = 'block';
-    // 自分自身を遷移先から除外
-    const redirSel = document.getElementById('cu-redirect-plan');
-    Array.from(redirSel.options).forEach(o => {
-      o.disabled = o.value === planId;
-    });
-  } else {
-    redirGrp.style.display = 'none';
-    noteEl.textContent = '';
-  }
-}
 
-async function generateCustomUrl() {
-  const eventId    = document.getElementById('cu-event-sel').value;
-  const typeRaw    = document.getElementById('cu-type').value;
-  const promoter   = document.getElementById('cu-promoter').value.trim();
-  const planId     = document.getElementById('cu-plan')?.value || '';
-  const redirectId = document.getElementById('cu-redirect-plan')?.value || '';
 
-  if (!eventId)  { toast('イベントを選択してください'); return; }
-  if (!promoter) { toast('招待者名を入力してください'); return; }
-  if (typeRaw === 'paid_plan' && !planId) { toast('プランを選択してください'); return; }
 
-  // type文字列を整形
-  const type = typeRaw === 'free' ? 'free' : 'paid';
-  let url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type + '&promoter=' + encodeURIComponent(promoter);
-  if (typeRaw === 'paid_plan' && planId) url += '&plan=' + planId;
-
-  // redirect設定がある場合はGASのプラン設定を更新
-  if (typeRaw === 'paid_plan' && planId && redirectId) {
-    const rd = await apiPost({
-      action: 'updatePlanCapacity',
-      plan_id: planId,
-      capacity: 0, // 合計上限は変えない
-      redirect_plan_id: redirectId
-    });
-    if (rd.ok) toast('✅ 遷移先プランを設定しました');
-  }
-  document.getElementById('cu-url-text').textContent = url;
-  document.getElementById('cu-url-result').style.display = 'block';
-
-  // GASに保存
-  const d = await apiPost({ action: 'savePromoUrl', event_id: eventId, promoter, type });
-  if (d.ok) {
-    // キャッシュに追加（already_existsの場合は重複しない）
-    if (d.message !== 'already_exists') {
-      allPromoUrls.push({ event_id: eventId, promoter, type });
-    }
-    // イベントカードのリストだけ即時再描画
-    refreshPromoList(eventId);
-    toast('✦ ' + promoter + ' のURLを保存しました');
-  } else {
-    toast('保存エラー: ' + (d.message || ''));
-  }
-}
 
 function refreshPromoList(eventId) {
   const listEl = document.getElementById('promo-list-' + eventId);
@@ -3951,6 +3816,126 @@ function confirmQrPayment(idx) {
   if (document.getElementById('page-sales')?.classList.contains('active')) renderSalesSummary();
 }
 
+
+
+// ── プロモーター指定URL生成（シンプル版）──────────────────
+
+function openCustomUrlModal() {
+  // イベント一覧をセット
+  const sel = document.getElementById('cu-event-sel');
+  sel.innerHTML = '<option value="">選択してください…</option>';
+  sortedEvents().forEach(ev => {
+    const o = document.createElement('option');
+    o.value = ev.event_id;
+    o.textContent = ev.name + ' — ' + (String(ev.date||'').substring(0,10));
+    sel.appendChild(o);
+  });
+  // リセット
+  document.getElementById('cu-promoter').value = '';
+  document.getElementById('cu-plan-list').innerHTML =
+    '<div style="font-size:0.62rem;color:var(--gray);">先にイベントを選択してください</div>';
+  document.getElementById('cu-url-result').style.display = 'none';
+  document.getElementById('modal-custom-url').classList.add('active');
+}
+
+async function onCuEventChange() {
+  const eventId = document.getElementById('cu-event-sel').value;
+  const listEl  = document.getElementById('cu-plan-list');
+  document.getElementById('cu-url-result').style.display = 'none';
+
+  if (!eventId) {
+    listEl.innerHTML = '<div style="font-size:0.62rem;color:var(--gray);">先にイベントを選択してください</div>';
+    return;
+  }
+
+  listEl.innerHTML = '<div style="font-size:0.62rem;color:var(--gray);">読み込み中...</div>';
+
+  // allEventsから取得、なければGASから再取得
+  let plans = (allEvents.find(e => e.event_id === eventId) || {}).plans || [];
+  if (plans.length === 0) {
+    const d = await apiGet({ action: 'getEvents' });
+    allEvents = d.events || allEvents;
+    plans = (allEvents.find(e => e.event_id === eventId) || {}).plans || [];
+  }
+
+  // プラン選択リストを生成
+  const rows = [];
+
+  // 無料プラン（常に表示）
+  rows.push(`
+    <label class="cu-plan-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,0.08);margin-bottom:6px;cursor:pointer;">
+      <input type="radio" name="cu-plan-radio" value="free" style="accent-color:var(--gold);">
+      <div>
+        <div style="font-size:0.75rem;color:var(--white);font-weight:600;">無料招待</div>
+        <div style="font-size:0.55rem;color:var(--gray);">男女とも無料</div>
+      </div>
+    </label>`);
+
+  // 各プラン
+  plans.forEach(p => {
+    const pm  = Number(p.price_male||0).toLocaleString();
+    const pf  = Number(p.price_female||0).toLocaleString();
+    const capM = Number(p.capacity_male||0);
+    const cntM = Number(p.count_male||0);
+    const status = p.status === 'active' ? '' : '<span style="color:#CF4444;font-size:0.5rem;margin-left:6px;">受付終了</span>';
+    const capInfo = capM > 0 ? `男性残り${Math.max(0,capM-cntM)}名` : '';
+    rows.push(`
+      <label class="cu-plan-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(201,168,76,0.2);margin-bottom:6px;cursor:pointer;">
+        <input type="radio" name="cu-plan-radio" value="paid:${p.plan_id}" style="accent-color:var(--gold);">
+        <div style="flex:1;">
+          <div style="font-size:0.75rem;color:var(--white);font-weight:600;">${p.plan_name}${status}</div>
+          <div style="font-size:0.55rem;color:var(--gray);">男¥${pm} / 女¥${pf}${capInfo ? ' | '+capInfo : ''}</div>
+        </div>
+      </label>`);
+  });
+
+  if (plans.length === 0) {
+    rows.push('<div style="font-size:0.62rem;color:var(--gray);">※ このイベントにプランがありません。無料招待のみ利用可能です。</div>');
+  }
+
+  listEl.innerHTML = rows.join('');
+}
+
+async function generateCustomUrl() {
+  const eventId  = document.getElementById('cu-event-sel').value;
+  const promoter = document.getElementById('cu-promoter').value.trim();
+  const selected = document.querySelector('input[name="cu-plan-radio"]:checked');
+
+  if (!eventId)  { toast('イベントを選択してください'); return; }
+  if (!promoter) { toast('招待者名を入力してください'); return; }
+  if (!selected) { toast('種別・プランを選択してください'); return; }
+
+  const val = selected.value; // 'free' または 'paid:PLAN-XXXX'
+  let url, type, planId = '';
+
+  if (val === 'free') {
+    type = 'free';
+    url  = BASE_URL + 'index.html?e=' + eventId + '&type=free&promoter=' + encodeURIComponent(promoter);
+  } else {
+    type   = 'paid';
+    planId = val.replace('paid:', '');
+    url    = BASE_URL + 'index.html?e=' + eventId + '&type=paid&plan=' + planId + '&promoter=' + encodeURIComponent(promoter);
+  }
+
+  // GASに保存
+  const d = await apiPost({ action: 'savePromoUrl', event_id: eventId, promoter, type, plan_id: planId });
+
+  document.getElementById('cu-url-text').textContent = url;
+  document.getElementById('cu-url-result').style.display = 'block';
+  toast('✅ URLを生成しました');
+
+  // キャッシュに追加
+  if (!allPromoUrls) allPromoUrls = [];
+  if (d.message !== 'already_exists') {
+    allPromoUrls.push({ event_id: eventId, promoter, type, plan_id: planId });
+  }
+  renderPromoUrls(eventId);
+}
+
+function copyCustomUrl() {
+  const text = document.getElementById('cu-url-text').textContent;
+  copyText(text);
+}
 
 </script>
 </body>
