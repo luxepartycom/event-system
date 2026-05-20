@@ -1391,10 +1391,17 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     </div>
     <div class="modal-group">
       <label class="form-label">招待種別</label>
-      <select class="modal-select" id="cu-type">
+      <select class="modal-select" id="cu-type" onchange="onCuTypeChange()">
         <option value="free">無料招待</option>
-        <option value="paid">有料招待</option>
+        <option value="paid">有料招待（プランなし）</option>
       </select>
+    </div>
+    <div class="modal-group" id="cu-plan-group" style="display:none;">
+      <label class="form-label">料金プラン（任意）</label>
+      <select class="modal-select" id="cu-plan">
+        <option value="">プランなし</option>
+      </select>
+      <div class="modal-note">プランを選択すると申込数・上限管理が適用されます</div>
     </div>
     <div class="modal-group">
       <label class="form-label">招待者名（プロモーター）</label>
@@ -1438,8 +1445,18 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       </div>
     </div>
     <div class="modal-group">
-      <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">上限人数（0=無制限）</label>
+      <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">合計上限（0=無制限）</label>
       <input class="form-input" id="plan-capacity" type="number" value="0" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.85rem;outline:none;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div>
+        <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">男性上限（0=無制限）</label>
+        <input class="form-input" id="plan-capacity-male" type="number" value="0" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.85rem;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">女性上限（0=無制限）</label>
+        <input class="form-input" id="plan-capacity-female" type="number" value="0" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.85rem;outline:none;">
+      </div>
     </div>
     <div class="modal-group">
       <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">上限到達時の誘導先プランID（任意）</label>
@@ -2392,14 +2409,42 @@ function openCustomUrlModal() {
   document.getElementById('modal-custom-url').classList.add('active');
 }
 
-async function generateCustomUrl() {
+async function onCuTypeChange() {
+  const type = document.getElementById('cu-type').value;
+  const planGroup = document.getElementById('cu-plan-group');
+  if (type === 'paid') {
+    planGroup.style.display = 'block';
+    // 選択中イベントのプランを読み込む
+    const eventId = document.getElementById('cu-event-sel').value;
+    if (eventId) populateCuPlanSelect(eventId);
+  } else {
+    planGroup.style.display = 'none';
+  }
+}
+
+function populateCuPlanSelect(eventId) {
+  const sel = document.getElementById('cu-plan');
+  sel.innerHTML = '<option value="">プランなし（旧来の有料）</option>';
+  const plans = getEventPlans(eventId);
+  plans.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.plan_id;
+    const status = p.status === 'active' ? '受付中' : '受付終了';
+    o.textContent = `${p.plan_name}（${status}）`;
+    sel.appendChild(o);
+  });
+}
+
+function generateCustomUrl() {
   const eventId  = document.getElementById('cu-event-sel').value;
   const type     = document.getElementById('cu-type').value;
   const promoter = document.getElementById('cu-promoter').value.trim();
+  const planId   = document.getElementById('cu-plan')?.value || '';
   if (!eventId)  { toast('イベントを選択してください'); return; }
   if (!promoter) { toast('招待者名を入力してください'); return; }
 
-  const url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type + '&promoter=' + encodeURIComponent(promoter);
+  let url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type + '&promoter=' + encodeURIComponent(promoter);
+  if (type === 'paid' && planId) url += '&plan=' + planId;
   document.getElementById('cu-url-text').textContent = url;
   document.getElementById('cu-url-result').style.display = 'block';
 
@@ -3695,6 +3740,11 @@ function renderPlanListHtml(eventId, plans) {
         <div>女性: <span>¥${Number(p.price_female||0).toLocaleString()}</span></div>
         <div>申込数: <span>${capText}</span></div>
       </div>
+      ${(Number(p.capacity_male||0)>0||Number(p.capacity_female||0)>0)?
+        `<div class="plan-info" style="font-size:0.58rem;margin-top:-4px;">
+          ${Number(p.capacity_male||0)>0?`<div>男性: <span>${Number(p.count_male||0)}/${p.capacity_male}名</span></div>`:''}
+          ${Number(p.capacity_female||0)>0?`<div>女性: <span>${Number(p.count_female||0)}/${p.capacity_female}名</span></div>`:''}
+        </div>`:''}
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
         <div style="font-size:0.55rem;color:var(--gray);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${planUrl}</div>
         <button class="copy-btn" onclick="copyText('${planUrl}',this)">📋</button>
@@ -3737,6 +3787,9 @@ async function addPlan() {
 
   if (!planName) { toast('❌ プラン名を入力してください'); return; }
 
+  const capMale   = Number(document.getElementById('plan-capacity-male')?.value   || 0);
+  const capFemale = Number(document.getElementById('plan-capacity-female')?.value || 0);
+
   const d = await apiPost({
     action: 'addPlan',
     event_id: eventId,
@@ -3744,6 +3797,8 @@ async function addPlan() {
     price_male: priceMale,
     price_female: priceFem,
     capacity: capacity,
+    capacity_male: capMale,
+    capacity_female: capFemale,
     redirect_plan_id: redirect
   });
 
