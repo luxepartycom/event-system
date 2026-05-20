@@ -2435,7 +2435,7 @@ function populateCuPlanSelect(eventId) {
   });
 }
 
-function generateCustomUrl() {
+async function generateCustomUrl() {
   const eventId  = document.getElementById('cu-event-sel').value;
   const type     = document.getElementById('cu-type').value;
   const promoter = document.getElementById('cu-promoter').value.trim();
