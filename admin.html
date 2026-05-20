@@ -16,7 +16,7 @@
 body{background:var(--black);color:var(--white);font-family:-apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif;font-weight:300;min-height:100vh;}
 
 /* LOGIN */
-#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;z-index:1000;}
 .login-box{width:100%;max-width:380px;padding:52px 36px;border:1px solid rgba(201,168,76,0.15);background:var(--dark);}
 .login-logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.5rem;color:var(--gold);letter-spacing:0.35em;margin-bottom:4px;}
 .login-sub{font-size:0.52rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin-bottom:36px;}
@@ -3718,18 +3718,29 @@ function renderPlanListHtml(eventId, plans) {
     return '<div class="plan-empty">プランが未設定です。「+ プラン追加」から追加してください。</div>';
   }
   return plans.map(p => {
-    const cap     = Number(p.capacity || 0);
-    const cnt     = Number(p.current_count || 0);
-    const isFull  = cap > 0 && cnt >= cap;
-    const status  = String(p.status || 'active');
+    const cap      = Number(p.capacity || 0);
+    const cnt      = Number(p.current_count || 0);
+    const isFull   = cap > 0 && cnt >= cap;
+    const status   = String(p.status || 'active');
     const isActive = status === 'active' && !isFull;
-
-    const statusLabel = isFull ? '上限到達' : (status === 'closed' ? '受付終了' : (status === 'full' ? '上限到達' : '受付中'));
-    const statusClass = isActive ? 'plan-status-active' : (isFull || status === 'full' ? 'plan-status-full' : 'plan-status-closed');
-    const itemClass   = isActive ? 'plan-active' : (isFull || status === 'full' ? 'plan-full' : 'plan-closed');
+    const capMale   = Number(p.capacity_male   || 0);
+    const capFemale = Number(p.capacity_female || 0);
+    const cntMale   = Number(p.count_male      || 0);
+    const cntFemale = Number(p.count_female    || 0);
+    const isFullMale   = capMale   > 0 && cntMale   >= capMale;
+    const isFullFemale = capFemale > 0 && cntFemale >= capFemale;
+    const statusLabel = (isFull||isFullMale) ? '上限到達' : (status==='closed'?'受付終了':(status==='full'?'上限到達':'受付中'));
+    const statusClass = isActive ? 'plan-status-active' : (isFull||status==='full'?'plan-status-full':'plan-status-closed');
+    const itemClass   = isActive ? 'plan-active' : (isFull||status==='full'?'plan-full':'plan-closed');
     const capText     = cap > 0 ? `${cnt}/${cap}名` : `${cnt}名（無制限）`;
-    const planUrl     = `${BASE_URL}index.html?e=${eventId}&type=paid&plan=${p.plan_id}`;
-
+    const genderCapHtml = (capMale > 0 || capFemale > 0)
+      ? '<div class="plan-info" style="font-size:0.58rem;margin-top:-4px;">'
+        + (capMale   > 0 ? `<div>男性: <span>${cntMale}/${capMale}名</span></div>` : '')
+        + (capFemale > 0 ? `<div>女性: <span>${cntFemale}/${capFemale}名</span></div>` : '')
+        + '</div>'
+      : '';
+    const planUrl = `${BASE_URL}index.html?e=${eventId}&type=paid&plan=${p.plan_id}`;
+    const idx = plans.indexOf(p);
     return `<div class="plan-item ${itemClass}" id="plan-item-${p.plan_id}">
       <div class="plan-header">
         <div class="plan-name">${p.plan_name}</div>
@@ -3740,11 +3751,7 @@ function renderPlanListHtml(eventId, plans) {
         <div>女性: <span>¥${Number(p.price_female||0).toLocaleString()}</span></div>
         <div>申込数: <span>${capText}</span></div>
       </div>
-      ${(Number(p.capacity_male||0)>0||Number(p.capacity_female||0)>0)?
-        `<div class="plan-info" style="font-size:0.58rem;margin-top:-4px;">
-          ${Number(p.capacity_male||0)>0?`<div>男性: <span>${Number(p.count_male||0)}/${p.capacity_male}名</span></div>`:''}
-          ${Number(p.capacity_female||0)>0?`<div>女性: <span>${Number(p.count_female||0)}/${p.capacity_female}名</span></div>`:''}
-        </div>`:''}
+      ${genderCapHtml}
       <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
         <div style="font-size:0.55rem;color:var(--gray);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${planUrl}</div>
         <button class="copy-btn" onclick="copyText('${planUrl}',this)">📋</button>
@@ -3761,7 +3768,6 @@ function renderPlanListHtml(eventId, plans) {
   }).join('');
 }
 
-// プロモーターURLにプラン追加（既存のgenerateCustomUrl拡張）
 function getEventPlans(eventId) {
   const ev = allEvents.find(e => e.event_id === eventId);
   return ev ? (ev.plans || []) : [];
@@ -3773,6 +3779,8 @@ function openAddPlanModal(eventId) {
   document.getElementById('plan-price-male').value = '';
   document.getElementById('plan-price-female').value = '0';
   document.getElementById('plan-capacity').value = '0';
+  document.getElementById('plan-capacity-male').value = '0';
+  document.getElementById('plan-capacity-female').value = '0';
   document.getElementById('plan-redirect').value = '';
   document.getElementById('modal-add-plan').classList.add('active');
 }
@@ -3783,78 +3791,88 @@ async function addPlan() {
   const priceMale = Number(document.getElementById('plan-price-male').value || 0);
   const priceFem  = Number(document.getElementById('plan-price-female').value || 0);
   const capacity  = Number(document.getElementById('plan-capacity').value || 0);
-  const redirect  = document.getElementById('plan-redirect').value.trim();
-
-  if (!planName) { toast('❌ プラン名を入力してください'); return; }
-
   const capMale   = Number(document.getElementById('plan-capacity-male')?.value   || 0);
   const capFemale = Number(document.getElementById('plan-capacity-female')?.value || 0);
-
+  const redirect  = document.getElementById('plan-redirect').value.trim();
+  if (!planName) { toast('❌ プラン名を入力してください'); return; }
   const d = await apiPost({
-    action: 'addPlan',
-    event_id: eventId,
-    plan_name: planName,
-    price_male: priceMale,
-    price_female: priceFem,
-    capacity: capacity,
-    capacity_male: capMale,
-    capacity_female: capFemale,
+    action: 'addPlan', event_id: eventId, plan_name: planName,
+    price_male: priceMale, price_female: priceFem,
+    capacity: capacity, capacity_male: capMale, capacity_female: capFemale,
     redirect_plan_id: redirect
   });
-
   if (d.ok) {
     closeModal('modal-add-plan');
     toast('✅ プランを追加しました（ID: ' + d.plan_id + '）');
     await loadEvents();
-  } else {
-    toast('❌ ' + (d.message || 'エラー'));
-  }
+  } else toast('❌ ' + (d.message || 'エラー'));
 }
 
 async function closePlan(planId, eventId) {
   if (!confirm('このプランの受付を終了しますか？')) return;
   const d = await apiPost({ action: 'updatePlanStatus', plan_id: planId, status: 'closed' });
-  if (d.ok) {
-    toast('✅ 受付を終了しました');
-    await loadEvents();
-  } else toast('❌ ' + d.message);
+  if (d.ok) { toast('✅ 受付を終了しました'); await loadEvents(); }
+  else toast('❌ ' + d.message);
 }
 
 async function reopenPlan(planId, eventId) {
   const d = await apiPost({ action: 'updatePlanStatus', plan_id: planId, status: 'active' });
-  if (d.ok) {
-    toast('✅ 受付を再開しました');
-    await loadEvents();
-  } else toast('❌ ' + d.message);
+  if (d.ok) { toast('✅ 受付を再開しました'); await loadEvents(); }
+  else toast('❌ ' + d.message);
 }
 
 async function deletePlan(planId, eventId) {
   if (!confirm('このプランを削除しますか？')) return;
   const d = await apiPost({ action: 'deletePlan', plan_id: planId });
-  if (d.ok) {
-    toast('✅ プランを削除しました');
-    await loadEvents();
-  } else toast('❌ ' + d.message);
+  if (d.ok) { toast('✅ プランを削除しました'); await loadEvents(); }
+  else toast('❌ ' + d.message);
 }
 
-// 上限変更モーダル（簡易版：promptで対応）
 async function openEditCapacityModal(planId, planName, currentCap, currentRedirect) {
-  const newCap = prompt(`「${planName}」の上限人数を入力してください。\n（0=無制限、現在: ${currentCap === 0 ? '無制限' : currentCap + '名'}）`, currentCap);
+  const newCap = prompt(`「${planName}」の上限人数を入力してください。\n（0=無制限、現在: ${currentCap===0?'無制限':currentCap+'名'}）`, currentCap);
   if (newCap === null) return;
   const newRedirect = prompt('上限到達時の誘導先プランIDを入力してください。\n（不要な場合は空欄）', currentRedirect || '');
   if (newRedirect === null) return;
-
-  const d = await apiPost({
-    action: 'updatePlanCapacity',
-    plan_id: planId,
-    capacity: Number(newCap || 0),
-    redirect_plan_id: newRedirect
-  });
-  if (d.ok) {
-    toast('✅ 上限を更新しました');
-    await loadEvents();
-  } else toast('❌ ' + d.message);
+  const d = await apiPost({ action: 'updatePlanCapacity', plan_id: planId, capacity: Number(newCap||0), redirect_plan_id: newRedirect });
+  if (d.ok) { toast('✅ 上限を更新しました'); await loadEvents(); }
+  else toast('❌ ' + d.message);
 }
+
+function onCuTypeChange() {
+  const type = document.getElementById('cu-type').value;
+  const planGroup = document.getElementById('cu-plan-group');
+  if (type === 'paid') {
+    planGroup.style.display = 'block';
+    const eventId = document.getElementById('cu-event-sel').value;
+    if (eventId) populateCuPlanSelect(eventId);
+  } else {
+    planGroup.style.display = 'none';
+  }
+}
+
+function populateCuPlanSelect(eventId) {
+  const sel = document.getElementById('cu-plan');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">プランなし（旧来の有料）</option>';
+  const plans = getEventPlans(eventId);
+  plans.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.plan_id;
+    const status = p.status === 'active' ? '受付中' : '受付終了';
+    o.textContent = `${p.plan_name}（${status}）`;
+    sel.appendChild(o);
+  });
+}
+
+// QR決済確認済み処理
+function confirmQrPayment(idx) {
+  if (!confirm('Stripeで決済完了を確認しましたか？\n\n「確認済み」にすると売上サマリーに反映されます。')) return;
+  chargeHistory[idx].status = 'ok';
+  renderChargeHistory();
+  toast('✅ QR決済を確認済みにしました');
+  if (document.getElementById('page-sales')?.classList.contains('active')) renderSalesSummary();
+}
+
 
 </script>
 </body>
