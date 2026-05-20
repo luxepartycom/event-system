@@ -3804,10 +3804,3 @@ async function openEditCapacityModal(planId, planName, currentCap, currentRedire
 </script>
 </body>
 </html>
-      <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.05);padding-top:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div style="font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;">💳 料金プラン</div>
-          <button class="copy-btn" onclick="openAddPlanModal('${ev.event_id}')" style="font-size:0.52rem;padding:4px 10px;">+ プラン追加</button>
-        </div>
-        <div id="plan-list-${ev.event_id}">${renderPlanListHtml(ev.event_id, ev.plans || [])}</div>
-      </div>
