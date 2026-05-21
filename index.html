@@ -275,6 +275,11 @@ window.addEventListener('load', async () => {
     // プランチェック
     if(currentPayType==='paid' && planId) {
       const planData = await apiPost({action:'checkPlan', plan_id: planId});
+      if(!planData.ok) {
+        // プランが見つからない場合はエラー表示
+        showError('プランが見つかりません。URLをご確認ください。<br><small style="color:#888;">plan_id: ' + planId + '</small>');
+        return;
+      }
       if(planData.ok) {
         if(!planData.is_active) {
           // 受付終了・上限到達
