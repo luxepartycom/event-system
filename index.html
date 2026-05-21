@@ -281,7 +281,10 @@ window.addEventListener('load', async () => {
           const redirectPlan = planData.redirect_plan;
           if(redirectPlan && redirectPlan.status === 'active') {
             // 誘導先プランがある場合
-            const redirectUrl = location.href.replace('plan='+planId, 'plan='+redirectPlan.plan_id);
+            // プロモーター情報を引き継いだリダイレクトURL
+            const curParams = new URLSearchParams(location.search);
+            curParams.set('plan', redirectPlan.plan_id);
+            const redirectUrl = location.pathname + '?' + curParams.toString();
             showError(
               `「${planData.plan_name}」の受付は終了しました。<br><br>` +
               `<a href="${redirectUrl}" style="display:inline-block;background:#C9A84C;color:#000;` +
@@ -434,7 +437,9 @@ async function submitForm(){
       if(recheck.ok && !recheck.is_active) {
         const rp = recheck.redirect_plan;
         if(rp && rp.status==='active') {
-          const redirectUrl = location.href.replace('plan='+currentPlanId, 'plan='+rp.plan_id);
+          const curParams2 = new URLSearchParams(location.search);
+          curParams2.set('plan', rp.plan_id);
+          const redirectUrl = location.pathname + '?' + curParams2.toString();
           showError(
             `「${recheck.plan_name}」の受付は終了しました。<br><br>` +
             `<a href="${redirectUrl}" style="display:inline-block;background:#C9A84C;color:#000;` +
