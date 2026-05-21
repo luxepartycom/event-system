@@ -317,6 +317,12 @@ window.addEventListener('load', async () => {
         currentPlanId = planId;
         currentPlanName = planData.plan_name;
         window._planData = planData; // 性別選択時に参照
+        // プランの決済方法設定を適用（空=イベント設定を継承）
+        if (planData.payment_methods) {
+          currentPayMethods = planData.payment_methods;
+        } else {
+          currentPayMethods = String(ev.payment_methods || 'card,walkin');
+        }
         const pm = Number(planData.price_male||0).toLocaleString();
         const pf = Number(planData.price_female||0).toLocaleString();
         // 男性上限がある場合は残り枠を表示
@@ -338,6 +344,8 @@ window.addEventListener('load', async () => {
     } else {
       currentPlanId = '';
       currentPlanName = '';
+      // イベントのデフォルト決済方法を適用
+      currentPayMethods = String(ev.payment_methods || 'card,walkin');
       const pm=Number(ev.price_male||0).toLocaleString(),pf=Number(ev.price_female||0).toLocaleString();
       badge.textContent=`有料招待 男¥${pm} / 女¥${pf}`;
       badge.className='invite-type type-paid';
@@ -388,6 +396,22 @@ function updatePlanBadgeByGender(gender) {
   badge.textContent = `${p.plan_name} 男¥${pm} / 女¥${pf}${capInfo}`;
 }
 
+// 決済方法表示制御
+// payMethods: 'card,walkin' / 'card' / 'walkin' / ''(=両方)
+let currentPayMethods = 'card,walkin';
+
+function applyPaymentMethods(payMethods) {
+  currentPayMethods = payMethods || 'card,walkin';
+  const hasCard   = currentPayMethods.includes('card');
+  const hasWalkin = currentPayMethods.includes('walkin');
+  const stripeBtn = document.getElementById('btn-stripe');
+  const walkinBtn = document.getElementById('btn-walkin');
+  const divider   = document.querySelector('.payment-divider');
+  if (stripeBtn) stripeBtn.style.display = hasCard   ? '' : 'none';
+  if (walkinBtn) walkinBtn.style.display = hasWalkin ? '' : 'none';
+  if (divider)   divider.style.display   = (hasCard && hasWalkin) ? '' : 'none';
+}
+
 function toggleAgree(){
   termsAgreed=!termsAgreed;
   const cb=document.getElementById('terms-checkbox');
@@ -396,6 +420,7 @@ function toggleAgree(){
     if(currentPayType==='paid'){
       document.getElementById('btn-submit').style.display='none';
       document.getElementById('payment-choice').classList.add('visible');
+      applyPaymentMethods(currentPayMethods);
       document.getElementById('btn-stripe').disabled=false;
       document.getElementById('btn-walkin').disabled=false;
     } else {
