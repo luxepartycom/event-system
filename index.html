@@ -283,9 +283,18 @@ window.addEventListener('load', async () => {
       if(planData.ok) {
         if(!planData.is_active) {
           // 受付終了・上限到達
-          const redirectUrl      = planData.redirect_url || '';
+          const redirectUrlBase   = planData.redirect_url || '';
           const redirectPlanName = planData.redirect_plan_name || '';
-          if(redirectUrl) {
+          if(redirectUrlBase) {
+            // promoterパラメータを引き継ぐ
+            let redirectUrl = redirectUrlBase;
+            if(promoter) {
+              const sep = redirectUrl.includes('?') ? '&' : '?';
+              // すでにpromoterが含まれていなければ追加
+              if(!redirectUrl.includes('promoter=')) {
+                redirectUrl += sep + 'promoter=' + encodeURIComponent(promoter);
+              }
+            }
             const btnLabel = redirectPlanName
               ? `「${redirectPlanName}」で申し込む →`
               : 'こちらから申し込む →';
@@ -443,9 +452,17 @@ async function submitForm(){
     if(currentPayType==='paid' && currentPlanId) {
       const recheck = await apiPost({action:'checkPlan', plan_id:currentPlanId, gender:selectedGender});
       if(recheck.ok && !recheck.is_active) {
-          const recheckRedirectUrl  = recheck.redirect_url || '';
+          const recheckRedirectBase = recheck.redirect_url || '';
           const recheckRedirectName = recheck.redirect_plan_name || '';
-          if(recheckRedirectUrl) {
+          if(recheckRedirectBase) {
+            // promoterパラメータを引き継ぐ
+            let recheckRedirectUrl = recheckRedirectBase;
+            if(promoter) {
+              const sep2 = recheckRedirectUrl.includes('?') ? '&' : '?';
+              if(!recheckRedirectUrl.includes('promoter=')) {
+                recheckRedirectUrl += sep2 + 'promoter=' + encodeURIComponent(promoter);
+              }
+            }
             const btnLabel2 = recheckRedirectName
               ? `「${recheckRedirectName}」で申し込む →`
               : 'こちらから申し込む →';
