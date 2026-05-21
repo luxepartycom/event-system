@@ -1353,6 +1353,19 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       </div>
       <div class="modal-note">無料招待の場合は料金不要です。有料・無料はURLで区別されます。</div>
     </div>
+    <div class="modal-group">
+      <label class="form-label">決済方法（有料招待のデフォルト設定）</label>
+      <div style="display:flex;gap:16px;margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.7rem;color:var(--white);">
+          <input type="checkbox" id="me-pay-card" checked style="accent-color:var(--gold);width:16px;height:16px;">
+          💳 事前カード決済
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.7rem;color:var(--white);">
+          <input type="checkbox" id="me-pay-walkin" checked style="accent-color:var(--gold);width:16px;height:16px;">
+          💵 当日お支払い
+        </label>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn-cancel"  onclick="closeModal('modal-event')">キャンセル</button>
       <button class="btn-confirm" onclick="addEvent()">追加</button>
@@ -1454,6 +1467,20 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">上限到達時の誘導先URL（任意）</label>
       <input class="form-input" id="plan-redirect" placeholder="https://luxepartycom.github.io/event-system/index.html?e=EV-XXX&type=paid" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.65rem;outline:none;">
       <div style="font-size:0.52rem;color:var(--gray);margin-top:6px;">上限到達時に誘導したいURLを直接入力（プランあり・なし・外部URL問わず）</div>
+    </div>
+    <div class="modal-group">
+      <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">決済方法（空=イベントの設定を継承）</label>
+      <div style="display:flex;gap:16px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.7rem;color:var(--white);">
+          <input type="checkbox" id="plan-pay-card" style="accent-color:var(--gold);width:16px;height:16px;">
+          💳 事前カード決済
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.7rem;color:var(--white);">
+          <input type="checkbox" id="plan-pay-walkin" style="accent-color:var(--gold);width:16px;height:16px;">
+          💵 当日お支払い
+        </label>
+      </div>
+      <div style="font-size:0.52rem;color:var(--gray);margin-top:6px;">両方未選択の場合はイベントの決済設定を継承します</div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-add-plan')">キャンセル</button>
@@ -1764,7 +1791,8 @@ async function addEvent() {
   const pf   = document.getElementById('me-price-female').value || 0;
   const desc = document.getElementById('me-description').value.trim();
   if (!name || !date) { toast('イベント名と日付を入力してください'); return; }
-  const d = await apiPost({ action: 'addEvent', name, date, price_male: pm, price_female: pf, description: desc });
+  const d = await apiPost({ action: 'addEvent', name, date, price_male: pm, price_female: pf, description: desc,
+    payment_methods: [document.getElementById('me-pay-card')?.checked?'card':'', document.getElementById('me-pay-walkin')?.checked?'walkin':''].filter(Boolean).join(',') || 'card,walkin' });
   if (d.ok) {
     document.getElementById('me-name').value = '';
     document.getElementById('me-date').value = '';
@@ -3769,7 +3797,8 @@ async function addPlan() {
     action: 'addPlan', event_id: eventId, plan_name: planName,
     price_male: priceMale, price_female: priceFem,
     capacity: capacity, capacity_male: capMale, capacity_female: capFemale,
-    redirect_url: redirect
+    redirect_url: redirect,
+    payment_methods: [document.getElementById('plan-pay-card')?.checked?'card':'', document.getElementById('plan-pay-walkin')?.checked?'walkin':''].filter(Boolean).join(',')
   });
   if (d.ok) {
     closeModal('modal-add-plan');
