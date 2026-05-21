@@ -434,7 +434,8 @@ async function submitForm(){
     // 有料プランの場合、送信直前に男女別上限を再チェック
     if(currentPayType==='paid' && currentPlanId) {
       const recheck = await apiPost({action:'checkPlan', plan_id:currentPlanId, gender:selectedGender});
-      if(recheck.ok && !recheck.is_acconst recheckRedirectUrl = recheck.redirect_url || '';
+      if(recheck.ok && !recheck.is_active) {
+          const recheckRedirectUrl = recheck.redirect_url || '';
           if(recheckRedirectUrl) {
             showError(
               `「${recheck.plan_name}」の受付は終了しました。<br><br>` +
