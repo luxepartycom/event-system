@@ -1517,6 +1517,15 @@ function logout() {
 // ── 初期化 ───────────────────────────────────────────
 async function init() {
   fetch(API + '?action=ping').catch(() => {});
+  // event_plansシートのマイグレーション（初回のみ自動実行）
+  if (!sessionStorage.getItem('lpt_migrated')) {
+    apiGet({ action: 'migrateEventPlans' }).then(function(d) {
+      if (d.ok && d.added && d.added.length > 0) {
+        console.log('event_plans migration:', d.added);
+      }
+    }).catch(function(){});
+    sessionStorage.setItem('lpt_migrated', '1');
+  }
 
   // ── STEP1: イベント一覧を取得 ──────────────────────
   const [evResult, puResult] = await Promise.all([
