@@ -170,7 +170,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .ev-promo-empty{font-size:0.58rem;color:rgba(255,255,255,0.18);padding:6px 0;}
 .promo-url-item{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--dark2);margin-bottom:4px;}
 .promo-url-name{font-size:0.65rem;color:var(--white);min-width:60px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
-.promo-url-type{font-size:0.44rem;letter-spacing:0.1em;padding:2px 6px;flex-shrink:0;}
+.promo-url-type{font-size:0.44rem;letter-spacing:0.05em;padding:2px 8px;flex-shrink:0;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .promo-url-type.type-free{color:var(--free);border:1px solid rgba(155,142,196,0.4);}
 .promo-url-type.type-paid{color:var(--gold);border:1px solid rgba(201,168,76,0.35);}
 .promo-url-spacer{flex:1;}
@@ -2420,14 +2420,28 @@ function refreshPromoList(eventId) {
 }
 
 function buildPromoItem(eventId, u) {
-  // プラン名を取得
+  // プラン名・料金を取得
   let planLabel = '';
+  let planPrice = '';
   if (u.plan_id && u.plan_id !== '') {
     const evPlans = (allEvents.find(e => e.event_id === u.event_id) || {}).plans || [];
     const plan = evPlans.find(p => p.plan_id === u.plan_id);
-    if (plan) planLabel = plan.plan_name;
+    if (plan) {
+      planLabel = plan.plan_name;
+      const pm = Number(plan.price_male||0);
+      const pf = Number(plan.price_female||0);
+      planPrice = ' 男¥' + pm.toLocaleString() + '/女¥' + pf.toLocaleString();
+    }
+  } else if (u.type === 'paid') {
+    // プランなし有料の場合はイベントの基本料金を表示
+    const ev = allEvents.find(e => e.event_id === u.event_id) || {};
+    const pm = Number(ev.price_male||0);
+    const pf = Number(ev.price_female||0);
+    if (pm > 0 || pf > 0) planPrice = ' 男¥' + pm.toLocaleString() + '/女¥' + pf.toLocaleString();
   }
-  const label = u.type === 'free' ? '無料' : (planLabel || '有料（通常）');
+  const label = u.type === 'free'
+    ? '無料招待'
+    : (planLabel ? planLabel + planPrice : '有料（通常）' + planPrice);
   const cls   = u.type === 'free' ? 'type-free' : 'type-paid';
   const esc   = u.promoter.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   return `<div class="promo-url-item">
