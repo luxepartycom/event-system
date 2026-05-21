@@ -1745,8 +1745,10 @@ function renderEventGrid() {
   });
 }
 
-function copyPromoUrl(eventId, promoter, type, btn) {
-  const url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type + '&promoter=' + encodeURIComponent(promoter);
+function copyPromoUrl(eventId, promoter, type, planId, btn) {
+  let url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type;
+  if (planId && planId !== '') url += '&plan=' + planId;
+  url += '&promoter=' + encodeURIComponent(promoter);
   navigator.clipboard.writeText(url).then(() => {
     const orig = btn.textContent;
     btn.textContent = '✓ コピー済';
@@ -2448,7 +2450,7 @@ function buildPromoItem(eventId, u) {
     <span class="promo-url-name" title="${u.promoter}">${u.promoter}</span>
     <span class="promo-url-type ${cls}">${label}</span>
     <span class="promo-url-spacer"></span>
-    <button class="promo-url-copy" onclick="copyPromoUrl('${eventId}','${esc}','${u.type}',this)">📋 コピー</button>
+    <button class="promo-url-copy" onclick="copyPromoUrl('${eventId}','${esc}','${u.type}','${u.plan_id||''}',this)">📋 コピー</button>
     <button class="promo-url-del"  onclick="deletePromoUrl('${eventId}','${esc}','${u.type}')" title="削除">✕</button>
   </div>`;
 }
