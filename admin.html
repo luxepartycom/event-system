@@ -3856,6 +3856,11 @@ async function onCuEventChange() {
   // プラン選択リストを生成
   const rows = [];
 
+  // 対象イベント情報を取得
+  const evObj = allEvents.find(e => e.event_id === eventId) || {};
+  const evPriceM = Number(evObj.price_male   || 0);
+  const evPriceF = Number(evObj.price_female || 0);
+
   // 無料プラン（常に表示）
   rows.push(`
     <label class="cu-plan-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,0.08);margin-bottom:6px;cursor:pointer;">
@@ -3865,6 +3870,18 @@ async function onCuEventChange() {
         <div style="font-size:0.55rem;color:var(--gray);">男女とも無料</div>
       </div>
     </label>`);
+
+  // デフォルト有料URL（イベントの基本料金設定）
+  if (evPriceM > 0 || evPriceF > 0) {
+    rows.push(`
+      <label class="cu-plan-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(201,168,76,0.15);margin-bottom:6px;cursor:pointer;">
+        <input type="radio" name="cu-plan-radio" value="paid_default" style="accent-color:var(--gold);">
+        <div style="flex:1;">
+          <div style="font-size:0.75rem;color:var(--white);font-weight:600;">有料招待（通常）</div>
+          <div style="font-size:0.55rem;color:var(--gray);">男¥${evPriceM.toLocaleString()} / 女¥${evPriceF.toLocaleString()}</div>
+        </div>
+      </label>`);
+  }
 
   // 各プラン
   plans.forEach(p => {
@@ -3906,7 +3923,12 @@ async function generateCustomUrl() {
   if (val === 'free') {
     type = 'free';
     url  = BASE_URL + 'index.html?e=' + eventId + '&type=free&promoter=' + encodeURIComponent(promoter);
+  } else if (val === 'paid_default') {
+    // デフォルト有料URL（プランなし）
+    type = 'paid';
+    url  = BASE_URL + 'index.html?e=' + eventId + '&type=paid&promoter=' + encodeURIComponent(promoter);
   } else {
+    // プランあり有料URL
     type   = 'paid';
     planId = val.replace('paid:', '');
     url    = BASE_URL + 'index.html?e=' + eventId + '&type=paid&plan=' + planId + '&promoter=' + encodeURIComponent(promoter);
