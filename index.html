@@ -283,13 +283,21 @@ window.addEventListener('load', async () => {
       if(planData.ok) {
         if(!planData.is_active) {
           // 受付終了・上限到達
-          const redirectUrl = planData.redirect_url || '';
+          const redirectUrl      = planData.redirect_url || '';
+          const redirectPlanName = planData.redirect_plan_name || '';
           if(redirectUrl) {
+            const btnLabel = redirectPlanName
+              ? `「${redirectPlanName}」で申し込む →`
+              : 'こちらから申し込む →';
             showError(
+              `<div style="font-size:1rem;color:#C9A84C;margin-bottom:12px;">受付終了</div>` +
               `「${planData.plan_name}」の受付は終了しました。<br><br>` +
+              (redirectPlanName
+                ? `<div style="font-size:0.75rem;color:#888;margin-bottom:16px;">「${redirectPlanName}」にてお申し込みいただけます</div>`
+                : '') +
               `<a href="${redirectUrl}" style="display:inline-block;background:#C9A84C;color:#000;` +
-              `padding:12px 24px;text-decoration:none;font-weight:700;margin-top:8px;font-size:0.8rem;">` +
-              `こちらから申し込む →</a>`
+              `padding:14px 28px;text-decoration:none;font-weight:700;margin-top:4px;font-size:0.8rem;letter-spacing:0.1em;">` +
+              `${btnLabel}</a>`
             );
           } else {
             showError(`「${planData.plan_name}」の受付は終了しました。`);
@@ -435,13 +443,21 @@ async function submitForm(){
     if(currentPayType==='paid' && currentPlanId) {
       const recheck = await apiPost({action:'checkPlan', plan_id:currentPlanId, gender:selectedGender});
       if(recheck.ok && !recheck.is_active) {
-          const recheckRedirectUrl = recheck.redirect_url || '';
+          const recheckRedirectUrl  = recheck.redirect_url || '';
+          const recheckRedirectName = recheck.redirect_plan_name || '';
           if(recheckRedirectUrl) {
+            const btnLabel2 = recheckRedirectName
+              ? `「${recheckRedirectName}」で申し込む →`
+              : 'こちらから申し込む →';
             showError(
+              `<div style="font-size:1rem;color:#C9A84C;margin-bottom:12px;">受付終了</div>` +
               `「${recheck.plan_name}」の受付は終了しました。<br><br>` +
+              (recheckRedirectName
+                ? `<div style="font-size:0.75rem;color:#888;margin-bottom:16px;">「${recheckRedirectName}」にてお申し込みいただけます</div>`
+                : '') +
               `<a href="${recheckRedirectUrl}" style="display:inline-block;background:#C9A84C;color:#000;` +
-              `padding:12px 24px;text-decoration:none;font-weight:700;margin-top:8px;font-size:0.8rem;">` +
-              `こちらから申し込む →</a>`
+              `padding:14px 28px;text-decoration:none;font-weight:700;margin-top:4px;font-size:0.8rem;letter-spacing:0.1em;">` +
+              `${btnLabel2}</a>`
             );
           } else {
             showError(`「${recheck.plan_name}」の受付は終了しました。`);
