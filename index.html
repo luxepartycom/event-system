@@ -449,7 +449,17 @@ function getFormData(){
 async function stripeCheckout(){
   const fd=getFormData();if(!fd)return;
   const {name,email,invitedBy}=fd;
-  const amount=selectedGender==='female'?Number(currentEvent.price_female||0):Number(currentEvent.price_male||0);
+  // プランがある場合はプランの料金を使用、なければイベントの基本料金
+  let amount;
+  if(currentPlanId && window._planData) {
+    amount = selectedGender==='female'
+      ? Number(window._planData.price_female||0)
+      : Number(window._planData.price_male||0);
+  } else {
+    amount = selectedGender==='female'
+      ? Number(currentEvent.price_female||0)
+      : Number(currentEvent.price_male||0);
+  }
   if(amount<=0){document.getElementById('form-error').textContent='入場料が設定されていません';document.getElementById('form-error').style.display='block';return;}
   const btn=document.getElementById('btn-stripe');
   btn.disabled=true;
