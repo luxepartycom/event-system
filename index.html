@@ -278,18 +278,13 @@ window.addEventListener('load', async () => {
       if(planData.ok) {
         if(!planData.is_active) {
           // 受付終了・上限到達
-          const redirectPlan = planData.redirect_plan;
-          if(redirectPlan && redirectPlan.status === 'active') {
-            // 誘導先プランがある場合
-            // プロモーター情報を引き継いだリダイレクトURL
-            const curParams = new URLSearchParams(location.search);
-            curParams.set('plan', redirectPlan.plan_id);
-            const redirectUrl = location.pathname + '?' + curParams.toString();
+          const redirectUrl = planData.redirect_url || '';
+          if(redirectUrl) {
             showError(
               `「${planData.plan_name}」の受付は終了しました。<br><br>` +
               `<a href="${redirectUrl}" style="display:inline-block;background:#C9A84C;color:#000;` +
               `padding:12px 24px;text-decoration:none;font-weight:700;margin-top:8px;font-size:0.8rem;">` +
-              `「${redirectPlan.plan_name}」で申し込む →</a>`
+              `こちらから申し込む →</a>`
             );
           } else {
             showError(`「${planData.plan_name}」の受付は終了しました。`);
@@ -434,22 +429,18 @@ async function submitForm(){
     // 有料プランの場合、送信直前に男女別上限を再チェック
     if(currentPayType==='paid' && currentPlanId) {
       const recheck = await apiPost({action:'checkPlan', plan_id:currentPlanId, gender:selectedGender});
-      if(recheck.ok && !recheck.is_active) {
-        const rp = recheck.redirect_plan;
-        if(rp && rp.status==='active') {
-          const curParams2 = new URLSearchParams(location.search);
-          curParams2.set('plan', rp.plan_id);
-          const redirectUrl = location.pathname + '?' + curParams2.toString();
-          showError(
-            `「${recheck.plan_name}」の受付は終了しました。<br><br>` +
-            `<a href="${redirectUrl}" style="display:inline-block;background:#C9A84C;color:#000;` +
-            `padding:12px 24px;text-decoration:none;font-weight:700;margin-top:8px;font-size:0.8rem;">` +
-            `「${rp.plan_name}」で申し込む →</a>`
-          );
-        } else {
-          showError(`「${recheck.plan_name}」の受付は終了しました。`);
-        }
-        btn.disabled=false;
+      if(recheck.ok && !recheck.is_acconst recheckRedirectUrl = recheck.redirect_url || '';
+          if(recheckRedirectUrl) {
+            showError(
+              `「${recheck.plan_name}」の受付は終了しました。<br><br>` +
+              `<a href="${recheckRedirectUrl}" style="display:inline-block;background:#C9A84C;color:#000;` +
+              `padding:12px 24px;text-decoration:none;font-weight:700;margin-top:8px;font-size:0.8rem;">` +
+              `こちらから申し込む →</a>`
+            );
+          } else {
+            showError(`「${recheck.plan_name}」の受付は終了しました。`);
+          }
+          btn.disabled=false;
         return;
       }
     }
