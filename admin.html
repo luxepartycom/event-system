@@ -2411,7 +2411,14 @@ function refreshPromoList(eventId) {
 }
 
 function buildPromoItem(eventId, u) {
-  const label = u.type === 'free' ? '無料' : '有料';
+  // プラン名を取得
+  let planLabel = '';
+  if (u.plan_id && u.plan_id !== '') {
+    const evPlans = (allEvents.find(e => e.event_id === u.event_id) || {}).plans || [];
+    const plan = evPlans.find(p => p.plan_id === u.plan_id);
+    if (plan) planLabel = plan.plan_name;
+  }
+  const label = u.type === 'free' ? '無料' : (planLabel || '有料（通常）');
   const cls   = u.type === 'free' ? 'type-free' : 'type-paid';
   const esc   = u.promoter.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   return `<div class="promo-url-item">
