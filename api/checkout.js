@@ -1,32 +1,27 @@
 // api/checkout.js - Vercel Serverless Function
 export const config = { runtime: 'nodejs' };
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ ok: false, message: 'Method not allowed' });
-
   const stripe_sk = process.env.STRIPE_SECRET_KEY;
   if (!stripe_sk) return res.status(500).json({ ok: false, message: 'Stripe設定がありません' });
-
   const body = req.body || {};
-  const { event_id, event_name, name, email, gender, invited_by, amount } = body;
-
+  // plan_id・cancel_urlを追加で受け取る
+  const { event_id, event_name, name, email, gender, invited_by, amount, plan_id, cancel_url } = body;
   if (!event_id || !amount || Number(amount) <= 0) {
     return res.status(400).json({ ok: false, message: 'パラメータ不足' });
   }
-
   const isQuickCharge = String(event_id).startsWith('CHARGE-');
   const successUrl = isQuickCharge
     ? 'https://luxepartycom.github.io/event-system/admin.html?charge=success'
     : 'https://luxepartycom.github.io/event-system/checkout.html?session_id={CHECKOUT_SESSION_ID}';
+  // cancelUrlは渡された値を優先（プロモーター・プラン情報を保持）
   const cancelUrl = isQuickCharge
     ? 'https://luxepartycom.github.io/event-system/admin.html?charge=cancel'
-    : 'https://luxepartycom.github.io/event-system/index.html?e=' + event_id + '&type=paid';
-
+    : (cancel_url || 'https://luxepartycom.github.io/event-system/index.html?e=' + event_id + '&type=paid');
   const params = new URLSearchParams();
   params.append('mode', 'payment');
   params.append('payment_method_types[0]', 'card');
@@ -41,16 +36,12 @@ export default async function handler(req, res) {
   params.append('metadata[gender]', gender || '');
   params.append('metadata[invited_by]', invited_by || '');
   params.append('metadata[amount]', String(amount));
-
-  // customer_emailを必ず設定（設定済みの場合Stripeは編集不可にする）
+  params.append('metadata[plan_id]', plan_id || ''); // ← plan_id追加
   if (email) {
-    // 通常の招待決済: ゲストの実際のメール → 領収書自動送信
     params.append('customer_email', email);
   } else {
-    // 単発決済: 無効アドレスを設定 → 編集不可 + 領収書は誰にも届かない
     params.append('customer_email', 'noreply@luxepartytokyo.com');
   }
-
   try {
     const auth = Buffer.from(stripe_sk + ':').toString('base64');
     const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
@@ -61,11 +52,9 @@ export default async function handler(req, res) {
       },
       body: params.toString(),
     });
-
     const data = await stripeRes.json();
     if (data.error) return res.status(400).json({ ok: false, message: 'Stripe: ' + data.error.message });
     return res.status(200).json({ ok: true, checkout_url: data.url, session_id: data.id });
-
   } catch (err) {
     return res.status(500).json({ ok: false, message: 'エラー: ' + err.message });
   }
