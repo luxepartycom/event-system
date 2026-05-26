@@ -72,7 +72,20 @@ window.addEventListener('load', async () => {
     return;
   }
   try {
-    const d = await apiPost({ action: 'completeStripePayment', session_id });
+    // localStorageからplan_idとgenderを取得（index.htmlで保存済み）
+    const pendingPlanId = localStorage.getItem('lpt_pending_plan')   || '';
+    const pendingGender = localStorage.getItem('lpt_pending_gender') || '';
+    localStorage.removeItem('lpt_pending_plan');
+    localStorage.removeItem('lpt_pending_gender');
+    localStorage.removeItem('lpt_pending_promoter');
+    localStorage.removeItem('lpt_pending_event');
+
+    const d = await apiPost({
+      action:     'completeStripePayment',
+      session_id: session_id,
+      plan_id:    pendingPlanId,
+      gender:     pendingGender
+    });
     document.getElementById('loading').style.display = 'none';
     if (!d.ok) {
       document.getElementById('error').innerHTML = d.message || '登録に失敗しました。<br>サポートにお問い合わせください。';
