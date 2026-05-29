@@ -1464,6 +1464,11 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       </div>
     </div>
     <div class="modal-group">
+      <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">申込ページの表示テキスト（任意）</label>
+      <input class="form-input" id="plan-display-text" placeholder="例: 残りわずか / 好評受付中 / 先着限定（空欄=実際の残り人数を表示）" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.75rem;outline:none;">
+      <div style="font-size:0.52rem;color:var(--gray);margin-top:6px;">入力した文字が申込ページのバッジに表示されます。空欄の場合は実際の残り人数を表示。</div>
+    </div>
+    <div class="modal-group">
       <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">上限到達時の誘導先URL（任意）</label>
       <input class="form-input" id="plan-redirect" placeholder="https://luxepartycom.github.io/event-system/index.html?e=EV-XXX&type=paid" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.65rem;outline:none;">
       <div style="font-size:0.52rem;color:var(--gray);margin-top:6px;">上限到達時に誘導したいURLを直接入力（プランあり・なし・外部URL問わず）</div>
@@ -3759,7 +3764,7 @@ function renderPlanListHtml(eventId, plans) {
           ? `<button class="btn-plan-sm btn-plan-close" onclick="closePlan('${p.plan_id}','${eventId}')">受付終了にする</button>`
           : `<button class="btn-plan-sm" onclick="reopenPlan('${p.plan_id}','${eventId}')">再開する</button>`
         }
-        <button class="btn-plan-sm" onclick="openEditCapacityModal('${p.plan_id}','${p.plan_name}',${cap},'${p.redirect_url||''}')">上限設定</button>
+        <button class="btn-plan-sm" onclick="openEditCapacityModal('${p.plan_id}','${p.plan_name}',${cap},'${p.redirect_url||''}','${p.display_text||''}')">上限設定</button>
         <button class="btn-plan-sm" style="color:#CF4444;border-color:rgba(207,68,68,0.25);" onclick="deletePlan('${p.plan_id}','${eventId}')">削除</button>
       </div>
     </div>`;
@@ -3798,7 +3803,8 @@ async function addPlan() {
     price_male: priceMale, price_female: priceFem,
     capacity: capacity, capacity_male: capMale, capacity_female: capFemale,
     redirect_url: redirect,
-    payment_methods: [document.getElementById('plan-pay-card')?.checked?'card':'', document.getElementById('plan-pay-walkin')?.checked?'walkin':''].filter(Boolean).join(',')
+    payment_methods: [document.getElementById('plan-pay-card')?.checked?'card':'', document.getElementById('plan-pay-walkin')?.checked?'walkin':''].filter(Boolean).join(','),
+    display_text: document.getElementById('plan-display-text')?.value.trim() || ''
   });
   if (d.ok) {
     closeModal('modal-add-plan');
@@ -3827,14 +3833,24 @@ async function deletePlan(planId, eventId) {
   else toast('❌ ' + d.message);
 }
 
-async function openEditCapacityModal(planId, planName, currentCap, currentRedirect) {
+async function openEditCapacityModal(planId, planName, currentCap, currentRedirect, currentDisplayText) {
   const newCap = prompt(`「${planName}」の上限人数を入力してください。\n（0=無制限、現在: ${currentCap===0?'無制限':currentCap+'名'}）`, currentCap);
   if (newCap === null) return;
   const newRedirect = prompt('上限到達時の誘導先URLを入力してください。\n（不要な場合は空欄）\n例: https://...', currentRedirect || '');
   if (newRedirect === null) return;
-  const d = await apiPost({ action: 'updatePlanCapacity', plan_id: planId, capacity: Number(newCap||0), redirect_url: newRedirect });
-  if (d.ok) { toast('✅ 上限を更新しました'); await loadEvents(); }
-  else toast('❌ ' + d.message);
+  const newDisplayText = prompt('申込ページの表示テキストを入力してください。\n（空欄=実際の残り人数を表示）\n例: 残りわずか / 好評受付中', currentDisplayText || '');
+  if (newDisplayText === null) return;
+  const d = await apiPost({
+    action: 'updatePlanCapacity',
+    plan_id: planId,
+    capacity: Number(newCap || 0),
+    redirect_url: newRedirect,
+    display_text: newDisplayText
+  });
+  if (d.ok) {
+    toast('✅ 設定を更新しました');
+    await loadEvents();
+  } else toast('❌ ' + d.message);
 }
 
 function onCuTypeChange() {
