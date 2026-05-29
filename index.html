@@ -325,9 +325,11 @@ window.addEventListener('load', async () => {
         }
         const pm = Number(planData.price_male||0).toLocaleString();
         const pf = Number(planData.price_female||0).toLocaleString();
-        // 男性上限がある場合は残り枠を表示
+        // display_textがあればそれを優先表示、なければ実際の残り人数
         let capInfo = '';
-        if (planData.capacity_male > 0) {
+        if (planData.display_text) {
+          capInfo = ` （${planData.display_text}）`;
+        } else if (planData.capacity_male > 0) {
           const remM = Math.max(0, planData.capacity_male - (planData.count_male||0));
           capInfo = ` （男性残り${remM}名）`;
         } else if (planData.capacity > 0) {
@@ -381,7 +383,10 @@ function updatePlanBadgeByGender(gender) {
   const pm = Number(p.price_male||0).toLocaleString();
   const pf = Number(p.price_female||0).toLocaleString();
   let capInfo = '';
-  if (gender === 'male' && p.capacity_male > 0) {
+  // display_textがあれば優先表示
+  if (p.display_text) {
+    capInfo = ` （${p.display_text}）`;
+  } else if (gender === 'male' && p.capacity_male > 0) {
     const rem = Math.max(0, p.capacity_male - p.count_male);
     capInfo = ` （男性残り${rem}名）`;
     if (rem === 0) capInfo = ' （男性枠満員）';
