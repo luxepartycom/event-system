@@ -1815,6 +1815,33 @@ function showCamOverlay(d, status) {
     } else {
       badge.style.display = 'none';
     }
+    // VIP入場カウント表示
+    let vipElE = document.getElementById('cam-ok-vip');
+    if (!vipElE) {
+      vipElE = document.createElement('div');
+      vipElE.id = 'cam-ok-vip';
+      vipElE.style.cssText = 'margin-top:12px;padding:10px 14px;border-radius:4px;font-size:0.68rem;text-align:center;line-height:1.6;';
+      badge.parentNode.appendChild(vipElE);
+    }
+    if (d.vip_info) {
+      const v = d.vip_info;
+      vipElE.style.display = 'block';
+      if (v.is_over) {
+        vipElE.style.background = 'rgba(207,68,68,0.15)';
+        vipElE.style.border = '1px solid rgba(207,68,68,0.5)';
+        vipElE.style.color = '#FF6666';
+        vipElE.innerHTML = '⚠️ ' + v.table_name + ' / ' + v.table_type + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong> — 定員超過';
+        document.getElementById('cam-ok-icon').textContent = '⚠️';
+      } else {
+        vipElE.style.background = 'rgba(201,168,76,0.1)';
+        vipElE.style.border = '1px solid rgba(201,168,76,0.3)';
+        vipElE.style.color = '#C9A84C';
+        vipElE.innerHTML = '✦ ' + v.table_name + ' / ' + v.table_type + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong>';
+      }
+    } else {
+      if (vipElE) vipElE.style.display = 'none';
+    }
+
     document.getElementById('cam-overlay-ok').style.display = 'flex';
 
   } else if (status === 'payment_required') {
