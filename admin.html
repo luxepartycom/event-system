@@ -1741,6 +1741,7 @@ function renderEventGrid() {
   sorted.forEach((ev, evIndex) => {
     const freeUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=free';
     const paidUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid';
+    const vipUrl    = BASE_URL + 'vip.html?e=' + ev.event_id;
     const promoList = getPromoUrls(ev.event_id);
     const promoHtml = promoList.length
       ? promoList.map(u => buildPromoItem(ev.event_id, u)).join('')
@@ -1770,6 +1771,10 @@ function renderEventGrid() {
       <div class="ev-url-block">
         <div class="ev-url-label" style="color:var(--gold)">💴 有料招待URL (男¥${Number(ev.price_male||0).toLocaleString()} / 女¥${Number(ev.price_female||0).toLocaleString()})</div>
         <div class="ev-url-row"><div class="ev-url-text">${paidUrl}</div><button class="copy-btn" onclick="copyText('${paidUrl}',this)">📋</button></div>
+      </div>
+      <div class="ev-url-block">
+        <div class="ev-url-label" style="color:#C9A84C">👑 VIP テーブル予約URL</div>
+        <div class="ev-url-row"><div class="ev-url-text">${vipUrl}</div><button class="copy-btn" onclick="copyText('${vipUrl}',this)">📋</button></div>
       </div>
       <div class="ev-promo-section">
         <div class="ev-promo-header">
@@ -3185,18 +3190,22 @@ async function onSalesEventChange() {
     salesGuests = cached.data;
     renderSalesSummary();
   }
-  // バックグラウンドで最新取得（ゲスト + VIP予約）
-  const [d, vipD] = await Promise.all([
-    apiGet({ action: 'getGuests', event_id: salesEventId }),
-    apiGet({ action: 'getVipReservations', event_id: salesEventId })
-  ]);
+  // バックグラウンドで最新取得（ゲスト）
+  const d = await apiGet({ action: 'getGuests', event_id: salesEventId });
   salesGuests = d.guests || [];
-  salesVipReservations = vipD.reservations || [];
   guestCache[salesEventId] = { data: salesGuests, ts: now };
+  // VIP予約は別途取得（失敗してもsales表示は継続）
+  try {
+    const vipD = await apiGet({ action: 'getVipReservations', event_id: salesEventId });
+    salesVipReservations = (vipD && vipD.reservations) ? vipD.reservations : [];
+  } catch(e) {
+    salesVipReservations = [];
+  }
   renderSalesSummary();
 }
 
 function renderSalesSummary() {
+  if (typeof salesVipReservations === 'undefined' || !salesVipReservations) salesVipReservations = [];
   document.getElementById('sales-invite-section').style.display = 'block';
 
   // ── 招待決済集計 ──
