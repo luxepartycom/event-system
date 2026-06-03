@@ -3205,6 +3205,7 @@ async function onSalesEventChange() {
 }
 
 function renderSalesSummary() {
+  try {
   if (typeof salesVipReservations === 'undefined' || !salesVipReservations) salesVipReservations = [];
   document.getElementById('sales-invite-section').style.display = 'block';
 
@@ -3299,6 +3300,13 @@ function renderSalesSummary() {
   // ── 合計売上（VIP確定分を含む）──
   const grandTotal = actualTotal + chargeTotal + vipConfirmedTotal;
   document.getElementById('sl-grand-total-amount').textContent = '¥' + grandTotal.toLocaleString();
+  } catch(e) {
+    console.error('renderSalesSummary error:', e);
+    // エラーがあっても基本表示は試みる
+    try {
+      document.getElementById('sales-invite-section').style.display = 'block';
+    } catch(e2){}
+  }
 }
 
 
