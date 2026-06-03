@@ -823,6 +823,23 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <span id="sl-charge-total-amount">¥0</span>
       </div>
 
+      <!-- VIP売上 -->
+      <div id="sl-vip-section" style="display:none;">
+        <div class="sales-section-title">👑 VIP テーブル売上</div>
+        <div class="sales-pay-grid">
+          <div class="sales-pay-item">
+            <div class="sales-pay-label">確定（決済済・入金済）</div>
+            <div class="sales-pay-amount" id="sl-vip-confirmed">¥0</div>
+            <div class="sales-pay-sub" id="sl-vip-confirmed-sub">確定 0組</div>
+          </div>
+          <div class="sales-pay-item">
+            <div class="sales-pay-label">振込待ち（見込み）</div>
+            <div class="sales-pay-amount" id="sl-vip-pending" style="color:var(--gold);">¥0</div>
+            <div class="sales-pay-sub" id="sl-vip-pending-sub">振込待ち 0組</div>
+          </div>
+        </div>
+      </div>
+
       <!-- 合計 -->
       <div class="sales-grand-total" id="sl-grand-total">
         <span>合計売上</span>
@@ -3131,6 +3148,7 @@ function renderChargeHistory() {
 // ── 売上サマリー ──────────────────────────────────────────
 let salesEventId = '';
 let salesGuests  = [];
+let salesVipReservations = [];
 
 async function onSalesTabOpen() {
   if (!salesEventId) {
@@ -3167,9 +3185,13 @@ async function onSalesEventChange() {
     salesGuests = cached.data;
     renderSalesSummary();
   }
-  // バックグラウンドで最新取得
-  const d = await apiGet({ action: 'getGuests', event_id: salesEventId });
+  // バックグラウンドで最新取得（ゲスト + VIP予約）
+  const [d, vipD] = await Promise.all([
+    apiGet({ action: 'getGuests', event_id: salesEventId }),
+    apiGet({ action: 'getVipReservations', event_id: salesEventId })
+  ]);
   salesGuests = d.guests || [];
+  salesVipReservations = vipD.reservations || [];
   guestCache[salesEventId] = { data: salesGuests, ts: now };
   renderSalesSummary();
 }
@@ -3231,8 +3253,42 @@ function renderSalesSummary() {
     document.getElementById('sl-charge-total').style.display = 'none';
   }
 
-  // ── 合計売上 ──
-  const grandTotal = actualTotal + chargeTotal;
+  // ── VIP売上集計 ──
+  let vipConfirmedTotal = 0;
+  let vipConfirmedCount = 0;
+  let vipPendingTotal   = 0;
+  let vipPendingCount   = 0;
+  (salesVipReservations || []).forEach(r => {
+    const price = Number(r.price || 0) || 0;
+    const status = String(r.status || '');
+    if (status === 'confirmed' || status === 'reserved') {
+      // 確定（Stripe決済済 or 入金確認済）
+      vipConfirmedTotal += price;
+      vipConfirmedCount++;
+    } else if (status === 'pending_payment') {
+      // 振込待ち（見込み）
+      vipPendingTotal += price;
+      vipPendingCount++;
+    }
+  });
+  // VIP価格はvip_reservationsにprice列がない場合があるのでテーブル名から補完
+  // （reserveVipTable時にprice記録済みだが念のため0なら表示のみ）
+
+  const vipSection = document.getElementById('sl-vip-section');
+  if (vipSection) {
+    if (vipConfirmedCount > 0 || vipPendingCount > 0) {
+      vipSection.style.display = 'block';
+      document.getElementById('sl-vip-confirmed').textContent = '¥' + vipConfirmedTotal.toLocaleString();
+      document.getElementById('sl-vip-confirmed-sub').textContent = '確定 ' + vipConfirmedCount + '組';
+      document.getElementById('sl-vip-pending').textContent = '¥' + vipPendingTotal.toLocaleString();
+      document.getElementById('sl-vip-pending-sub').textContent = '振込待ち ' + vipPendingCount + '組';
+    } else {
+      vipSection.style.display = 'none';
+    }
+  }
+
+  // ── 合計売上（VIP確定分を含む）──
+  const grandTotal = actualTotal + chargeTotal + vipConfirmedTotal;
   document.getElementById('sl-grand-total-amount').textContent = '¥' + grandTotal.toLocaleString();
 }
 
