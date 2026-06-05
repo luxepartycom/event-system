@@ -475,7 +475,7 @@ async function stripeCheckout(){
       const d0=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},
         body:JSON.stringify({action:'registerGuest',event_id:currentEvent.event_id,
           name:fd0.name,email:fd0.email,gender:selectedGender,
-          invited_by:fd0.invitedBy,pay_type:'paid',amount:0,
+          invited_by:fd0.invitedBy,pay_type:'free',amount:0,
           payment_method:'free_female',plan_id:currentPlanId||''})});
       const res0=await d0.json();
       btn0.disabled=false;
