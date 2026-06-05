@@ -484,6 +484,9 @@ async function stripeCheckout(){
         if(currentPlanId) await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},
           body:JSON.stringify({action:'incrementPlanCount',plan_id:currentPlanId,gender:selectedGender})});
         showResult(res0,fd0.name,fd0.email,fd0.invitedBy);
+        // QRメール送信
+        apiPost({action:'sendQREmail',guest_id:res0.guest_id,email:fd0.email,
+          name:fd0.name,event_id:currentEvent.event_id});
       } else {
         document.getElementById('form-error').textContent=res0.message||'登録に失敗しました';
         document.getElementById('form-error').style.display='block';
