@@ -465,7 +465,37 @@ async function stripeCheckout(){
       ? Number(currentEvent.price_female||0)
       : Number(currentEvent.price_male||0);
   }
-  if(amount<=0){document.getElementById('form-error').textContent='入場料が設定されていません';document.getElementById('form-error').style.display='block';return;}
+  // 金額が0円（女性無料など）の場合はStripeをスキップして直接登録
+  if(amount<=0){
+    const fd0=getFormData();if(!fd0)return;
+    const btn0=document.getElementById('btn-stripe');
+    btn0.disabled=true;
+    btn0.querySelector('.btn-stripe-title').textContent='登録中…';
+    try {
+      const d0=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({action:'registerGuest',event_id:currentEvent.event_id,
+          name:fd0.name,email:fd0.email,gender:selectedGender,
+          invited_by:fd0.invitedBy,pay_type:'paid',amount:0,
+          payment_method:'free_female',plan_id:currentPlanId||''})});
+      const res0=await d0.json();
+      btn0.disabled=false;
+      btn0.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む';
+      if(res0.ok){
+        if(currentPlanId) await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},
+          body:JSON.stringify({action:'incrementPlanCount',plan_id:currentPlanId,gender:selectedGender})});
+        showResult(res0,fd0.name,fd0.email,fd0.invitedBy);
+      } else {
+        document.getElementById('form-error').textContent=res0.message||'登録に失敗しました';
+        document.getElementById('form-error').style.display='block';
+      }
+    } catch(e){
+      btn0.disabled=false;
+      btn0.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む';
+      document.getElementById('form-error').textContent='通信エラーが発生しました';
+      document.getElementById('form-error').style.display='block';
+    }
+    return;
+  }
   const btn=document.getElementById('btn-stripe');
   btn.disabled=true;
   btn.querySelector('.btn-stripe-title').textContent='決済画面を準備中…';
