@@ -4252,8 +4252,10 @@ async function onVipTabOpen() {
     o.textContent = ev.name + ' — ' + String(ev.date||'').substring(0,10);
     sel.appendChild(o);
   });
-  if (sortedEvents().length > 0 && !vipEventId) {
-    sel.value = sortedEvents()[0].event_id;
+  if (sortedEvents().length > 0) {
+    // 既存のvipEventIdを維持、なければ最新を選択
+    if (!vipEventId) vipEventId = sortedEvents()[0].event_id;
+    sel.value = vipEventId;
     await onVipEventChange();
   }
 }
@@ -4266,12 +4268,18 @@ async function onVipEventChange() {
 }
 
 async function loadVipData() {
-  const [tRes, rRes] = await Promise.all([
-    apiGet({ action: 'getVipTables', event_id: vipEventId }),
-    apiGet({ action: 'getVipReservations', event_id: vipEventId })
-  ]);
-  vipTables       = (tRes.tables       || []);
-  vipReservations = (rRes.reservations || []);
+  try {
+    const [tRes, rRes] = await Promise.all([
+      apiGet({ action: 'getVipTables', event_id: vipEventId }),
+      apiGet({ action: 'getVipReservations', event_id: vipEventId })
+    ]);
+    vipTables       = (tRes && tRes.tables)       ? tRes.tables       : [];
+    vipReservations = (rRes && rRes.reservations) ? rRes.reservations : [];
+  } catch(e) {
+    console.warn('VIPデータ取得エラー:', e);
+    vipTables       = [];
+    vipReservations = [];
+  }
   renderVipMap();
   renderVipTableSelect();
   renderVipReservations();
@@ -4280,6 +4288,11 @@ async function loadVipData() {
 function renderVipMap() {
   const svgG = document.getElementById('vip-svg-tables');
   if (!svgG) return;
+  if (vipTables.length === 0) {
+    // テーブル未登録時もマップ枠は表示（テーブルはグレー）
+    svgG.innerHTML = '<text x="250" y="200" text-anchor="middle" fill="#333" font-size="12" font-family="sans-serif">vip_tablesシートにデータがありません</text><text x="250" y="220" text-anchor="middle" fill="#333" font-size="10" font-family="sans-serif">GASエディタで initVipTablesForEvent を実行してください</text>';
+    return;
+  }
   let html = '';
   Object.keys(VIP_TABLE_INFO).forEach(tName => {
     const ti = VIP_TABLE_INFO[tName];
