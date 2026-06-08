@@ -690,7 +690,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <button class="nav-tab"        onclick="showTab('scan')"      id="tab-scan">QRスキャン</button>
       <button class="nav-tab"        onclick="showTab('report')"    id="tab-report">レポート</button>
       <button class="nav-tab"        onclick="showTab('charge')"    id="tab-charge">単発決済</button>
-      <button class="nav-tab"        onclick="showTab('mailmag')"   id="tab-mailmag">📧 配信</button>
+      <button class="nav-tab"        onclick="showTab('mailmag')"   id="<button class="nav-tab" onclick="showTab('vip')" id="tab-vip">👑 VIP</button>
+      tab-mailmag">📧 配信</button>
     </div>
     <button class="btn-logout" onclick="logout()">ログアウト</button>
   </nav>
@@ -1101,7 +1102,95 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 
 
   <!-- メール配信 -->
-  <div class="page" id="page-mailmag">
+  <div class="page" id="page-vip">
+  <div class="page-header">
+    <div class="page-label">VIP MANAGEMENT</div>
+    <div class="page-title">VIP <span style="color:var(--gold);">テーブル管理</span></div>
+  </div>
+
+  <!-- イベント選択 -->
+  <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;flex-wrap:wrap;">
+    <select class="modal-select" id="vip-event-sel" style="max-width:360px;" onchange="onVipEventChange()">
+      <option value="">イベントを選択...</option>
+    </select>
+  </div>
+
+  <!-- フロアマップ + テーブル一覧 -->
+  <div id="vip-content" style="display:none;">
+
+    <!-- フロアマップ -->
+    <div style="margin-bottom:24px;">
+      <div style="font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);margin-bottom:10px;text-transform:uppercase;">フロアマップ</div>
+      <div style="background:#0d0d0d;border:1px solid #1e1e1e;overflow:hidden;">
+        <svg id="vip-admin-svg" viewBox="0 0 500 540" style="width:100%;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">
+          <rect width="500" height="540" fill="#0d0d0d"/>
+          <rect x="30" y="10" width="370" height="22" rx="3" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1"/>
+          <text x="215" y="24" text-anchor="middle" fill="#333" font-size="9" font-family="sans-serif">BAR COUNTER</text>
+          <rect x="10" y="200" width="40" height="44" rx="3" fill="#141414" stroke="#1a1a1a" stroke-width="1"/>
+          <text x="30" y="226" text-anchor="middle" fill="#2a2a2a" font-size="9" font-family="sans-serif">WC</text>
+          <!-- DJイラスト -->
+          <rect x="190" y="350" width="100" height="52" rx="4" fill="#141414" stroke="#1a1a1a" stroke-width="1"/>
+          <circle cx="215" cy="370" r="10" fill="none" stroke="#2a2a2a" stroke-width="1.2"/>
+          <circle cx="215" cy="370" r="3" fill="none" stroke="#2a2a2a" stroke-width="1"/>
+          <circle cx="255" cy="370" r="10" fill="none" stroke="#2a2a2a" stroke-width="1.2"/>
+          <circle cx="255" cy="370" r="3" fill="none" stroke="#2a2a2a" stroke-width="1"/>
+          <rect x="222" y="364" width="24" height="14" rx="1" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1"/>
+          <text x="240" y="395" text-anchor="middle" fill="#2a2a2a" font-size="8" font-family="sans-serif">DJ</text>
+          <rect x="80" y="450" width="310" height="22" rx="3" fill="#330a1a" stroke="#880E4F" stroke-width="1"/>
+          <text x="235" y="464" text-anchor="middle" fill="#FCE4EC" font-size="8" font-family="sans-serif">LADIES SEAT</text>
+          <!-- テーブル（JS動的更新） -->
+          <g id="vip-svg-tables"></g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 新規VIP登録フォーム -->
+    <div style="background:var(--dark2);border:1px solid rgba(201,168,76,0.2);padding:20px;margin-bottom:24px;">
+      <div style="font-size:0.55rem;letter-spacing:0.2em;color:var(--gold);margin-bottom:16px;text-transform:uppercase;">👑 新規VIP登録</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">テーブル</label>
+          <select class="modal-select" id="vip-reg-table" style="width:100%;">
+            <option value="">選択してください</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">決済方法</label>
+          <select class="modal-select" id="vip-reg-pay" style="width:100%;">
+            <option value="stripe">💳 カード決済（支払いリンク送信）</option>
+            <option value="transfer">🏦 銀行振込（振込案内送信）</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">氏名（請求先名）</label>
+          <input class="form-input" id="vip-reg-name" placeholder="田中 太郎" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">電話番号</label>
+          <input class="form-input" id="vip-reg-phone" placeholder="09012345678" style="width:100%;">
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">メールアドレス</label>
+        <input class="form-input" id="vip-reg-email" placeholder="email@example.com" style="width:100%;">
+      </div>
+      <div id="vip-reg-error" style="display:none;font-size:0.62rem;color:#CF4444;margin-bottom:12px;padding:10px;background:rgba(207,68,68,0.1);border:1px solid rgba(207,68,68,0.3);"></div>
+      <button class="btn-confirm" style="width:100%;" onclick="submitVipRegistration()">📨 メールを送信して登録</button>
+    </div>
+
+    <!-- 予約一覧 -->
+    <div>
+      <div style="font-size:0.55rem;letter-spacing:0.2em;color:var(--gold);margin-bottom:12px;text-transform:uppercase;">📋 予約一覧</div>
+      <div id="vip-reservation-list">
+        <div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">予約データを読み込み中...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-mailmag">
     <div class="page-eyebrow">Email Marketing</div>
     <h1 class="page-title">メール <span>配信</span></h1>
 
@@ -1626,6 +1715,7 @@ function showTab(id) {
   if (id === 'report')    onReportTabOpen();
   if (id === 'sales')     onSalesTabOpen();
   if (id === 'mailmag')   onMailmagTabOpen();
+  if (id === 'vip')       onVipTabOpen();
 
   // タブ切替時: 選択済みイベントがあればバックグラウンドで先読み
   const selMap = {
@@ -4129,6 +4219,170 @@ async function generateCustomUrl() {
 function copyCustomUrl() {
   const text = document.getElementById('cu-url-text').textContent;
   copyText(text);
+}
+
+
+// ── VIP管理タブ ─────────────────────────────────────────────────
+
+let vipEventId    = '';
+let vipTables     = [];
+let vipReservations = [];
+
+const VIP_TABLE_INFO = {
+  S1:{x:30,y:42,w:96,h:52,fill:'#4a0f0f',stroke:'#CC2222'},
+  S2:{x:172,y:42,w:96,h:52,fill:'#4a0f0f',stroke:'#CC2222'},
+  S3:{x:314,y:42,w:96,h:52,fill:'#4a0f0f',stroke:'#CC2222'},
+  V1:{x:66,y:118,w:80,h:92,fill:'#0F2461',stroke:'#3355CC'},
+  V2:{x:66,y:224,w:80,h:92,fill:'#0F2461',stroke:'#3355CC'},
+  V3:{x:200,y:118,w:80,h:92,fill:'#0F2461',stroke:'#3355CC'},
+  V4:{x:200,y:224,w:80,h:92,fill:'#0F2461',stroke:'#3355CC'},
+  V5:{x:348,y:118,w:82,h:84,fill:'#0F2461',stroke:'#3355CC'},
+  V6:{x:348,y:218,w:82,h:84,fill:'#0F2461',stroke:'#3355CC'},
+  G1:{x:98,y:410,w:110,h:52,fill:'#3D2800',stroke:'#B8860B'},
+  G2:{x:258,y:410,w:110,h:52,fill:'#3D2800',stroke:'#B8860B'},
+  D1:{x:10,y:410,w:82,h:52,fill:'#1e1e1e',stroke:'#777'},
+};
+
+async function onVipTabOpen() {
+  const sel = document.getElementById('vip-event-sel');
+  sel.innerHTML = '<option value="">イベントを選択...</option>';
+  sortedEvents().forEach(ev => {
+    const o = document.createElement('option');
+    o.value = ev.event_id;
+    o.textContent = ev.name + ' — ' + String(ev.date||'').substring(0,10);
+    sel.appendChild(o);
+  });
+  if (sortedEvents().length > 0 && !vipEventId) {
+    sel.value = sortedEvents()[0].event_id;
+    await onVipEventChange();
+  }
+}
+
+async function onVipEventChange() {
+  vipEventId = document.getElementById('vip-event-sel').value;
+  if (!vipEventId) { document.getElementById('vip-content').style.display = 'none'; return; }
+  document.getElementById('vip-content').style.display = 'block';
+  await loadVipData();
+}
+
+async function loadVipData() {
+  const [tRes, rRes] = await Promise.all([
+    apiGet({ action: 'getVipTables', event_id: vipEventId }),
+    apiGet({ action: 'getVipReservations', event_id: vipEventId })
+  ]);
+  vipTables       = (tRes.tables       || []);
+  vipReservations = (rRes.reservations || []);
+  renderVipMap();
+  renderVipTableSelect();
+  renderVipReservations();
+}
+
+function renderVipMap() {
+  const svgG = document.getElementById('vip-svg-tables');
+  if (!svgG) return;
+  let html = '';
+  Object.keys(VIP_TABLE_INFO).forEach(tName => {
+    const ti = VIP_TABLE_INFO[tName];
+    const tRow = vipTables.find(t => t.table_name === tName) || {};
+    const status = String(tRow.status || 'available');
+    let fill = ti.fill, stroke = ti.stroke, opacity = '1', label2 = '';
+    if (status === 'confirmed' || status === 'reserved') {
+      fill = '#1a1a1a'; stroke = '#444'; opacity = '0.7';
+      const name = String(tRow.reserved_by || '').substring(0,8);
+      label2 = name;
+    } else if (status === 'pending_payment' || status === 'stripe_pending') {
+      fill = '#2a1f00'; stroke = '#B8860B';
+      label2 = '振込待ち';
+    }
+    const cx = ti.x + ti.w/2;
+    const cy = ti.y + ti.h/2;
+    html += `<g opacity="${opacity}">
+      <rect x="${ti.x}" y="${ti.y}" width="${ti.w}" height="${ti.h}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
+      <text x="${cx}" y="${cy - (label2?6:0)}" text-anchor="middle" fill="#ddd" font-size="12" font-weight="500" font-family="sans-serif">${tName}</text>
+      ${label2 ? `<text x="${cx}" y="${cy+10}" text-anchor="middle" fill="#aaa" font-size="8" font-family="sans-serif">${label2}</text>` : ''}
+    </g>`;
+  });
+  svgG.innerHTML = html;
+}
+
+function renderVipTableSelect() {
+  const sel = document.getElementById('vip-reg-table');
+  sel.innerHTML = '<option value="">テーブルを選択してください</option>';
+  vipTables.filter(t => t.status === 'available').forEach(t => {
+    const o = document.createElement('option');
+    o.value = t.table_id;
+    o.textContent = t.table_name + ' (' + t.table_type + ') — ¥' + Number(t.price||0).toLocaleString();
+    sel.appendChild(o);
+  });
+}
+
+function renderVipReservations() {
+  const el = document.getElementById('vip-reservation-list');
+  if (vipReservations.length === 0) {
+    el.innerHTML = '<div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">予約データがありません</div>';
+    return;
+  }
+  const statusLabel = { confirmed:'確定', reserved:'確定', pending_payment:'振込待ち', stripe_pending:'決済待ち', expired:'期限切れ' };
+  const statusColor = { confirmed:'#4CAF82', reserved:'#4CAF82', pending_payment:'#C9A84C', stripe_pending:'#6AABFF', expired:'#CF4444' };
+  el.innerHTML = vipReservations.map(r => {
+    const st = String(r.status||'');
+    const color = statusColor[st] || '#888';
+    const label = statusLabel[st] || st;
+    const isTransfer = r.payment_method === 'transfer';
+    const isPending  = st === 'pending_payment';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--dark2);margin-bottom:4px;flex-wrap:wrap;">
+      <div style="font-size:0.7rem;color:var(--white);font-weight:500;min-width:60px;">${r.table_name||'—'}</div>
+      <div style="font-size:0.65rem;color:var(--white);flex:1;">${r.name||'—'}</div>
+      <div style="font-size:0.55rem;color:${color};border:1px solid ${color};padding:2px 8px;">${label}</div>
+      <div style="font-size:0.5rem;color:var(--gray);">${r.payment_method==='stripe'?'💳':'🏦'}</div>
+      ${isPending && isTransfer ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}')">✅ 入金確認</button>` : ''}
+      ${st==='stripe_pending' ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}')">✅ 確認</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function submitVipRegistration() {
+  const tableId = document.getElementById('vip-reg-table').value;
+  const pay     = document.getElementById('vip-reg-pay').value;
+  const name    = document.getElementById('vip-reg-name').value.trim();
+  const email   = document.getElementById('vip-reg-email').value.trim();
+  const phone   = document.getElementById('vip-reg-phone').value.trim();
+  const errEl   = document.getElementById('vip-reg-error');
+
+  if (!tableId) { errEl.textContent='テーブルを選択してください'; errEl.style.display='block'; return; }
+  if (!name)    { errEl.textContent='氏名を入力してください';     errEl.style.display='block'; return; }
+  if (!email)   { errEl.textContent='メールアドレスを入力してください'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  const action = pay === 'stripe' ? 'createVipStripeLink' : 'createVipTransfer';
+  const btn = document.querySelector('#page-vip .btn-confirm');
+  btn.disabled = true; btn.textContent = '送信中...';
+
+  const d = await apiPost({ action, table_id: tableId, event_id: vipEventId, name, email, phone });
+  btn.disabled = false; btn.textContent = '📨 メールを送信して登録';
+
+  if (d.ok) {
+    toast('✅ ' + (pay==='stripe' ? '支払いリンクを送信しました' : '振込案内を送信しました'));
+    document.getElementById('vip-reg-name').value  = '';
+    document.getElementById('vip-reg-email').value = '';
+    document.getElementById('vip-reg-phone').value = '';
+    document.getElementById('vip-reg-table').value = '';
+    await loadVipData();
+  } else {
+    errEl.textContent = d.message || '登録に失敗しました';
+    errEl.style.display = 'block';
+  }
+}
+
+async function confirmVipTransferPayment(guestId, guestName) {
+  if (!confirm(guestName + ' 様の入金を確認しますか？QRコード招待状が送信されます。')) return;
+  const d = await apiPost({ action: 'confirmVipPayment', guest_id: guestId });
+  if (d.ok) {
+    toast('✅ 入金確認完了 — QR招待状を送信しました');
+    await loadVipData();
+  } else {
+    toast('❌ ' + (d.message || 'エラーが発生しました'));
+  }
 }
 
 </script>
