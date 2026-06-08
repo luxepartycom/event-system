@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUXE PARTY TOKYO — VIP決済完了</title>
+<style>
+:root{--gold:#C9A84C;--black:#080808;--dark:#111;--white:#F5F0E8;--gray:#888880;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--black);color:var(--white);font-family:-apple-system,'Hiragino Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.wrap{max-width:480px;width:100%;padding:48px 20px;text-align:center;}
+.logo{font-family:'Hiragino Mincho ProN',serif;font-size:1.2rem;color:var(--gold);letter-spacing:0.4em;margin-bottom:4px;}
+.logo-sub{font-size:0.48rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin-bottom:40px;}
+#loading{font-size:0.65rem;color:var(--gray);letter-spacing:0.15em;}
+#main{display:none;}
+.badge{background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.3);padding:14px;margin-bottom:24px;font-size:0.68rem;color:#4CAF82;line-height:1.8;}
+.title{font-family:'Hiragino Mincho ProN',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px;}
+.sub{font-size:0.62rem;color:var(--gray);line-height:1.8;margin-bottom:28px;}
+.info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.68rem;}
+.info-key{color:var(--gray);}
+.info-val{color:var(--white);}
+.mail-notice{margin-top:20px;padding:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gray);line-height:1.8;}
+#error{display:none;padding:20px;font-size:0.75rem;color:#CF4444;line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">LUXE PARTY TOKYO</div>
+  <div class="logo-sub">VIP Table Reservation</div>
+  <div id="loading">決済を確認中…</div>
+  <div id="error"></div>
+  <div id="main">
+    <div class="badge">✅ カード決済が完了しました</div>
+    <div class="title">ご予約ありがとうございます</div>
+    <div class="sub">QRコード招待状をご登録のメールアドレスにお送りしました</div>
+    <div>
+      <div class="info-row"><span class="info-key">お名前</span><span class="info-val" id="res-name">—</span></div>
+      <div class="info-row"><span class="info-key">テーブル</span><span class="info-val" id="res-table">—</span></div>
+      <div class="info-row"><span class="info-key">イベント</span><span class="info-val" id="res-event">—</span></div>
+      <div class="info-row"><span class="info-key">金額</span><span class="info-val" id="res-amount">—</span></div>
+    </div>
+    <div class="mail-notice">📧 QRコード招待状をメールで送信しました<br>ご一行様でご共有ください</div>
+  </div>
+</div>
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+async function apiPost(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});return r.json();}
+window.addEventListener('load', async () => {
+  const params = new URLSearchParams(location.search);
+  const session_id = params.get('session_id') || '';
+  if (!session_id) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').textContent = 'URLが正しくありません。';
+    document.getElementById('error').style.display = 'block';
+    return;
+  }
+  try {
+    const d = await apiPost({ action: 'completeVipStripePayment', session_id });
+    document.getElementById('loading').style.display = 'none';
+    if (!d.ok) {
+      document.getElementById('error').innerHTML = d.message || '処理に失敗しました。';
+      document.getElementById('error').style.display = 'block';
+      return;
+    }
+    document.getElementById('res-name').textContent   = d.name || '—';
+    document.getElementById('res-table').textContent  = d.table_name || '—';
+    document.getElementById('res-event').textContent  = d.event_name || '—';
+    document.getElementById('res-amount').textContent = d.amount ? '¥' + Number(d.amount).toLocaleString() + '（決済済み）' : '—';
+    document.getElementById('main').style.display = 'block';
+  } catch(err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').textContent = '通信エラーが発生しました。';
+    document.getElementById('error').style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>
