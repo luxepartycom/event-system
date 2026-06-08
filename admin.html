@@ -4245,25 +4245,33 @@ const VIP_TABLE_INFO = {
 
 async function onVipTabOpen() {
   const sel = document.getElementById('vip-event-sel');
+  // イベント一覧をセット
   sel.innerHTML = '<option value="">イベントを選択...</option>';
-  sortedEvents().forEach(ev => {
+  const evs = sortedEvents();
+  evs.forEach(ev => {
     const o = document.createElement('option');
     o.value = ev.event_id;
     o.textContent = ev.name + ' — ' + String(ev.date||'').substring(0,10);
     sel.appendChild(o);
   });
-  if (sortedEvents().length > 0) {
-    // 既存のvipEventIdを維持、なければ最新を選択
-    if (!vipEventId) vipEventId = sortedEvents()[0].event_id;
+  // 最新イベントを自動選択
+  if (evs.length > 0) {
+    if (!vipEventId) vipEventId = evs[0].event_id;
     sel.value = vipEventId;
-    await onVipEventChange();
+  }
+  // contentを先に表示してからデータ読み込み
+  if (vipEventId) {
+    document.getElementById('vip-content').style.display = 'block';
+    await loadVipData();
   }
 }
 
 async function onVipEventChange() {
-  vipEventId = document.getElementById('vip-event-sel').value;
-  if (!vipEventId) { document.getElementById('vip-content').style.display = 'none'; return; }
-  document.getElementById('vip-content').style.display = 'block';
+  const sel = document.getElementById('vip-event-sel');
+  vipEventId = sel ? sel.value : '';
+  const content = document.getElementById('vip-content');
+  if (!vipEventId) { if(content) content.style.display = 'none'; return; }
+  if (content) content.style.display = 'block';
   await loadVipData();
 }
 
