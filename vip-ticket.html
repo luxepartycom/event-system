@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUXE PARTY TOKYO — VIP招待状</title>
+<style>
+:root{--gold:#C9A84C;--black:#080808;--dark:#111;--white:#F5F0E8;--gray:#666;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--black);color:var(--white);font-family:-apple-system,'Hiragino Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.card{width:100%;max-width:400px;padding:40px 24px;text-align:center;}
+.logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.1rem;color:var(--gold);letter-spacing:0.4em;margin-bottom:4px;}
+.logo-sub{font-size:0.45rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin-bottom:32px;}
+.event-name{font-size:0.62rem;color:var(--gray);letter-spacing:0.15em;margin-bottom:6px;}
+.table-name{font-family:'Hiragino Mincho ProN',serif;font-size:2rem;color:var(--gold);margin-bottom:4px;}
+.table-type{font-size:0.55rem;letter-spacing:0.2em;color:var(--gray);margin-bottom:28px;text-transform:uppercase;}
+.qr-wrap{background:#fff;padding:16px;display:inline-block;margin-bottom:24px;}
+.qr-wrap img{width:200px;height:200px;display:block;}
+.guest-id{font-size:0.48rem;letter-spacing:0.15em;color:#333;margin-bottom:28px;font-family:monospace;}
+.divider{width:40px;height:1px;background:rgba(201,168,76,0.3);margin:0 auto 20px;}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.62rem;}
+.info-key{color:var(--gray);}
+.info-val{color:var(--white);}
+.notice{margin-top:24px;font-size:0.5rem;color:#333;line-height:1.8;}
+#loading{font-size:0.6rem;color:var(--gray);letter-spacing:0.15em;}
+#error{display:none;font-size:0.65rem;color:#CF4444;line-height:1.8;}
+#main{display:none;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">LUXE PARTY TOKYO</div>
+  <div class="logo-sub">VIP Table Invitation</div>
+
+  <div id="loading">招待状を読み込み中...</div>
+  <div id="error"></div>
+
+  <div id="main">
+    <div class="event-name" id="ev-name"></div>
+    <div class="table-name" id="tbl-name"></div>
+    <div class="table-type" id="tbl-type"></div>
+    <div class="qr-wrap">
+      <img id="qr-img" src="" alt="QRコード">
+    </div>
+    <div class="guest-id" id="guest-id"></div>
+    <div class="divider"></div>
+    <div>
+      <div class="info-row"><span class="info-key">代表者</span><span class="info-val" id="guest-name"></span></div>
+      <div class="info-row"><span class="info-key">ステータス</span><span class="info-val" id="status-val" style="color:#4CAF82;"></span></div>
+    </div>
+    <div class="notice">
+      当日はこの画面をスタッフにご提示ください。<br>
+      ご一行様全員でご来場をお待ちしております。
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+
+async function load() {
+  const params = new URLSearchParams(location.search);
+  const guestId = params.get('id') || '';
+  if (!guestId) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').textContent = 'URLが正しくありません。';
+    document.getElementById('error').style.display = 'block';
+    return;
+  }
+
+  try {
+    const r = await fetch(API + '?action=getVipTicket&guest_id=' + encodeURIComponent(guestId));
+    const d = await r.json();
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (!d.ok) {
+      document.getElementById('error').textContent = d.message || '招待状の読み込みに失敗しました。';
+      document.getElementById('error').style.display = 'block';
+      return;
+    }
+
+    // QRコード生成（guest_idをQRに埋め込む）
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(guestId);
+    document.getElementById('qr-img').src = qrUrl;
+    document.getElementById('ev-name').textContent = d.event_name || '';
+    document.getElementById('tbl-name').textContent = d.table_name || '';
+    document.getElementById('tbl-type').textContent = d.table_type || '';
+    document.getElementById('guest-id').textContent = guestId;
+    document.getElementById('guest-name').textContent = d.guest_name || '';
+    document.getElementById('status-val').textContent = d.status === 'confirmed' ? '✅ 予約確定' : d.status;
+    document.getElementById('main').style.display = 'block';
+
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').textContent = '通信エラーが発生しました。';
+    document.getElementById('error').style.display = 'block';
+  }
+}
+
+load();
+</script>
+</body>
+</html>
