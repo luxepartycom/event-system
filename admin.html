@@ -2699,7 +2699,7 @@ function showCamOverlay(d, status) {
         vipEl.style.background = 'rgba(207,68,68,0.15)';
         vipEl.style.border = '1px solid rgba(207,68,68,0.5)';
         vipEl.style.color = '#FF6666';
-        vipEl.innerHTML = '⚠️ ' + v.table_name + ' / ' + v.table_type + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong> — 定員超過';
+        vipEl.innerHTML = '⚠️ ' + v.table_name + ' / ' + v.table_type + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong><br>上限超過 — 追加料金 ¥50,000 が発生します';
         document.getElementById('cam-ok-icon').textContent = '⚠️';
       } else {
         vipEl.style.background = 'rgba(201,168,76,0.1)';
@@ -4476,36 +4476,44 @@ function renderVipMap() {
     return;
   }
 
-  // 各テーブルの静的SVG要素を探して直接更新
   let overlayHtml = '';
   vipTables.forEach(tRow => {
-    const tName  = String(tRow.table_name || '');
-    const status = String(tRow.status || 'available');
-    const svgEl  = document.getElementById('svg-' + tName);
+    const tName   = String(tRow.table_name || '');
+    const status  = String(tRow.status || 'available');
+    const checked = Number(tRow.checked_count || 0);
+    const cap     = Number(tRow.capacity || 0);
+    const isOver  = cap > 0 && checked > cap;
+    const svgEl   = document.getElementById('svg-' + tName);
     if (!svgEl) return;
 
     const rect = svgEl.querySelector('rect');
     if (!rect) return;
 
+    const rx = Number(rect.getAttribute('x')||0);
+    const ry = Number(rect.getAttribute('y')||0);
+    const rw = Number(rect.getAttribute('width')||0);
+    const rh = Number(rect.getAttribute('height')||0);
+    const cx = rx + rw / 2;
+
     if (status === 'confirmed' || status === 'reserved') {
-      // 予約確定: グレーアウト + 予約者名表示
-      rect.setAttribute('fill', '#111');
-      rect.setAttribute('opacity', '0.6');
+      rect.setAttribute('fill', isOver ? '#1a0000' : '#111');
+      rect.setAttribute('opacity', '0.75');
+      rect.setAttribute('stroke', isOver ? '#CF4444' : '#333');
       const guestName = String(tRow.reserved_by || '');
       if (guestName) {
-        const x = Number(rect.getAttribute('x')||0) + Number(rect.getAttribute('width')||0)/2;
-        const y = Number(rect.getAttribute('y')||0) + Number(rect.getAttribute('height')||0)/2 + 18;
-        overlayHtml += `<text x="${x}" y="${y}" text-anchor="middle" fill="#C9A84C" font-size="9" font-family="sans-serif" font-weight="500">${guestName}</text>`;
+        overlayHtml += `<text x="${cx}" y="${ry + rh/2 + (cap>0?2:10)}" text-anchor="middle" fill="#C9A84C" font-size="9" font-family="sans-serif" font-weight="500">${guestName}</text>`;
+      }
+      if (cap > 0) {
+        const scanColor = isOver ? '#CF4444' : '#4CAF82';
+        const scanLabel = isOver ? `超過 ${checked}/${cap}` : `${checked}/${cap}`;
+        overlayHtml += `<text x="${cx}" y="${ry + rh - 6}" text-anchor="middle" fill="${scanColor}" font-size="8" font-family="sans-serif" font-weight="${isOver?'700':'400'}">${scanLabel}</text>`;
       }
     } else if (status === 'pending_payment' || status === 'stripe_pending') {
-      // 振込待ち: 黄色オーバーレイ
       rect.setAttribute('fill', '#2a1f00');
       rect.setAttribute('stroke', '#B8860B');
-      const x2 = Number(rect.getAttribute('x')||0) + Number(rect.getAttribute('width')||0)/2;
-      const y2 = Number(rect.getAttribute('y')||0) + Number(rect.getAttribute('height')||0) - 8;
-      overlayHtml += `<text x="${x2}" y="${y2}" text-anchor="middle" fill="#B8860B" font-size="8" font-family="sans-serif">振込待ち</text>`;
+      rect.removeAttribute('opacity');
+      overlayHtml += `<text x="${cx}" y="${ry + rh - 8}" text-anchor="middle" fill="#B8860B" font-size="8" font-family="sans-serif">振込待ち</text>`;
     } else {
-      // 空き: 元のスタイルに戻す
       const ti = VIP_TABLE_INFO[tName];
       if (ti) {
         rect.setAttribute('fill', ti.fill);
