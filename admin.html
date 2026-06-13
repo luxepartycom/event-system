@@ -1462,8 +1462,14 @@ td.muted{color:var(--gray);font-size:0.62rem;}
           <textarea class="mm-textarea" id="mm-free-body" rows="5" placeholder="イベントの詳細・開催日程・場所など"></textarea>
         </div>
         <div class="mm-field">
-          <label class="mm-label">フライヤー画像URL（任意）</label>
+          <label class="mm-label">ヘッダー画像URL（任意・メール上部にフル幅表示）</label>
           <input class="mm-input" id="mm-free-image" placeholder="https://drive.google.com/...">
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">ギャラリー画像URL（任意・最大3枚・メール下部に2列表示）</label>
+          <input class="mm-input" id="mm-free-gallery-1" placeholder="1枚目 https://drive.google.com/...">
+          <input class="mm-input" style="margin-top:4px;" id="mm-free-gallery-2" placeholder="2枚目 https://drive.google.com/...">
+          <input class="mm-input" style="margin-top:4px;" id="mm-free-gallery-3" placeholder="3枚目 https://drive.google.com/...">
         </div>
         <div class="mm-field">
           <label class="mm-label">CTAボタンテキスト</label>
@@ -1490,8 +1496,14 @@ td.muted{color:var(--gray);font-size:0.62rem;}
           <textarea class="mm-textarea" id="mm-paid-body" rows="5" placeholder="イベントの詳細・開催日程・場所など"></textarea>
         </div>
         <div class="mm-field">
-          <label class="mm-label">フライヤー画像URL（任意）</label>
+          <label class="mm-label">ヘッダー画像URL（任意・メール上部にフル幅表示）</label>
           <input class="mm-input" id="mm-paid-image" placeholder="https://drive.google.com/...">
+        </div>
+        <div class="mm-field">
+          <label class="mm-label">ギャラリー画像URL（任意・最大3枚・メール下部に2列表示）</label>
+          <input class="mm-input" id="mm-paid-gallery-1" placeholder="1枚目 https://drive.google.com/...">
+          <input class="mm-input" style="margin-top:4px;" id="mm-paid-gallery-2" placeholder="2枚目 https://drive.google.com/...">
+          <input class="mm-input" style="margin-top:4px;" id="mm-paid-gallery-3" placeholder="3枚目 https://drive.google.com/...">
         </div>
         <div class="mm-field">
           <label class="mm-label">CTAボタンテキスト</label>
@@ -1530,6 +1542,10 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         </div>
       </div>
 
+      <div class="mm-field" style="margin-bottom:16px;">
+        <label class="mm-label">1日の送信上限 <span style="color:var(--gold);font-size:0.55rem;">（Workspace: 最大1,500 / 通常Gmail: 最大100）</span></label>
+        <input class="mm-input" id="mm-daily-limit" type="number" min="1" max="1500" value="500" style="max-width:120px;">
+      </div>
       <div class="mm-summary" id="mm-summary">
         対象者を選択してください
       </div>
@@ -3575,17 +3591,20 @@ function renderSalesSummary() {
 
 
 // ── メール配信 ──────────────────────────────────────────
-const MM_DAILY_LIMIT = 100;
 let mmGuestsFree = [];
 let mmGuestsPaid = [];
 let mmTemplates  = {};
+
+function getMmDailyLimit() {
+  return Number(document.getElementById('mm-daily-limit')?.value || 500);
+}
 
 // タブ開いた時の初期化
 async function onMailmagTabOpen() {
   document.getElementById('mm-target-free').checked = true;
   document.getElementById('mm-target-paid').checked = true;
   await Promise.all([loadMmGuests(), checkMailQuota()]);
-  loadMmTemplatesFromStorage();
+  await loadMmTemplatesFromGas();
   updateMmCount();
 }
 
@@ -3658,10 +3677,10 @@ function updateMmCount() {
   const totalPaid = paidChecked ? mmGuestsPaid.length : 0;
   const total     = totalFree + totalPaid;
 
-  const daysNeeded = Math.ceil(total / MM_DAILY_LIMIT);
+  const daysNeeded = Math.ceil(total / getMmDailyLimit());
 
   document.getElementById('mm-summary').innerHTML = total > 0
-    ? `無料参加者: <strong style="color:var(--white)">${totalFree}名</strong>　有料参加者: <strong style="color:var(--white)">${totalPaid}名</strong>　合計: <strong style="color:var(--gold)">${total}名</strong><br>1日${MM_DAILY_LIMIT}通上限のため <strong style="color:var(--gold)">${daysNeeded}日</strong> に分けて送信されます`
+    ? `無料参加者: <strong style="color:var(--white)">${totalFree}名</strong>　有料参加者: <strong style="color:var(--white)">${totalPaid}名</strong>　合計: <strong style="color:var(--gold)">${total}名</strong><br>1日${getMmDailyLimit()}通上限のため <strong style="color:var(--gold)">${daysNeeded}日</strong> に分けて送信されます`
     : '対象者を選択してください';
 
   document.getElementById('mm-btn-send-free').disabled = !freeChecked || mmGuestsFree.length === 0;
@@ -3676,21 +3695,39 @@ function switchMmContent(type) {
   document.getElementById('mm-tab-paid').classList.toggle('active', type === 'paid');
 }
 
-// テンプレート保存（localStorage）
-function saveMmTemplate() {
+// テンプレート保存（GASスプレッドシート）
+async function saveMmTemplate() {
   const name = prompt('テンプレート名を入力してください:');
   if (!name) return;
   const tpl = getMmFormData();
+  const d = await apiPost({ action: 'saveMailTemplate', name, data: tpl });
+  if (!d.ok) { toast('❌ 保存に失敗しました'); return; }
   mmTemplates[name] = tpl;
-  try { localStorage.setItem('lpt_mm_templates', JSON.stringify(mmTemplates)); } catch(e) {}
   renderMmTemplateList();
+  document.getElementById('mm-template-sel').value = name;
   toast('✅ テンプレートを保存しました: ' + name);
 }
 
-function loadMmTemplatesFromStorage() {
+async function loadMmTemplatesFromGas() {
   try {
-    const saved = localStorage.getItem('lpt_mm_templates');
-    if (saved) mmTemplates = JSON.parse(saved);
+    const d = await apiPost({ action: 'getMailTemplates' });
+    if (d.ok) {
+      mmTemplates = d.templates || {};
+      // ローカルストレージからの移行（初回のみ）
+      if (Object.keys(mmTemplates).length === 0) {
+        try {
+          const saved = localStorage.getItem('lpt_mm_templates');
+          if (saved) {
+            const local = JSON.parse(saved);
+            for (const [n, v] of Object.entries(local)) {
+              await apiPost({ action: 'saveMailTemplate', name: n, data: v });
+              mmTemplates[n] = v;
+            }
+            localStorage.removeItem('lpt_mm_templates');
+          }
+        } catch(e) {}
+      }
+    }
   } catch(e) {}
   renderMmTemplateList();
 }
@@ -3714,53 +3751,62 @@ function loadMmTemplate() {
   setMmFormData(mmTemplates[name]);
 }
 
-function deleteMmTemplate() {
+async function deleteMmTemplate() {
   const name = document.getElementById('mm-template-sel').value;
   if (!name) { toast('削除するテンプレートを選択してください'); return; }
   if (!confirm('「' + name + '」を削除しますか？')) return;
+  const d = await apiPost({ action: 'deleteMailTemplate', name });
+  if (!d.ok) { toast('❌ 削除に失敗しました'); return; }
   delete mmTemplates[name];
-  try { localStorage.setItem('lpt_mm_templates', JSON.stringify(mmTemplates)); } catch(e) {}
   renderMmTemplateList();
   toast('🗑 テンプレートを削除しました');
 }
 
 function getMmFormData() {
+  const g = (id) => (document.getElementById(id)?.value || '');
   return {
     free: {
-      subject:  document.getElementById('mm-free-subject').value,
-      greeting: document.getElementById('mm-free-greeting').value,
-      body:     document.getElementById('mm-free-body').value,
-      image:    document.getElementById('mm-free-image').value,
-      ctaText:  document.getElementById('mm-free-cta-text').value,
-      ctaUrl:   document.getElementById('mm-free-cta-url').value,
+      subject:  g('mm-free-subject'),
+      greeting: g('mm-free-greeting'),
+      body:     g('mm-free-body'),
+      image:    g('mm-free-image'),
+      gallery:  [g('mm-free-gallery-1'), g('mm-free-gallery-2'), g('mm-free-gallery-3')].filter(v => v),
+      ctaText:  g('mm-free-cta-text'),
+      ctaUrl:   g('mm-free-cta-url'),
     },
     paid: {
-      subject:  document.getElementById('mm-paid-subject').value,
-      greeting: document.getElementById('mm-paid-greeting').value,
-      body:     document.getElementById('mm-paid-body').value,
-      image:    document.getElementById('mm-paid-image').value,
-      ctaText:  document.getElementById('mm-paid-cta-text').value,
-      ctaUrl:   document.getElementById('mm-paid-cta-url').value,
+      subject:  g('mm-paid-subject'),
+      greeting: g('mm-paid-greeting'),
+      body:     g('mm-paid-body'),
+      image:    g('mm-paid-image'),
+      gallery:  [g('mm-paid-gallery-1'), g('mm-paid-gallery-2'), g('mm-paid-gallery-3')].filter(v => v),
+      ctaText:  g('mm-paid-cta-text'),
+      ctaUrl:   g('mm-paid-cta-url'),
     }
   };
 }
 
 function setMmFormData(data) {
+  const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
   if (data.free) {
-    document.getElementById('mm-free-subject').value  = data.free.subject  || '';
-    document.getElementById('mm-free-greeting').value = data.free.greeting || '';
-    document.getElementById('mm-free-body').value     = data.free.body     || '';
-    document.getElementById('mm-free-image').value    = data.free.image    || '';
-    document.getElementById('mm-free-cta-text').value = data.free.ctaText  || '';
-    document.getElementById('mm-free-cta-url').value  = data.free.ctaUrl   || '';
+    s('mm-free-subject',  data.free.subject);
+    s('mm-free-greeting', data.free.greeting);
+    s('mm-free-body',     data.free.body);
+    s('mm-free-image',    data.free.image);
+    const fg = data.free.gallery || [];
+    s('mm-free-gallery-1', fg[0]); s('mm-free-gallery-2', fg[1]); s('mm-free-gallery-3', fg[2]);
+    s('mm-free-cta-text', data.free.ctaText);
+    s('mm-free-cta-url',  data.free.ctaUrl);
   }
   if (data.paid) {
-    document.getElementById('mm-paid-subject').value  = data.paid.subject  || '';
-    document.getElementById('mm-paid-greeting').value = data.paid.greeting || '';
-    document.getElementById('mm-paid-body').value     = data.paid.body     || '';
-    document.getElementById('mm-paid-image').value    = data.paid.image    || '';
-    document.getElementById('mm-paid-cta-text').value = data.paid.ctaText  || '';
-    document.getElementById('mm-paid-cta-url').value  = data.paid.ctaUrl   || '';
+    s('mm-paid-subject',  data.paid.subject);
+    s('mm-paid-greeting', data.paid.greeting);
+    s('mm-paid-body',     data.paid.body);
+    s('mm-paid-image',    data.paid.image);
+    const pg = data.paid.gallery || [];
+    s('mm-paid-gallery-1', pg[0]); s('mm-paid-gallery-2', pg[1]); s('mm-paid-gallery-3', pg[2]);
+    s('mm-paid-cta-text', data.paid.ctaText);
+    s('mm-paid-cta-url',  data.paid.ctaUrl);
   }
 }
 
@@ -3778,18 +3824,42 @@ function closeMmPreview() {
 }
 
 function buildMmEmailHtml(data, type, name) {
-  const imageRow = data.image
+  const headerRow = data.image
     ? `<div style="margin-bottom:24px;"><img src="${data.image}" style="width:100%;max-width:480px;display:block;" alt="フライヤー"></div>`
     : '';
   const bodyHtml = (data.body || '').replace(/\n/g, '<br>');
+  // ギャラリー（table形式でメールクライアント互換）
+  const gallery = (data.gallery || []).filter(v => v);
+  let galleryHtml = '';
+  if (gallery.length > 0) {
+    galleryHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:24px 0 8px 0;border-collapse:separate;"><tr>';
+    if (gallery.length === 1) {
+      galleryHtml = `<div style="margin:24px 0 8px;"><img src="${gallery[0]}" style="width:100%;max-width:480px;display:block;" alt=""></div>`;
+    } else {
+      const half = Math.ceil(gallery.length / 2);
+      galleryHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:24px 0 8px 0;"><tbody>';
+      for (let i = 0; i < gallery.length; i += 2) {
+        galleryHtml += '<tr>';
+        galleryHtml += `<td width="50%" style="padding:2px;"><img src="${gallery[i]}" style="width:100%;display:block;" alt=""></td>`;
+        if (gallery[i+1]) {
+          galleryHtml += `<td width="50%" style="padding:2px;"><img src="${gallery[i+1]}" style="width:100%;display:block;" alt=""></td>`;
+        } else {
+          galleryHtml += '<td width="50%"></td>';
+        }
+        galleryHtml += '</tr>';
+      }
+      galleryHtml += '</tbody></table>';
+    }
+  }
   return `<div style="background:#080808;padding:32px 20px;font-family:sans-serif;color:#F5F0E8;max-width:480px;margin:0 auto;">
     <div style="font-size:1.3rem;color:#C9A84C;letter-spacing:0.3em;margin-bottom:4px;">LUXE PARTY TOKYO</div>
     <div style="font-size:0.6rem;color:#888;letter-spacing:0.2em;margin-bottom:28px;">INVITATION</div>
-    ${imageRow}
+    ${headerRow}
     <p style="font-size:0.9rem;margin-bottom:8px;">${name} 様</p>
     <p style="font-size:0.78rem;color:#aaa;line-height:1.9;margin-bottom:24px;white-space:pre-wrap;">${data.greeting || ''}</p>
     <p style="font-size:0.75rem;color:#ccc;line-height:1.9;margin-bottom:28px;">${bodyHtml}</p>
     ${data.ctaUrl ? `<div style="text-align:center;margin-bottom:28px;"><a href="${data.ctaUrl}" style="display:inline-block;background:#C9A84C;color:#000;text-decoration:none;padding:16px 36px;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;">${data.ctaText || '詳細はこちら'}</a></div>` : ''}
+    ${galleryHtml}
     <div style="text-align:center;margin-bottom:24px;font-size:0.6rem;color:#666;">
       <a href="https://www.instagram.com/luxe_party_tokyo/" style="color:#C9A84C;text-decoration:none;margin:0 8px;">Instagram</a>
       <a href="https://www.tiktok.com/@luxe.party.tokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">TikTok</a>
@@ -3815,7 +3885,7 @@ async function sendMmEmail(target) {
   }
 
   const targetLabel = { free: '無料参加者', paid: '有料参加者', both: '両方' }[target];
-  if (!confirm(`${targetLabel}にメールを送信します。よろしいですか？\n\n※1日${MM_DAILY_LIMIT}通の上限があります。`)) return;
+  if (!confirm(`${targetLabel}にメールを送信します。よろしいですか？\n\n※1日${getMmDailyLimit()}通の上限があります。`)) return;
 
   const logEl = document.getElementById('mm-log');
   logEl.style.display = 'block';
@@ -3839,7 +3909,7 @@ async function sendMmEmail(target) {
     guests_paid: target !== 'free' ? mmGuestsPaid : [],
     data_free:   data.free,
     data_paid:   data.paid,
-    daily_limit: MM_DAILY_LIMIT,
+    daily_limit: getMmDailyLimit(),
   });
 
   if (d.ok) {
