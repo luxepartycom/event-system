@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUXE PARTY TOKYO — VIP SEAT PLAN</title>
+<style>
+:root {
+  --gold:#C9A84C;--black:#080808;--dark:#0f0f0f;--dark2:#141414;
+  --white:#F5F0E8;--gray:#666;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:var(--black);
+  color:var(--white);
+  font-family:-apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif;
+  font-weight:300;
+  min-height:100vh;
+}
+
+/* Hero */
+.hero {
+  position:relative;
+  text-align:center;
+  padding:64px 20px 48px;
+  overflow:hidden;
+}
+.hero::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(51,85,204,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 80% 80%, rgba(204,34,34,0.06) 0%, transparent 60%);
+  pointer-events:none;
+}
+.hero-logo {
+  font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  font-size:clamp(1.6rem, 5vw, 2.4rem);
+  letter-spacing:0.4em;
+  color:var(--gold);
+  margin-bottom:4px;
+  position:relative;
+}
+.hero-sub {
+  font-size:clamp(0.5rem, 2vw, 0.6rem);
+  letter-spacing:0.4em;
+  color:#555;
+  text-transform:uppercase;
+  margin-bottom:32px;
+  position:relative;
+}
+.hero-title {
+  font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  font-size:clamp(0.7rem, 3vw, 0.85rem);
+  letter-spacing:0.5em;
+  color:#888;
+  text-transform:uppercase;
+  position:relative;
+}
+.hero-title span {
+  display:inline-block;
+  padding:0 16px;
+  position:relative;
+}
+.hero-title span::before,
+.hero-title span::after {
+  content:'';
+  position:absolute;
+  top:50%;
+  width:40px;
+  height:1px;
+  background:rgba(255,255,255,0.1);
+}
+.hero-title span::before { right:100%; }
+.hero-title span::after  { left:100%; }
+
+/* Divider */
+.divider {
+  width:100%;
+  height:1px;
+  background:linear-gradient(90deg, transparent, rgba(201,168,76,0.2), transparent);
+  margin:0 0 56px;
+}
+
+/* Content */
+.content {
+  max-width:720px;
+  margin:0 auto;
+  padding:0 20px 80px;
+}
+
+/* Rank Section */
+.rank-section {
+  margin-bottom:52px;
+}
+.rank-heading {
+  display:flex;
+  align-items:center;
+  gap:16px;
+  margin-bottom:20px;
+}
+.rank-heading-line {
+  flex:1;
+  height:1px;
+}
+.rank-name {
+  font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  font-size:clamp(1.1rem, 4vw, 1.5rem);
+  letter-spacing:0.25em;
+  font-weight:400;
+  white-space:nowrap;
+}
+
+/* Plan Card */
+.plan-card {
+  border:1px solid;
+  border-radius:3px;
+  padding:20px 20px 20px 24px;
+  margin-bottom:10px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:0 20px;
+  align-items:center;
+  transition:background 0.2s;
+  position:relative;
+  overflow:hidden;
+}
+.plan-card::before {
+  content:'';
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:3px;
+}
+.plan-card:hover {
+  background:rgba(255,255,255,0.02);
+}
+
+/* left: location label */
+.plan-location {
+  font-size:0.6rem;
+  letter-spacing:0.1em;
+  min-width:80px;
+  padding-right:16px;
+  border-right:1px solid rgba(255,255,255,0.06);
+}
+.plan-location-name {
+  font-size:0.65rem;
+  color:var(--white);
+  margin-bottom:2px;
+  font-weight:400;
+}
+.plan-location-empty {
+  min-width:80px;
+  padding-right:16px;
+  border-right:1px solid rgba(255,255,255,0.06);
+}
+
+/* center: details */
+.plan-details {
+  padding:0 16px;
+}
+.plan-men {
+  font-size:0.72rem;
+  color:var(--white);
+  margin-bottom:3px;
+}
+.plan-seats {
+  font-size:0.52rem;
+  letter-spacing:0.08em;
+  color:var(--gray);
+  margin-bottom:8px;
+}
+.plan-benefits {
+  font-size:0.5rem;
+  color:#888;
+  line-height:1.8;
+}
+.plan-benefits-item {
+  display:inline-block;
+  margin-right:8px;
+  margin-bottom:2px;
+}
+
+/* right: price + button */
+.plan-right {
+  text-align:right;
+  flex-shrink:0;
+}
+.plan-price {
+  font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  font-size:clamp(1.1rem, 3.5vw, 1.4rem);
+  color:var(--white);
+  margin-bottom:2px;
+  white-space:nowrap;
+}
+.plan-price span {
+  font-size:0.55rem;
+  color:var(--gray);
+  margin-left:2px;
+  font-family:-apple-system,'Hiragino Sans',sans-serif;
+}
+.plan-btn {
+  display:inline-block;
+  margin-top:10px;
+  padding:9px 20px;
+  border:1px solid;
+  font-size:0.5rem;
+  letter-spacing:0.15em;
+  cursor:pointer;
+  background:transparent;
+  font-family:inherit;
+  transition:all 0.2s;
+  white-space:nowrap;
+  text-decoration:none;
+}
+.plan-btn:hover {
+  opacity:0.75;
+}
+
+/* DIAMOND */
+.rank-diamond .rank-name { color:#e5e5e5; }
+.rank-diamond .rank-heading-line { background:linear-gradient(90deg, rgba(150,150,150,0.3), transparent); }
+.rank-diamond .plan-card { border-color:rgba(150,150,150,0.25); background:rgba(30,30,30,0.4); }
+.rank-diamond .plan-card::before { background:#888; }
+.rank-diamond .plan-btn { border-color:#888; color:#e5e5e5; }
+.rank-diamond .plan-btn:hover { background:#888; color:#000; }
+
+/* GOLD */
+.rank-gold .rank-name { color:var(--gold); }
+.rank-gold .rank-heading-line { background:linear-gradient(90deg, rgba(201,168,76,0.4), transparent); }
+.rank-gold .plan-card { border-color:rgba(201,168,76,0.25); background:rgba(61,40,0,0.3); }
+.rank-gold .plan-card::before { background:var(--gold); }
+.rank-gold .plan-btn { border-color:var(--gold); color:var(--gold); }
+.rank-gold .plan-btn:hover { background:var(--gold); color:#000; }
+
+/* SECRET */
+.rank-secret .rank-name { color:#ff8888; }
+.rank-secret .rank-heading-line { background:linear-gradient(90deg, rgba(204,34,34,0.35), transparent); }
+.rank-secret .plan-card { border-color:rgba(204,34,34,0.25); background:rgba(74,15,15,0.3); }
+.rank-secret .plan-card::before { background:#CC2222; }
+.rank-secret .plan-btn { border-color:rgba(204,34,34,0.6); color:#ff8888; }
+.rank-secret .plan-btn:hover { background:rgba(204,34,34,0.4); }
+
+/* VVIP */
+.rank-vvip .rank-name { color:#dbeafe; }
+.rank-vvip .rank-heading-line { background:linear-gradient(90deg, rgba(51,85,204,0.35), transparent); }
+.rank-vvip .plan-card { border-color:rgba(51,85,204,0.25); background:rgba(15,36,97,0.3); }
+.rank-vvip .plan-card::before { background:#3355CC; }
+.rank-vvip .plan-btn { border-color:rgba(51,85,204,0.6); color:#dbeafe; }
+.rank-vvip .plan-btn:hover { background:rgba(51,85,204,0.35); }
+
+/* Modal */
+.modal-overlay {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.85);
+  z-index:100;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:#0f0f0f;
+  border:1px solid #222;
+  max-width:480px;
+  width:100%;
+  padding:32px 28px;
+  position:relative;
+  max-height:90vh;
+  overflow-y:auto;
+}
+.modal-close {
+  position:absolute;
+  top:16px; right:20px;
+  font-size:1.2rem;
+  color:#444;
+  cursor:pointer;
+  background:none;
+  border:none;
+  line-height:1;
+}
+.modal-close:hover { color:#888; }
+.modal-rank-badge {
+  font-size:0.45rem;
+  letter-spacing:0.15em;
+  padding:3px 10px;
+  border:1px solid;
+  display:inline-block;
+  margin-bottom:12px;
+  border-radius:2px;
+}
+.modal-plan-title {
+  font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  font-size:1.1rem;
+  color:var(--white);
+  margin-bottom:6px;
+}
+.modal-plan-meta {
+  font-size:0.55rem;
+  color:var(--gray);
+  line-height:1.9;
+  margin-bottom:16px;
+}
+.modal-price-row {
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  margin-bottom:20px;
+  padding-bottom:16px;
+  border-bottom:1px solid #1a1a1a;
+}
+.modal-price {
+  font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  font-size:1.6rem;
+  color:var(--white);
+}
+.modal-price-sub {
+  font-size:0.52rem;
+  color:var(--gray);
+}
+.modal-section-label {
+  font-size:0.42rem;
+  letter-spacing:0.2em;
+  color:var(--gray);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.modal-benefits {
+  background:#111;
+  padding:12px 14px;
+  margin-bottom:20px;
+}
+.modal-benefit-item {
+  font-size:0.58rem;
+  color:#aaa;
+  line-height:2;
+  border-bottom:1px solid #1a1a1a;
+  padding-bottom:4px;
+  margin-bottom:4px;
+}
+.modal-benefit-item:last-child { border:none; margin:0; padding:0; }
+.modal-note {
+  font-size:0.48rem;
+  color:#444;
+  line-height:1.8;
+  margin-bottom:20px;
+}
+
+/* Form */
+.form-group { margin-bottom:18px; }
+.form-label {
+  font-size:0.45rem;
+  letter-spacing:0.15em;
+  color:var(--gray);
+  display:block;
+  margin-bottom:8px;
+  text-transform:uppercase;
+}
+.form-input {
+  width:100%;
+  background:transparent;
+  border:none;
+  border-bottom:1px solid #222;
+  padding:9px 0;
+  color:var(--white);
+  font-family:inherit;
+  font-size:0.8rem;
+  outline:none;
+  transition:border-color 0.2s;
+}
+.form-input:focus { border-bottom-color:var(--gold); }
+
+.submit-btn {
+  width:100%;
+  padding:15px;
+  border:none;
+  font-size:0.65rem;
+  letter-spacing:0.2em;
+  cursor:pointer;
+  font-family:inherit;
+  font-weight:500;
+  margin-top:4px;
+  transition:opacity 0.2s;
+}
+.submit-btn:hover { opacity:0.85; }
+
+/* Spinner */
+#loading {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.8);
+  z-index:200;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:12px;
+}
+#loading.show { display:flex; }
+.spinner {
+  width:30px; height:30px;
+  border:1px solid #222;
+  border-top-color:var(--gold);
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Result */
+.result-section {
+  display:none;
+  text-align:center;
+  padding:32px 0;
+}
+.result-section.show { display:block; }
+.result-badge {
+  font-size:0.6rem;
+  padding:14px;
+  border:1px solid;
+  margin-bottom:20px;
+  line-height:1.8;
+}
+.result-title {
+  font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  font-size:1.2rem;
+  color:var(--gold);
+  margin-bottom:12px;
+}
+.result-sub { font-size:0.58rem; color:var(--gray); line-height:1.9; }
+
+/* Responsive */
+@media (max-width:520px) {
+  .plan-card {
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+  .plan-location, .plan-location-empty {
+    border-right:none;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+    padding-right:0;
+    padding-bottom:10px;
+  }
+  .plan-right { text-align:left; }
+  .plan-btn { width:100%; text-align:center; padding:12px; }
+  .plan-details { padding:0; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:0.55rem;letter-spacing:0.2em;color:#555;">処理中...</div>
+</div>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-logo">LUXE PARTY TOKYO</div>
+  <div class="hero-sub">Private VIP Experience</div>
+  <div class="hero-title"><span>VIP SEAT PLAN</span></div>
+</div>
+<div class="divider"></div>
+
+<!-- Plans -->
+<div class="content">
+
+  <!-- DIAMOND VIP -->
+  <div class="rank-section rank-diamond">
+    <div class="rank-heading">
+      <div class="rank-name">DIAMOND VIP</div>
+      <div class="rank-heading-line"></div>
+    </div>
+
+    <div class="plan-card" onclick="openModal('diamond','DJバックステージ','男性5名','10名席',1000000,'ドンペリ x1 / クリスタル x1 / アルマンドマグナム x1 / フード / ミネラルウォーター x10 / Red Bull x10','DIAMOND VIP','#888','#e5e5e5')">
+      <div class="plan-location">
+        <div class="plan-location-name">DJ<br>バックステージ</div>
+      </div>
+      <div class="plan-details">
+        <div class="plan-men">男性 5名</div>
+        <div class="plan-seats">10名席</div>
+        <div class="plan-benefits">
+          <span class="plan-benefits-item">ドンペリ x1</span>
+          <span class="plan-benefits-item">クリスタル x1</span>
+          <span class="plan-benefits-item">アルマンドマグナム x1</span>
+          <span class="plan-benefits-item">フード</span>
+          <span class="plan-benefits-item">ミネラルウォーター x10</span>
+          <span class="plan-benefits-item">Red Bull x10</span>
+        </div>
+      </div>
+      <div class="plan-right">
+        <div class="plan-price">100万<span>円</span></div>
+        <button class="plan-btn">申し込む</button>
+      </div>
+    </div>
+
+    <div class="plan-card" onclick="openModal('diamond','','男性6〜7名','15名席',1000000,'ドンペリ x1 / クリスタル x1 / アルマンドマグナム x1 / フード / ミネラルウォーター x10 / Red Bull x10','DIAMOND VIP','#888','#e5e5e5')">
+      <div class="plan-location-empty"></div>
+      <div class="plan-details">
+        <div class="plan-men">男性 6〜7名</div>
+        <div class="plan-seats">15名席</div>
+        <div class="plan-benefits">
+          <span class="plan-benefits-item">ドンペリ x1</span>
+          <span class="plan-benefits-item">クリスタル x1</span>
+          <span class="plan-benefits-item">アルマンドマグナム x1</span>
+          <span class="plan-benefits-item">フード</span>
+          <span class="plan-benefits-item">ミネラルウォーター x10</span>
+          <span class="plan-benefits-item">Red Bull x10</span>
+        </div>
+      </div>
+      <div class="plan-right">
+        <div class="plan-price">100万<span>円</span></div>
+        <button class="plan-btn">申し込む</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOLD VIP -->
+  <div class="rank-section rank-gold">
+    <div class="rank-heading">
+      <div class="rank-name">GOLD VIP</div>
+      <div class="rank-heading-line"></div>
+    </div>
+
+    <div class="plan-card" onclick="openModal('gold','DJバックステージ','男性4〜5名','10名席',500000,'ドンペリ x1 / アルマンド x1 / フード / ミネラルウォーター x5 / Red Bull x5','GOLD VIP','#B8860B','#fef3c7')">
+      <div class="plan-location">
+        <div class="plan-location-name">DJ<br>バックステージ</div>
+      </div>
+      <div class="plan-details">
+        <div class="plan-men">男性 4〜5名</div>
+        <div class="plan-seats">10名席</div>
+        <div class="plan-benefits">
+          <span class="plan-benefits-item">ドンペリ x1</span>
+          <span class="plan-benefits-item">アルマンド x1</span>
+          <span class="plan-benefits-item">フード</span>
+          <span class="plan-benefits-item">ミネラルウォーター x5</span>
+          <span class="plan-benefits-item">Red Bull x5</span>
+        </div>
+      </div>
+      <div class="plan-right">
+        <div class="plan-price">50万<span>円</span></div>
+        <button class="plan-btn">申し込む</button>
+      </div>
+    </div>
+
+    <div class="plan-card" onclick="openModal('gold','','男性5〜6名','12名席',500000,'ドンペリ x1 / アルマンド x1 / フード / ミネラルウォーター x5 / Red Bull x5','GOLD VIP','#B8860B','#fef3c7')">
+      <div class="plan-location-empty"></div>
+      <div class="plan-details">
+        <div class="plan-men">男性 5〜6名</div>
+        <div class="plan-seats">12名席</div>
+        <div class="plan-benefits">
+          <span class="plan-benefits-item">ドンペリ x1</span>
+          <span class="plan-benefits-item">アルマンド x1</span>
+          <span class="plan-benefits-item">フード</span>
+          <span class="plan-benefits-item">ミネラルウォーター x5</span>
+          <span class="plan-benefits-item">Red Bull x5</span>
+        </div>
+      </div>
+      <div class="plan-right">
+        <div class="plan-price">50万<span>円</span></div>
+        <button class="plan-btn">申し込む</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECRET VIP -->
+  <div class="rank-section rank-secret">
+    <div class="rank-heading">
+      <div class="rank-name">SECRET VIP</div>
+      <div class="rank-heading-line"></div>
+    </div>
+
+    <div class="plan-card" onclick="openModal('secret','半個室','男性4〜5名','10名席',500000,'ドンペリ x1 / アルマンド x1 / フード / ミネラルウォーター x5 / Red Bull x5','SECRET VIP','#CC2222','#ffcccc')">
+      <div class="plan-location">
+        <div class="plan-location-name">半個室</div>
+      </div>
+      <div class="plan-details">
+        <div class="plan-men">男性 4〜5名</div>
+        <div class="plan-seats">10名席</div>
+        <div class="plan-benefits">
+          <span class="plan-benefits-item">ドンペリ x1</span>
+          <span class="plan-benefits-item">アルマンド x1</span>
+          <span class="plan-benefits-item">フード</span>
+          <span class="plan-benefits-item">ミネラルウォーター x5</span>
+          <span class="plan-benefits-item">Red Bull x5</span>
+        </div>
+      </div>
+      <div class="plan-right">
+        <div class="plan-price">50万<span>円</span></div>
+        <button class="plan-btn">申し込む</button>
+      </div>
+    </div>
+
+    <div class="plan-card" onclick="openModal('secret','半個室','男性3〜4名','8名席',300000,'クリスタル x1','SECRET VIP','#CC2222','#ffcccc')">
+      <div class="plan-location">
+        <div class="plan-location-name">半個室</div>
+      </div>
+      <div class="plan-details">
+        <div class="plan-men">男性 3〜4名</div>
+        <div class="plan-seats">8名席</div>
+        <div class="plan-benefits">
+          <span class="plan-benefits-item">クリスタル x1</span>
+        </div>
+      </div>
+      <div class="plan-right">
+        <div class="plan-price">30万<span>円</span></div>
+        <button class="plan-btn">申し込む</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VVIP -->
+  <div class="rank-section rank-vvip">
+    <div class="rank-heading">
+      <div class="rank-name">VVIP</div>
+      <div class="rank-heading-line"></div>
+    </div>
+
+    <div class="plan-card" onclick="openModal('vvip','','男性3〜5名','6〜10名席',300000,'ドンペリ x1','VVIP','#3355CC','#dbeafe')">
+      <div class="plan-location-empty"></div>
+      <div class="plan-details">
+        <div class="plan-men">男性 3〜5名</div>
+        <div class="plan-seats">6〜10名席</div>
+        <div class="plan-benefits">
+          <span class="plan-benefits-item">ドンペリ x1</span>
+        </div>
+      </div>
+      <div class="plan-right">
+        <div class="plan-price">30万<span>円</span></div>
+        <button class="plan-btn">申し込む</button>
+      </div>
+    </div>
+
+    <div class="plan-card" onclick="openModal('vvip','','男性2名','4名席',200000,'ドンペリ x1','VVIP','#3355CC','#dbeafe')">
+      <div class="plan-location-empty"></div>
+      <div class="plan-details">
+        <div class="plan-men">男性 2名</div>
+        <div class="plan-seats">4名席</div>
+        <div class="plan-benefits">
+          <span class="plan-benefits-item">ドンペリ x1</span>
+        </div>
+      </div>
+      <div class="plan-right">
+        <div class="plan-price">20万<span>円</span></div>
+        <button class="plan-btn">申し込む</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Note -->
+  <div style="border-top:1px solid #141414;padding-top:28px;font-size:0.5rem;color:#333;line-height:2.2;text-align:center;">
+    ※ 女性は人数に含みません / ※ 表記料金は税込です<br>
+    ※ 上限人数を超えるご入場の場合、男性1名につき追加料金が発生します<br>
+    ※ テーブルは運営より割り当てます / ※ ご予約はキャンセル・返金不可
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <!-- Plan Info -->
+    <div id="modal-info">
+      <div class="modal-rank-badge" id="m-badge"></div>
+      <div class="modal-plan-title" id="m-title"></div>
+      <div class="modal-plan-meta" id="m-meta"></div>
+      <div class="modal-price-row">
+        <div class="modal-price" id="m-price"></div>
+        <div class="modal-price-sub">円（税込）</div>
+      </div>
+      <div class="modal-section-label">特典内容</div>
+      <div class="modal-benefits" id="m-benefits"></div>
+      <div class="modal-note">
+        ※ テーブルは運営より割り当てます<br>
+        ※ 本予約はキャンセル・返金不可となります
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div id="modal-form">
+      <div class="form-group">
+        <label class="form-label" for="inp-name">代表者氏名</label>
+        <input class="form-input" id="inp-name" type="text" placeholder="山田 太郎">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="inp-email">メールアドレス</label>
+        <input class="form-input" id="inp-email" type="email" placeholder="email@example.com">
+        <div style="font-size:0.45rem;color:#444;margin-top:6px;">QRコード招待状をお送りします</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="inp-phone">電話番号</label>
+        <input class="form-input" id="inp-phone" type="tel" placeholder="09012345678">
+      </div>
+      <div id="form-error" style="display:none;font-size:0.55rem;color:#CF4444;padding:10px;background:rgba(207,68,68,0.08);border:1px solid rgba(207,68,68,0.2);margin-bottom:12px;line-height:1.7;"></div>
+      <button class="submit-btn" id="submit-btn" onclick="submitForm()"></button>
+    </div>
+
+    <!-- Result -->
+    <div class="result-section" id="modal-result">
+      <div class="result-badge" id="r-badge"></div>
+      <div class="result-title">ご予約ありがとうございます</div>
+      <div class="result-sub" id="r-sub"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+const VERCEL = 'https://event-system-kappa.vercel.app/api/checkout';
+
+const params = new URLSearchParams(location.search);
+const EVENT_ID = params.get('e') || '';
+const PAY_FIXED = params.get('pay') || null;
+
+// ランクキー→テーブルタイプ名のマッピング
+const RANK_TYPE_MAP = {
+  diamond: 'Diamond VIP',
+  gold:    'GOLD VIP',
+  secret:  'Secret VIP',
+  vvip:    'VVIP'
+};
+
+// ランクキーごとのスタイル
+const RANK_STYLE = {
+  diamond: { bg:'#888',    tc:'#e5e5e5', btnBg:'#888',    btnTc:'#000' },
+  gold:    { bg:'#B8860B', tc:'#fef3c7', btnBg:'#C9A84C', btnTc:'#000' },
+  secret:  { bg:'#CC2222', tc:'#ffcccc', btnBg:'#CC2222', btnTc:'#fff' },
+  vvip:    { bg:'#3355CC', tc:'#dbeafe', btnBg:'#3355CC', btnTc:'#fff' },
+};
+
+let currentPlan = null;
+
+function openModal(rankKey, location, men, seats, price, benefitsStr, rankLabel, borderColor, textColor) {
+  currentPlan = { rankKey, location, men, seats, price, benefitsStr, rankLabel, borderColor, textColor };
+  const style = RANK_STYLE[rankKey];
+
+  // badge
+  const badge = document.getElementById('m-badge');
+  badge.textContent = rankLabel;
+  badge.style.color = textColor;
+  badge.style.borderColor = borderColor;
+  badge.style.background = borderColor + '22';
+
+  // title
+  document.getElementById('m-title').textContent = location ? location + ' — ' + men : men;
+
+  // meta
+  document.getElementById('m-meta').textContent = '収容: ' + seats + (PAY_FIXED ? ('　支払い: ' + (PAY_FIXED === 'stripe' ? 'カード決済' : '銀行振込')) : '');
+
+  // price
+  document.getElementById('m-price').textContent = (price / 10000) + '万';
+
+  // benefits
+  const bEl = document.getElementById('m-benefits');
+  bEl.innerHTML = '';
+  benefitsStr.split('/').forEach(b => {
+    const d = document.createElement('div');
+    d.className = 'modal-benefit-item';
+    d.textContent = b.trim();
+    bEl.appendChild(d);
+  });
+
+  // submit button style
+  const btn = document.getElementById('submit-btn');
+  btn.style.background = style.btnBg;
+  btn.style.color = style.btnTc;
+
+  // 支払い方法に応じたボタンテキスト
+  if (PAY_FIXED === 'transfer') {
+    btn.textContent = '銀行振込で申し込む';
+  } else {
+    btn.textContent = 'カード決済で申し込む';
+  }
+
+  // reset form
+  ['inp-name','inp-email','inp-phone'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('form-error').style.display = 'none';
+  document.getElementById('modal-form').style.display = 'block';
+  document.getElementById('modal-result').className = 'result-section';
+
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+async function submitForm() {
+  const name  = document.getElementById('inp-name').value.trim();
+  const email = document.getElementById('inp-email').value.trim();
+  const phone = document.getElementById('inp-phone').value.trim();
+  const errEl = document.getElementById('form-error');
+
+  if (!name)  { errEl.textContent='代表者氏名を入力してください'; errEl.style.display='block'; return; }
+  if (!email) { errEl.textContent='メールアドレスを入力してください'; errEl.style.display='block'; return; }
+  if (!phone) { errEl.textContent='電話番号を入力してください'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  const payMethod = PAY_FIXED || 'stripe';
+  const rankType  = RANK_TYPE_MAP[currentPlan.rankKey];
+
+  document.getElementById('loading').classList.add('show');
+  try {
+    const d = await fetch(API, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({
+        action: 'reserveVipByRank',
+        rank_type: rankType,
+        event_id: EVENT_ID,
+        men_label: currentPlan.men,
+        seats_label: currentPlan.seats,
+        name, email, phone,
+        payment_method: payMethod
+      })
+    }).then(r => r.json());
+
+    document.getElementById('loading').classList.remove('show');
+
+    if (!d.ok) {
+      errEl.textContent = d.message || '予約に失敗しました。お時間をおいて再度お試しください。';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    if (payMethod === 'stripe') {
+      const s = await fetch(VERCEL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          event_id: EVENT_ID,
+          event_name: 'LUXE PARTY TOKYO VIP - ' + rankType,
+          name, email, gender:'male', invited_by:'',
+          amount: d.price || currentPlan.price,
+          plan_id:'', cancel_url: location.href
+        })
+      }).then(r => r.json());
+      if (s.ok && s.checkout_url) {
+        location.href = s.checkout_url;
+      } else {
+        errEl.textContent = 'Stripe決済の準備に失敗しました';
+        errEl.style.display = 'block';
+      }
+    } else {
+      showResult(d, name);
+    }
+  } catch(e) {
+    document.getElementById('loading').classList.remove('show');
+    errEl.textContent = '通信エラーが発生しました';
+    errEl.style.display = 'block';
+  }
+}
+
+function showResult(d, name) {
+  document.getElementById('modal-form').style.display = 'none';
+  const rs = document.getElementById('modal-result');
+  rs.classList.add('show');
+  const style = RANK_STYLE[currentPlan.rankKey];
+  const rb = document.getElementById('r-badge');
+  rb.textContent = '仮予約を受け付けました — 振込確認後に正式確定します';
+  rb.style.color = style.tc;
+  rb.style.borderColor = currentPlan.borderColor;
+  rb.style.background = currentPlan.borderColor + '15';
+  document.getElementById('r-sub').innerHTML =
+    name + ' 様<br>確認メールをお送りしました。<br>' +
+    (d.transfer_deadline ? d.transfer_deadline + ' までにお振込ください。' : '') +
+    '<br><br>ご入金確認後、QRコード招待状をお送りします。';
+}
+</script>
+</body>
+</html>
