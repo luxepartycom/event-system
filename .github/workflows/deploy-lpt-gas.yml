@@ -38,8 +38,11 @@ jobs:
 
       - name: Deploy
         working-directory: gas
+        env:
+          DEPLOY_ID: ${{ secrets.LPT_GAS_DEPLOYMENT_ID }}
         run: |
-          clasp deploy \
-            --deploymentId "${{ secrets.LPT_GAS_DEPLOYMENT_ID }}" \
-            --description "Auto deploy $(date +%Y-%m-%d %H:%M)"
-        if: ${{ secrets.LPT_GAS_DEPLOYMENT_ID != '' }}
+          if [ -n "$DEPLOY_ID" ]; then
+            clasp deploy \
+              --deploymentId "$DEPLOY_ID" \
+              --description "Auto deploy $(date +%Y-%m-%d %H:%M)"
+          fi
