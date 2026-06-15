@@ -1,0 +1,45 @@
+name: Deploy LPT GAS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gas/**'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: '手動実行の理由'
+        required: false
+        default: 'CEO手動トリガー'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install clasp
+        run: npm install -g @google/clasp@2
+
+      - name: Write CLASPRC
+        run: echo '${{ secrets.LPT_CLASP_TOKEN }}' > ~/.clasprc.json
+
+      - name: Push to GAS
+        working-directory: gas
+        run: clasp push --force
+
+      - name: Deploy
+        working-directory: gas
+        run: |
+          clasp deploy \
+            --deploymentId "${{ secrets.LPT_GAS_DEPLOYMENT_ID }}" \
+            --description "Auto deploy $(date +%Y-%m-%d %H:%M)"
+        if: ${{ secrets.LPT_GAS_DEPLOYMENT_ID != '' }}
