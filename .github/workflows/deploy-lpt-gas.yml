@@ -2,20 +2,30 @@ name: Deploy LPT GAS
 
 on:
   push:
-    branches: [main]
+    branches: [develop, main]
     paths:
       - 'gas/**'
   workflow_dispatch:
     inputs:
-      reason:
-        description: '手動実行の理由'
-        required: false
-        default: 'CEO手動トリガー'
+      target:
+        description: 'デプロイ先 (staging / production)'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 jobs:
-  deploy:
+  # ── ステージング ──────────────────────────────────────────────────────────
+  # develop ブランチへの push で自動実行。オーナーが動作確認する環境。
+  deploy-staging:
+    if: |
+      github.ref == 'refs/heads/develop' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'staging')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    environment: staging
 
     steps:
       - name: Checkout
@@ -38,7 +48,51 @@ jobs:
         working-directory: gas
         run: clasp push --force
 
-      - name: Deploy
+      - name: Deploy to Staging
+        working-directory: gas
+        env:
+          DEPLOY_ID: ${{ secrets.LPT_GAS_STAGING_DEPLOYMENT_ID }}
+        run: |
+          if [ -n "$DEPLOY_ID" ]; then
+            clasp deploy \
+              --deploymentId "$DEPLOY_ID" \
+              --description "Staging $(date +%Y-%m-%d %H:%M)"
+          fi
+
+  # ── 本番 ──────────────────────────────────────────────────────────────────
+  # main ブランチへの push（= PR マージ）で実行。
+  # GitHub Environment "production" に Required reviewer を設定すると
+  # オーナーが承認するまでデプロイが待機する。
+  deploy-production:
+    if: |
+      github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: Production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.4.0
+        with:
+          node-version: '24'
+
+      - name: Install clasp
+        run: npm install -g @google/clasp@3
+
+      - name: Write CLASPRC
+        env:
+          LPT_CLASP_TOKEN: ${{ secrets.LPT_CLASP_TOKEN }}
+        run: printf '%s' "$LPT_CLASP_TOKEN" > ~/.clasprc.json
+
+      - name: Push to GAS
+        working-directory: gas
+        run: clasp push --force
+
+      - name: Deploy to Production
         working-directory: gas
         env:
           DEPLOY_ID: ${{ secrets.LPT_GAS_DEPLOYMENT_ID }}
@@ -46,5 +100,5 @@ jobs:
           if [ -n "$DEPLOY_ID" ]; then
             clasp deploy \
               --deploymentId "$DEPLOY_ID" \
-              --description "Auto deploy $(date +%Y-%m-%d %H:%M)"
+              --description "Production $(date +%Y-%m-%d %H:%M)"
           fi
