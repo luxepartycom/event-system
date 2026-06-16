@@ -2439,8 +2439,8 @@ function initVipTablesForEvent() {
     { name:'V4', type:'VVIP',        capacity:5, price:300000 },
     { name:'V5', type:'VVIP',        capacity:5, price:300000 },
     { name:'V6', type:'VVIP',        capacity:5, price:300000 },
-    { name:'G1', type:'GOLD VIP',    capacity:5, price:500000 },
-    { name:'G2', type:'GOLD VIP',    capacity:5, price:500000 },
+    { name:'G1', type:'GOLD VIP',    capacity:5, price:1000000 },
+    { name:'G2', type:'GOLD VIP',    capacity:5, price:1000000 },
     { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
   ];
 
