@@ -77,6 +77,11 @@ function extractDriveFileId_(url) {
   return null;
 }
 
+function getDriveViewUrl_(url) {
+  var fileId = extractDriveFileId_(url);
+  return fileId ? 'https://drive.google.com/uc?export=view&id=' + fileId : url;
+}
+
 // Drive画像をGitHub assetsブランチに公開し raw.githubusercontent.com URL を返す。
 // セッション内キャッシュにより同一画像の重複アップロードを防止。
 // GITHUB_TOKEN が未設定の場合はフォールバック URL を返す。
@@ -106,7 +111,12 @@ function publishFlierToGitHub_(fileId) {
       return 'https://drive.google.com/uc?export=view&id=' + fileId;
     }
     var blob = driveResp.getBlob();
-    var ext = (blob.getContentType() || 'image/jpeg').split('/')[1] || 'jpg';
+    var ct = blob.getContentType() || '';
+    if (ct.indexOf('image') === -1) {
+      console.error('Drive応答が画像ではない (contentType=' + ct + ') id=' + fileId);
+      return 'https://drive.google.com/uc?export=view&id=' + fileId;
+    }
+    var ext = ct.split('/')[1] || 'jpg';
     if (ext === 'jpeg') ext = 'jpg';
     var filename = fileId + '.' + ext;
 
@@ -1464,16 +1474,17 @@ function doPost(e) {
 
         function buildHtml(data, guestName, unsubUrl) {
           var allImgs = [];
-          if (data.image) allImgs.push(convertDriveUrl(String(data.image)));
-          (data.gallery || []).forEach(function(u){ var c = convertDriveUrl(String(u||'')); if(c) allImgs.push(c); });
+          var origUrls = [];
+          if (data.image) { var _u0 = String(data.image); allImgs.push(convertDriveUrl(_u0)); origUrls.push(getDriveViewUrl_(_u0)); }
+          (data.gallery || []).forEach(function(u) { if (!u) return; var c = convertDriveUrl(String(u)); if (c) { allImgs.push(c); origUrls.push(getDriveViewUrl_(String(u))); } });
           var imagesHtml = '';
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" style="padding:2px;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;" alt=""></td>';
+              imagesHtml += '<tr><td width="50%" style="padding:2px;background:#111;"><a href="' + (origUrls[gi]||allImgs[gi]) + '" target="_blank" style="display:block;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></a></td>';
               imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" style="padding:2px;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;" alt=""></td></tr>'
-                : '<td width="50%"></td></tr>';
+                ? '<td width="50%" style="padding:2px;background:#111;"><a href="' + (origUrls[gi+1]||allImgs[gi+1]) + '" target="_blank" style="display:block;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></a></td></tr>'
+                : '<td width="50%" style="background:#111;"></td></tr>';
             }
             imagesHtml += '</tbody></table>';
           }
@@ -1555,16 +1566,17 @@ function doPost(e) {
 
         function buildTestHtml(data, unsubUrl) {
           var allImgs = [];
-          if (data.image) allImgs.push(convertDriveUrl(String(data.image)));
-          (data.gallery || []).forEach(function(u){ var c = convertDriveUrl(String(u||'')); if(c) allImgs.push(c); });
+          var origUrls = [];
+          if (data.image) { var _u0 = String(data.image); allImgs.push(convertDriveUrl(_u0)); origUrls.push(getDriveViewUrl_(_u0)); }
+          (data.gallery || []).forEach(function(u) { if (!u) return; var c = convertDriveUrl(String(u)); if (c) { allImgs.push(c); origUrls.push(getDriveViewUrl_(String(u))); } });
           var imagesHtml = '';
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" style="padding:2px;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;" alt=""></td>';
+              imagesHtml += '<tr><td width="50%" style="padding:2px;background:#111;"><a href="' + (origUrls[gi]||allImgs[gi]) + '" target="_blank" style="display:block;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></a></td>';
               imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" style="padding:2px;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;" alt=""></td></tr>'
-                : '<td width="50%"></td></tr>';
+                ? '<td width="50%" style="padding:2px;background:#111;"><a href="' + (origUrls[gi+1]||allImgs[gi+1]) + '" target="_blank" style="display:block;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></a></td></tr>'
+                : '<td width="50%" style="background:#111;"></td></tr>';
             }
             imagesHtml += '</tbody></table>';
           }
@@ -2546,6 +2558,8 @@ function initVipTablesForEvent() {
   ];
 
   var s = addVipTableIfNeeded();
+  // べき等化: 既存データ行をすべてクリアしてから投入
+  if (s.getLastRow() > 1) s.deleteRows(2, s.getLastRow() - 1);
   var h = s.getRange(1,1,1,s.getLastColumn()).getValues()[0].map(function(c){ return String(c).trim(); });
 
   tables.forEach(function(t) {

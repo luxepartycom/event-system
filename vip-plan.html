@@ -528,7 +528,7 @@ body {
     <!-- Form -->
     <div id="modal-form">
       <div class="form-group">
-        <label class="form-label" for="inp-name">代表者氏名</label>
+        <label class="form-label" for="inp-name">代表者名 / 請求先名称</label>
         <input class="form-input" id="inp-name" type="text" placeholder="山田 太郎">
       </div>
       <div class="form-group">
@@ -817,7 +817,7 @@ async function submitForm() {
   const promoter = document.getElementById('inp-promoter').value.trim();
   const errEl    = document.getElementById('form-error');
 
-  if (!name)           { showErr('代表者氏名を入力してください'); return; }
+  if (!name)           { showErr('代表者名 / 請求先名称を入力してください'); return; }
   if (!email)          { showErr('メールアドレスを入力してください'); return; }
   if (!phone)          { showErr('電話番号を入力してください'); return; }
   if (!vipTermsAgreed) { showErr('利用規約に同意してください'); return; }
