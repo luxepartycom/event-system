@@ -83,15 +83,28 @@ function getDriveViewUrl_(url) {
 }
 
 // Drive画像をGitHub assetsブランチに公開し raw.githubusercontent.com URL を返す。
-// セッション内キャッシュにより同一画像の重複アップロードを防止。
+// セッション内キャッシュ + CacheService(6時間)で重複アップロードを防止し GitHub CDN キャッシュを温存。
 // GITHUB_TOKEN が未設定の場合はフォールバック URL を返す。
 function convertDriveUrl(url) {
   if (!url) return '';
   if (_imgUrlCache[url]) return _imgUrlCache[url];
   var fileId = extractDriveFileId_(url);
   if (!fileId) return url;
+
+  // GAS CacheService で永続キャッシュ確認（6時間、同一ファイルの再アップロードをスキップ）
+  var cacheKey = 'img_w600_' + fileId;
+  var cached = CacheService.getScriptCache().get(cacheKey);
+  if (cached) {
+    _imgUrlCache[url] = cached;
+    return cached;
+  }
+
   var result = publishFlierToGitHub_(fileId);
   _imgUrlCache[url] = result;
+  // GitHub URL のみキャッシュ（Drive フォールバック URL はキャッシュしない）
+  if (result.indexOf('githubusercontent') !== -1) {
+    CacheService.getScriptCache().put(cacheKey, result, 21600);
+  }
   return result;
 }
 
@@ -107,7 +120,7 @@ function publishFlierToGitHub_(fileId) {
     // Step 1: GAS OAuth トークン付きで 800px 圧縮サムネイルを取得
     var gasToken = ScriptApp.getOAuthToken();
     var thumbResp = UrlFetchApp.fetch(
-      'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800',
+      'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w600',
       {headers: {'Authorization': 'Bearer ' + gasToken}, followRedirects: true, muteHttpExceptions: true}
     );
     if (thumbResp.getResponseCode() === 200) {
