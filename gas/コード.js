@@ -8,8 +8,46 @@ function requestExternalAccess() {
 //  重複コード削除・速度最適化版
 // ═══════════════════════════════════════════════════════════
 
-const SS = SpreadsheetApp.getActiveSpreadsheet();
+// ── 環境ルーティング（staging / production 自動切り替え） ──
+var _STAGING_DEPLOY_ID = 'AKfycbwYH2RFU4G2RYF6XyYn9-kv5CPSoNREKj52N5-WnKLn7kIAE3KFaEK0Ubn0OQQdvlDJ';
+var _imgUrlCache = {}; // セッション内 Drive→GitHub URL キャッシュ
+function _getSpreadsheet() {
+  try {
+    var url = ScriptApp.getService().getUrl();
+    if (url.indexOf(_STAGING_DEPLOY_ID) >= 0) {
+      var stagingId = PropertiesService.getScriptProperties().getProperty('STAGING_SPREADSHEET_ID');
+      if (stagingId) return SpreadsheetApp.openById(stagingId);
+    }
+  } catch(e) {}
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+var SS = _getSpreadsheet();
 function sheet(name) { return SS.getSheetByName(name); }
+
+// ── staging スプレッドシート初回セットアップ（GASエディタから一度だけ手動実行） ──
+function setupStagingSpreadsheet() {
+  var prodSS = SpreadsheetApp.getActiveSpreadsheet();
+  var newSS = SpreadsheetApp.create('LUXE PARTY TOKYO — staging');
+  var defaultSheet = newSS.getSheets()[0];
+  var firstDone = false;
+  prodSS.getSheets().forEach(function(s) {
+    var lastCol = s.getLastColumn();
+    if (lastCol < 1) return;
+    var headers = s.getRange(1, 1, 1, lastCol).getValues()[0];
+    if (!firstDone) {
+      defaultSheet.setName(s.getName());
+      defaultSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      firstDone = true;
+    } else {
+      var ns = newSS.insertSheet(s.getName());
+      ns.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+  });
+  var ssId = newSS.getId();
+  PropertiesService.getScriptProperties().setProperty('STAGING_SPREADSHEET_ID', ssId);
+  Logger.log('✅ Staging SS 作成完了: ' + newSS.getUrl());
+  Logger.log('ID: ' + ssId);
+}
 function res(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -30,15 +68,75 @@ function sheetToObjects(s) {
     });
 }
 
+function extractDriveFileId_(url) {
+  if (!url) return null;
+  var m = url.match(/\/file\/d\/([^\/\?#]+)/);
+  if (m) return m[1];
+  m = url.match(/[?&]id=([^&]+)/);
+  if (m) return m[1];
+  return null;
+}
+
+// Drive画像をGitHub assetsブランチに公開し raw.githubusercontent.com URL を返す。
+// セッション内キャッシュにより同一画像の重複アップロードを防止。
+// GITHUB_TOKEN が未設定の場合はフォールバック URL を返す。
 function convertDriveUrl(url) {
   if (!url) return '';
-  // https://drive.google.com/file/d/XXXXX/view → 直接表示URLに変換
-  var match = url.match(/\/file\/d\/([^\/]+)/);
-  if (match) return 'https://drive.google.com/uc?export=view&id=' + match[1];
-  // https://drive.google.com/open?id=XXXXX 形式
-  var match2 = url.match(/[?&]id=([^&]+)/);
-  if (match2) return 'https://drive.google.com/uc?export=view&id=' + match2[1];
-  return url;
+  if (_imgUrlCache[url]) return _imgUrlCache[url];
+  var fileId = extractDriveFileId_(url);
+  if (!fileId) return url;
+  var result = publishFlierToGitHub_(fileId);
+  _imgUrlCache[url] = result;
+  return result;
+}
+
+function publishFlierToGitHub_(fileId) {
+  var token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  if (!token) {
+    console.warn('GITHUB_TOKEN 未設定: 画像が一部のメールクライアントで表示されない場合があります');
+    return 'https://drive.google.com/uc?export=view&id=' + fileId;
+  }
+  try {
+    var driveResp = UrlFetchApp.fetch(
+      'https://drive.google.com/uc?export=view&id=' + fileId,
+      {followRedirects: true, muteHttpExceptions: true}
+    );
+    if (driveResp.getResponseCode() !== 200) {
+      console.error('Drive画像取得失敗 ' + driveResp.getResponseCode() + ' id=' + fileId);
+      return 'https://drive.google.com/uc?export=view&id=' + fileId;
+    }
+    var blob = driveResp.getBlob();
+    var ext = (blob.getContentType() || 'image/jpeg').split('/')[1] || 'jpg';
+    if (ext === 'jpeg') ext = 'jpg';
+    var filename = fileId + '.' + ext;
+
+    var apiUrl = 'https://api.github.com/repos/luxepartycom/event-system/contents/flyers/' + filename;
+    var headers = {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/vnd.github.v3+json'
+    };
+
+    var sha = null;
+    var check = UrlFetchApp.fetch(apiUrl + '?ref=assets', {headers: headers, muteHttpExceptions: true});
+    if (check.getResponseCode() === 200) {
+      sha = JSON.parse(check.getContentText()).sha;
+    }
+
+    var body = {message: 'flyer: ' + filename, content: Utilities.base64Encode(blob.getBytes()), branch: 'assets'};
+    if (sha) body.sha = sha;
+
+    var put = UrlFetchApp.fetch(apiUrl, {
+      method: 'PUT', headers: headers, payload: JSON.stringify(body), muteHttpExceptions: true
+    });
+    if (put.getResponseCode() === 200 || put.getResponseCode() === 201) {
+      return 'https://raw.githubusercontent.com/luxepartycom/event-system/assets/flyers/' + filename;
+    }
+    console.error('GitHub upload失敗: ' + put.getContentText());
+    return 'https://drive.google.com/uc?export=view&id=' + fileId;
+  } catch (e) {
+    console.error('publishFlierToGitHub_ error: ' + e.message);
+    return 'https://drive.google.com/uc?export=view&id=' + fileId;
+  }
 }
 
 // ウォームアップ用ping関数（5分おきのトリガーで実行）
@@ -1365,12 +1463,9 @@ function doPost(e) {
         var sentFree = 0, sentPaid = 0, unsubCount = 0, totalSent = 0;
 
         function buildHtml(data, guestName, unsubUrl) {
-          // ヘッダー画像+ギャラリー画像を合算して2列グリッドで統一サイズ表示
-          var imgUrl = convertDriveUrl(data.image || '');
           var allImgs = [];
-          if (imgUrl) allImgs.push(imgUrl);
-          var rawGallery = data.gallery || [];
-          rawGallery.forEach(function(u){ var c = convertDriveUrl(String(u||'')); if(c) allImgs.push(c); });
+          if (data.image) allImgs.push(convertDriveUrl(String(data.image)));
+          (data.gallery || []).forEach(function(u){ var c = convertDriveUrl(String(u||'')); if(c) allImgs.push(c); });
           var imagesHtml = '';
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
@@ -1459,12 +1554,9 @@ function doPost(e) {
         if (!testData.subject) return res({ ok: false, message: '件名を入力してください' });
 
         function buildTestHtml(data, unsubUrl) {
-          // ヘッダー画像+ギャラリー画像を合算して2列グリッドで統一サイズ表示
-          var imgUrl = convertDriveUrl(data.image || '');
           var allImgs = [];
-          if (imgUrl) allImgs.push(imgUrl);
-          var rawGallery = data.gallery || [];
-          rawGallery.forEach(function(u){ var c = convertDriveUrl(String(u||'')); if(c) allImgs.push(c); });
+          if (data.image) allImgs.push(convertDriveUrl(String(data.image)));
+          (data.gallery || []).forEach(function(u){ var c = convertDriveUrl(String(u||'')); if(c) allImgs.push(c); });
           var imagesHtml = '';
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
@@ -2030,19 +2122,25 @@ function doPost(e) {
           // ランク名から空きテーブルを自動割り当てして予約
           var rankType = body.rank_type || '';
           var evIdR = body.event_id || '';
+          var invitedByR = body.invited_by || '';
+          // price_hint: Secret VIPの¥500,000 / ¥300,000 等を区別するテーブル絞り込み用
+          var priceHintR = body.price_hint ? Number(body.price_hint) : 0;
           if (!rankType) return res({ ok: false, message: 'ランクを指定してください' });
           var vtsR = addVipTableIfNeeded();
           var vtRRows = vtsR.getRange(1,1,vtsR.getLastRow(),vtsR.getLastColumn()).getValues();
           var vtRH = vtRRows[0].map(function(c){ return String(c).trim(); });
-          // ランク名は table_type カラムで照合、event_id も一致するものを優先（なければ全体から探す）
+          var priceColR = vtRH.indexOf('price');
+          // ランク名は table_type カラムで照合、price_hint・event_id も一致するものを優先
           var tRowR = -1;
           for (var i=1; i<vtRRows.length; i++) {
             var rowType = String(vtRRows[i][vtRH.indexOf('table_type')]||'');
             var rowEv   = String(vtRRows[i][vtRH.indexOf('event_id')]||'');
             var rowSt   = String(vtRRows[i][vtRH.indexOf('status')]||'');
-            if (rowType === rankType && rowSt === 'available') {
+            var rowPrR  = priceColR >= 0 ? Number(vtRRows[i][priceColR]||0) : 0;
+            var priceOk = priceHintR <= 0 || rowPrR === priceHintR;
+            if (rowType === rankType && rowSt === 'available' && priceOk) {
               if (evIdR && rowEv === evIdR) { tRowR = i; break; }
-              if (!evIdR && tRowR < 0) tRowR = i;
+              if (!evIdR && tRowR < 0) { tRowR = i; break; }
             }
           }
           // event_id指定で見つからなければ全体から探す
@@ -2050,25 +2148,35 @@ function doPost(e) {
             for (var i=1; i<vtRRows.length; i++) {
               var rowType2 = String(vtRRows[i][vtRH.indexOf('table_type')]||'');
               var rowSt2   = String(vtRRows[i][vtRH.indexOf('status')]||'');
-              if (rowType2 === rankType && rowSt2 === 'available') { tRowR = i; break; }
+              var rowPrR2  = priceColR >= 0 ? Number(vtRRows[i][priceColR]||0) : 0;
+              var priceOk2 = priceHintR <= 0 || rowPrR2 === priceHintR;
+              if (rowType2 === rankType && rowSt2 === 'available' && priceOk2) { tRowR = i; break; }
             }
           }
           if (tRowR < 0) return res({ ok: false, message: '現在このランクに空きはありません' });
 
           var tableIdR = String(vtRRows[tRowR][vtRH.indexOf('table_id')]||'');
-          var curStR   = String(vtRRows[tRowR][vtRH.indexOf('status')]||'');
-          if (curStR !== 'available') return res({ ok: false, message: 'このテーブルはすでに予約済みです' });
+          // シートから直接再読みして最新状態を確認（TOCTOU対策: キャッシュではなく実値）
+          var statusColIdxR = vtRH.indexOf('status') + 1;
+          if (statusColIdxR < 1) return res({ ok: false, message: 'シートのスキーマエラー（statusカラム未定義）' });
+          var liveStR = String(vtsR.getRange(tRowR+1, statusColIdxR).getValue() || '');
+          if (liveStR !== 'available') return res({ ok: false, message: 'このテーブルはすでに予約済みです' });
 
           var vGidR    = 'VIP-' + Date.now().toString(36).toUpperCase();
           var payMethodR = body.payment_method || 'stripe';
           var nowR     = new Date();
           var deadlineR = new Date(nowR.getTime() + 3 * 24 * 60 * 60 * 1000);
           var newStR   = payMethodR === 'transfer' ? 'pending_payment' : 'reserved';
-          vtsR.getRange(tRowR+1, vtRH.indexOf('status')+1).setValue(newStR);
-          var cmR = { reserved_by: body.name||'', reserved_email: body.email||'', reserved_phone: body.phone||'',
+          // 全フィールドを一括 setValues で書き込む（途中失敗による不整合を最小化）
+          var rowDataR = vtsR.getRange(tRowR+1, 1, 1, vtRH.length).getValues()[0];
+          var cmR = {
+            status: newStR,
+            reserved_by: body.name||'', reserved_email: body.email||'', reserved_phone: body.phone||'',
             reserved_at: nowStr(), payment_method: payMethodR, guest_id: vGidR,
-            transfer_deadline: payMethodR==='transfer' ? Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy-MM-dd') : '' };
-          Object.keys(cmR).forEach(function(k){ var ci=vtRH.indexOf(k); if(ci>=0) vtsR.getRange(tRowR+1,ci+1).setValue(cmR[k]); });
+            transfer_deadline: payMethodR==='transfer' ? Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy-MM-dd') : ''
+          };
+          Object.keys(cmR).forEach(function(k){ var ci=vtRH.indexOf(k); if(ci>=0) rowDataR[ci]=cmR[k]; });
+          vtsR.getRange(tRowR+1, 1, 1, vtRH.length).setValues([rowDataR]);
 
           var tNameR  = String(vtRRows[tRowR][vtRH.indexOf('table_name')]||'');
           var tTypeR  = String(vtRRows[tRowR][vtRH.indexOf('table_type')]||'');
@@ -2080,12 +2188,12 @@ function doPost(e) {
             vrsR = SS.insertSheet('vip_reservations');
             vrsR.appendRow(['reservation_id','table_id','event_id','table_name','table_type',
               'name','email','phone','payment_method','status',
-              'transfer_deadline','confirmed_at','guest_id','reserved_at','notes']);
+              'transfer_deadline','confirmed_at','guest_id','reserved_at','notes','invited_by']);
           }
           vrsR.appendRow(['RES-'+Date.now().toString(36).toUpperCase(),tableIdR,evIdR2,tNameR,tTypeR,
             body.name||'',body.email||'',body.phone||'',payMethodR,newStR,
             payMethodR==='transfer'?Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy-MM-dd'):'',
-            '',vGidR,nowStr(),body.notes||'']);
+            '',vGidR,nowStr(),body.notes||'',invitedByR]);
           SpreadsheetApp.flush();
 
           if (payMethodR === 'transfer') {
@@ -2096,9 +2204,10 @@ function doPost(e) {
               var evNameVR=''; var evSVR=sheet('events');
               if(evSVR){var evRVR=evSVR.getDataRange().getValues();var evHVR=evRVR[0].map(function(c){return String(c).trim();});
                 for(var ei=1;ei<evRVR.length;ei++){if(String(evRVR[ei][evHVR.indexOf('event_id')])===evIdR2){evNameVR=String(evRVR[ei][evHVR.indexOf('name')]||'');break;}}}
+              var invitedLineVR = invitedByR ? '\n紹介者: '+invitedByR : '';
               GmailApp.sendEmail(body.email,
                 '【LUXE PARTY TOKYO】VIPテーブル仮予約のご確認',
-                body.name+'様\n\nこの度はLUXE PARTY TOKYOにお申し込みいただき、誠にありがとうございます。\nVIPテーブルの仮予約を承りました。\n\n■ご予約内容\nイベント: '+evNameVR+'\nランク: '+tTypeR+'\nテーブル: '+tNameR+'\n料金: ¥'+tPriceR.toLocaleString()+'（税込）\n\n■お振込のお願い\n'+Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy年MM月dd日')+'までにお振込ください。\n期限を過ぎると自動キャンセルとなります。\n\n'+bankInfoR+'\n振込金額: ¥'+tPriceR.toLocaleString()+'（税込）\n\n'+companyInfoVR+'\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nご入金確認後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+replyToVR,
+                body.name+'様\n\nこの度はLUXE PARTY TOKYOにお申し込みいただき、誠にありがとうございます。\nVIPテーブルの仮予約を承りました。\n\n■ご予約内容\nイベント: '+evNameVR+'\nランク: '+tTypeR+'\nテーブル: '+tNameR+'\n料金: ¥'+tPriceR.toLocaleString()+'（税込）'+invitedLineVR+'\n\n■お振込のお願い\n'+Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy年MM月dd日')+'までにお振込ください。\n期限を過ぎると自動キャンセルとなります。\n\n'+bankInfoR+'\n振込金額: ¥'+tPriceR.toLocaleString()+'（税込）\n\n'+companyInfoVR+'\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nご入金確認後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+replyToVR,
                 {name:'LUXE PARTY TOKYO',replyTo:replyToVR});
             } catch(e){ console.log('VIP振込メールエラー(rank):',e); }
           }
@@ -2257,14 +2366,19 @@ function getVipTables(eventId) {
 // ── VIPテーブル追加 ─────────────────────────────────────────────
 function addVipTableIfNeeded() {
   var s = sheet('vip_tables');
+  var header = [
+    'table_id','event_id','table_name','table_type',
+    'capacity','price','status','reserved_by','reserved_email',
+    'reserved_phone','reserved_at','payment_method',
+    'transfer_deadline','confirmed_at','guest_id','notes'
+  ];
   if (!s) {
     s = SS.insertSheet('vip_tables');
-    s.appendRow([
-      'table_id','event_id','table_name','table_type',
-      'capacity','price','status','reserved_by','reserved_email',
-      'reserved_phone','reserved_at','payment_method',
-      'transfer_deadline','confirmed_at','guest_id','notes'
-    ]);
+    s.appendRow(header);
+    SpreadsheetApp.flush();
+  } else if (s.getLastRow() < 1) {
+    // シートが存在するが全行削除された場合、ヘッダーを復元
+    s.appendRow(header);
     SpreadsheetApp.flush();
   }
   return s;
@@ -2426,8 +2540,8 @@ function initVipTablesForEvent() {
     { name:'V4', type:'VVIP',        capacity:5, price:300000 },
     { name:'V5', type:'VVIP',        capacity:5, price:300000 },
     { name:'V6', type:'VVIP',        capacity:5, price:300000 },
-    { name:'G1', type:'GOLD VIP',    capacity:5, price:500000 },
-    { name:'G2', type:'GOLD VIP',    capacity:5, price:500000 },
+    { name:'G1', type:'GOLD VIP',    capacity:5, price:1000000 },
+    { name:'G2', type:'GOLD VIP',    capacity:5, price:1000000 },
     { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
   ];
 
@@ -2455,6 +2569,66 @@ function initVipTablesForEvent() {
   SpreadsheetApp.flush();
   Logger.log('VIPテーブル登録完了: ' + tables.length + '件');
   Logger.log('イベントID: ' + eventId);
+}
+
+// ── ステージングSSにテストデータを投入（GASエディタから手動実行） ──
+// 本番SSには一切書き込まない。staging SS のみに vip_tables テストデータを追加する。
+function seedStagingVipTables() {
+  var stagingId = PropertiesService.getScriptProperties().getProperty('STAGING_SPREADSHEET_ID');
+  if (!stagingId) {
+    Logger.log('ERROR: STAGING_SPREADSHEET_ID が未設定。先に setupStagingSpreadsheet() を実行してください');
+    return;
+  }
+  var stgSS  = SpreadsheetApp.openById(stagingId);
+  var s      = stgSS.getSheetByName('vip_tables');
+  var header = [
+    'table_id','event_id','table_name','table_type',
+    'capacity','price','status','reserved_by','reserved_email',
+    'reserved_phone','reserved_at','payment_method',
+    'transfer_deadline','confirmed_at','guest_id','notes'
+  ];
+  if (!s) { s = stgSS.insertSheet('vip_tables'); }
+  // ヘッダー確保 + データ行をすべてクリア（べき等: 何度実行しても重複しない）
+  if (s.getLastRow() < 1) {
+    s.appendRow(header);
+  } else if (s.getLastRow() > 1) {
+    s.deleteRows(2, s.getLastRow() - 1);
+  }
+  var existH = s.getRange(1,1,1,s.getLastColumn()).getValues()[0].map(function(c){ return String(c).trim(); });
+
+  var eventId = 'EV-MP45BP13';
+  var tables = [
+    { name:'S1', type:'Secret VIP',  capacity:5, price:500000 },
+    { name:'S2', type:'Secret VIP',  capacity:4, price:300000 },
+    { name:'S3', type:'Secret VIP',  capacity:5, price:500000 },
+    { name:'V1', type:'VVIP',        capacity:4, price:300000 },
+    { name:'V2', type:'VVIP',        capacity:4, price:300000 },
+    { name:'V3', type:'VVIP',        capacity:5, price:300000 },
+    { name:'V4', type:'VVIP',        capacity:5, price:300000 },
+    { name:'V5', type:'VVIP',        capacity:5, price:300000 },
+    { name:'V6', type:'VVIP',        capacity:5, price:300000 },
+    { name:'G1', type:'GOLD VIP',    capacity:5, price:1000000 },
+    { name:'G2', type:'GOLD VIP',    capacity:5, price:1000000 },
+    { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
+  ];
+  tables.forEach(function(t) {
+    var tid = 'VT-STG-' + t.name;
+    var row = existH.map(function(k) {
+      switch(k) {
+        case 'table_id':   return tid;
+        case 'event_id':   return eventId;
+        case 'table_name': return t.name;
+        case 'table_type': return t.type;
+        case 'capacity':   return t.capacity;
+        case 'price':      return t.price;
+        case 'status':     return 'available';
+        default:           return '';
+      }
+    });
+    s.appendRow(row);
+  });
+  SpreadsheetApp.flush();
+  Logger.log('✅ Staging vip_tables 投入完了: ' + tables.length + '件 / イベント: ' + eventId);
 }
 
 // ================================================================

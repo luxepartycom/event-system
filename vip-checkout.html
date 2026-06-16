@@ -43,7 +43,9 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
   </div>
 </div>
 <script>
-const API = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+const _PROD_API = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+const _STG_API  = 'https://script.google.com/macros/s/AKfycbwYH2RFU4G2RYF6XyYn9-kv5CPSoNREKj52N5-WnKLn7kIAE3KFaEK0Ubn0OQQdvlDJ/exec';
+const API       = /localhost|\.vercel\.app/.test(location.hostname) ? _STG_API : _PROD_API;
 async function apiPost(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});return r.json();}
 window.addEventListener('load', async () => {
   const params = new URLSearchParams(location.search);
