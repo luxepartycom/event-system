@@ -77,7 +77,6 @@ function convertDriveUrl(url) {
   if (match2) return 'https://lh3.googleusercontent.com/d/' + match2[1];
   return url;
 }
-}
 
 // ウォームアップ用ping関数（5分おきのトリガーで実行）
 function ping() {
