@@ -422,6 +422,49 @@ body {
 }
 .result-sub { font-size:0.58rem; color:var(--gray); line-height:2; }
 
+/* Terms */
+.terms-box {
+  background:#0a0a0a;
+  border:1px solid #1e1e1e;
+  height:160px;
+  overflow-y:scroll;
+  padding:14px 16px;
+  margin-bottom:10px;
+  -webkit-overflow-scrolling:touch;
+}
+.terms-box::-webkit-scrollbar { width:3px; }
+.terms-box::-webkit-scrollbar-track { background:rgba(255,255,255,0.03); }
+.terms-box::-webkit-scrollbar-thumb { background:rgba(201,168,76,0.3); }
+.terms-body { font-size:0.55rem; color:rgba(245,240,232,0.6); line-height:2; }
+.terms-body h4 { font-size:0.5rem; color:#555; letter-spacing:0.15em; text-transform:uppercase; margin:12px 0 5px; font-weight:500; }
+.terms-body p { margin-bottom:6px; }
+.terms-scroll-hint { font-size:0.44rem; color:var(--gray); text-align:center; margin-bottom:10px; letter-spacing:0.1em; opacity:0.7; transition:opacity 0.3s; }
+.terms-agree-row {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,0.08);
+  background:rgba(255,255,255,0.02);
+  cursor:pointer;
+  margin-bottom:18px;
+}
+.terms-agree-row:hover { border-color:rgba(201,168,76,0.3); }
+.terms-checkbox {
+  width:18px; height:18px;
+  border:1px solid rgba(255,255,255,0.2);
+  background:transparent;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:all 0.2s;
+}
+.terms-checkbox.checked { background:var(--gold); border-color:var(--gold); }
+.terms-checkbox.checked::after { content:'✓'; font-size:0.7rem; color:#000; font-weight:700; }
+.terms-agree-text { font-size:0.6rem; color:var(--gray); line-height:1.6; }
+.terms-agree-text span { color:var(--white); }
+
 /* Notes */
 .page-notes {
   border-top:1px solid #111;
@@ -455,7 +498,7 @@ body {
 </div>
 <div class="divider"></div>
 
-<\!-- Plans -->
+<!-- Plans -->
 <div class="content">
   <div id="plans-container"></div>
   <div class="page-notes">
@@ -504,8 +547,40 @@ body {
         <input class="form-input" id="inp-promoter" type="text" placeholder="紹介者のお名前">
         <div class="form-hint">紹介者がいる場合のみご記入ください</div>
       </div>
+      <div class="form-group" style="margin-top:24px;">
+        <label class="form-label">利用規約</label>
+        <div class="terms-box" id="vip-terms-box">
+          <div class="terms-body">
+            <h4>【撮影・SNS掲載について】</h4>
+            <p>本イベントでは、会場内の様子を写真・動画にて撮影し、主催者および関係者のSNS・WEBサイト・その他広報物等に使用する場合があります。ご来場時点で、これらの撮影および利用について原則として同意いただいたものとみなします。</p>
+            <p>撮影・掲載を希望されない場合は、事前または撮影時にスタッフまたはカメラマンへお申し出ください。可能な範囲で配慮・対応いたします。なお、会場全体の風景や群衆が写り込む映像・写真については、個別対応ができない場合があります。あらかじめご了承ください。</p>
+            <h4>【免責・マナーについて】</h4>
+            <p>・会場内での盗難・紛失・破損等について、主催者は一切の責任を負いかねます。貴重品は各自の責任にて管理をお願いいたします。</p>
+            <p>・飲酒は20歳以上の方に限ります。過度な飲酒や他のお客様が不快に感じる行為が確認された場合、スタッフよりお声がけする場合があります。</p>
+            <p>・会場内で生じる不慮の事故（衣服の汚損・破損、転倒等を含む）につきまして、主催者の故意または重大な過失によらない限り、主催者は責任を負いかねます。</p>
+            <h4>【交流・勧誘に関する考え方】</h4>
+            <p>本イベントは、プライベート・ビジネス双方において質の高い出会いや交流が生まれる場を大切にしています。参加者同士の自然な会話や、合意のもとでのビジネス的な交流については特に制限しておりません。</p>
+            <p>ただし、主催者の許可なく他イベント等への集客・勧誘を主目的とした行為や、場の雰囲気を損なうと判断される行為についてはご遠慮いただいております。</p>
+            <h4>【VIPキャンセルポリシーについて】</h4>
+            <p>VIPテーブルのご予約後のキャンセル・返金はお受けできません。銀行振込確認後の予約確定となります。あらかじめご了承ください。</p>
+            <h4>【入場・滞在について】</h4>
+            <p>本イベントは招待制です。会場の雰囲気・趣旨・安全管理等の観点から、運営側が不適切と判断した場合には、入場のお断りまたはご退場をお願いする場合があります。その際、入場料・テーブル料金の返金はいたしかねます。</p>
+            <h4>【メール配信について】</h4>
+            <p>お申し込みいただいたメールアドレスに対し、今後開催するイベントのご案内をお送りする場合があります。配信停止をご希望の方は、メール本文内の配信停止リンクよりお手続きください。</p>
+            <p style="margin-top:14px;color:rgba(245,240,232,0.4);">ご予約をもって、上記事項へのご理解・ご同意をいただいたものとみなします。</p>
+          </div>
+        </div>
+        <div class="terms-scroll-hint" id="vip-scroll-hint">▼ スクロールして全文をお読みください</div>
+        <div class="terms-agree-row" onclick="toggleVipAgree()" id="vip-terms-agree-row">
+          <div class="terms-checkbox" id="vip-terms-checkbox"></div>
+          <div class="terms-agree-text">
+            <span>利用規約に同意します</span><br>
+            上記の規約を読み、内容に同意の上で申し込みます。
+          </div>
+        </div>
+      </div>
       <div id="form-error"></div>
-      <button class="submit-btn" id="submit-btn" onclick="submitForm()"></button>
+      <button class="submit-btn" id="submit-btn" onclick="submitForm()" disabled></button>
     </div>
 
     <!-- Result -->
@@ -552,50 +627,57 @@ const RANK_CONFIG = {
   'VVIP':        {  300000: { key:'vvip',    men:'4〜5名', benefits:['ドンペリ x1'] } }
 };
 
-// 表示順（カテゴリ+価格の組み合わせ）
-const RANK_ORDER = [
-  'Diamond VIP::1000000',
-  'GOLD VIP::1000000',
-  'Secret VIP::500000',
-  'Secret VIP::300000',
-  'VVIP::300000'
-];
+// テーブル種別の表示順
+const RANK_TYPE_ORDER = ['Diamond VIP', 'GOLD VIP', 'Secret VIP', 'VVIP'];
+const RANK_KEYS = {
+  'Diamond VIP': 'diamond',
+  'GOLD VIP':    'gold',
+  'Secret VIP':  'secret',
+  'VVIP':        'vvip'
+};
 
+// テーブル1件 = カード1枚（満席テーブルはグレーアウト表示）
 function renderPlans(tables) {
+  // ランク別に分類 → 価格降順 → テーブル名昇順
   const groups = {};
+  RANK_TYPE_ORDER.forEach(t => { groups[t] = []; });
   tables.forEach(t => {
-    const key = t.table_type + '::' + Number(t.price);
-    if (!groups[key]) groups[key] = { type: t.table_type, price: Number(t.price), available: 0 };
-    if (String(t.status) === 'available') groups[key].available++;
+    if (groups[t.table_type] !== undefined) groups[t.table_type].push(t);
+  });
+  RANK_TYPE_ORDER.forEach(rankName => {
+    groups[rankName].sort((a, b) =>
+      Number(b.price) - Number(a.price) ||
+      String(a.table_name).localeCompare(String(b.table_name))
+    );
   });
 
   const container = document.getElementById('plans-container');
   container.innerHTML = '';
 
-  RANK_ORDER.forEach(key => {
-    const g = groups[key];
-    if (!g) return;
-    const [type] = key.split('::');
-    const cfg = (RANK_CONFIG[type] || {})[g.price];
-    if (!cfg) return;
+  RANK_TYPE_ORDER.forEach(rankName => {
+    const rankTables = groups[rankName];
+    if (!rankTables || rankTables.length === 0) return;
 
-    const av = g.available;
-    const stockCls = av === 0 ? 'stock-out' : av <= 2 ? 'stock-low' : 'stock-available';
-    const stockLbl = av === 0 ? '満席' : '残' + av + '席';
-    const priceDisp = '¥' + (g.price / 10000) + '万';
-    const benefitsHtml = cfg.benefits.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
-    const disabledAttr = av === 0 ? 'style="pointer-events:none;opacity:0.5"' : '';
-    const onclick = av > 0
-      ? `onclick="openModal('${cfg.key}','${type}','','${cfg.men}',${g.price},'${cfg.benefits.join(',')}',${av})"`
-      : '';
+    const rankKey = RANK_KEYS[rankName];
+    let cardsHtml = '';
 
-    container.insertAdjacentHTML('beforeend', `
-      <div class="rank-section rank-${cfg.key}">
-        <div class="rank-heading">
-          <div class="rank-name">${type.toUpperCase()}</div>
-          <div class="rank-heading-line"></div>
-        </div>
-        <div class="plan-card" ${onclick} ${disabledAttr}>
+    rankTables.forEach(t => {
+      const price = Number(t.price);
+      const cfg = (RANK_CONFIG[rankName] || {})[price];
+      if (!cfg) return;
+
+      const isAvailable = String(t.status) === 'available';
+      const stockCls = isAvailable ? 'stock-available' : 'stock-out';
+      const stockLbl = isAvailable ? '空き' : '満席';
+      const priceDisp = '¥' + (price / 10000) + '万';
+      const benefitsHtml = cfg.benefits.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
+      const cardCls = isAvailable ? '' : ' sold-out';
+      const onclick = isAvailable
+        ? `onclick="openModal('${cfg.key}','${rankName}','','${cfg.men}',${price},'${cfg.benefits.join(',')}')"`
+        : '';
+
+      cardsHtml += `
+        <div class="plan-card${cardCls}" ${onclick}>
           <div class="plan-card-inner">
             <div>
               <div class="plan-stock ${stockCls}"><span class="plan-stock-dot"></span>${stockLbl}</div>
@@ -607,7 +689,16 @@ function renderPlans(tables) {
               <button class="plan-btn">申し込む</button>
             </div>
           </div>
+        </div>`;
+    });
+
+    container.insertAdjacentHTML('beforeend', `
+      <div class="rank-section rank-${rankKey}">
+        <div class="rank-heading">
+          <div class="rank-name">${rankName.toUpperCase()}</div>
+          <div class="rank-heading-line"></div>
         </div>
+        ${cardsHtml}
       </div>`);
   });
 }
@@ -633,8 +724,21 @@ async function loadPlans() {
 loadPlans();
 
 let currentPlan = null;
+let vipTermsAgreed = false;
 
-function openModal(rankKey, rankLabel, location, men, price, benefitsStr, stock) {
+function toggleVipAgree() {
+  vipTermsAgreed = !vipTermsAgreed;
+  const cb = document.getElementById('vip-terms-checkbox');
+  if (vipTermsAgreed) {
+    cb.classList.add('checked');
+    document.getElementById('submit-btn').disabled = false;
+  } else {
+    cb.classList.remove('checked');
+    document.getElementById('submit-btn').disabled = true;
+  }
+}
+
+function openModal(rankKey, rankLabel, location, men, price, benefitsStr) {
   currentPlan = { rankKey, rankLabel, location, men, price, benefitsStr };
   const style = RANK_STYLE[rankKey];
 
@@ -650,7 +754,7 @@ function openModal(rankKey, rankLabel, location, men, price, benefitsStr, stock)
   if (location) titleParts.unshift(location);
   document.getElementById('m-title').textContent = titleParts.join(' — ');
   document.getElementById('m-sub').textContent =
-    '残' + stock + '席' + (PAY_FIXED === 'transfer' ? '　銀行振込' : PAY_FIXED === 'stripe' ? '　カード決済' : '');
+    PAY_FIXED === 'transfer' ? '銀行振込' : PAY_FIXED === 'stripe' ? 'カード決済' : '銀行振込';
 
   // price
   document.getElementById('m-price').textContent = '¥' + price.toLocaleString();
@@ -669,18 +773,30 @@ function openModal(rankKey, rankLabel, location, men, price, benefitsStr, stock)
   const btn = document.getElementById('submit-btn');
   btn.style.background = style.btnBg;
   btn.style.color = style.btnTc;
-  btn.textContent = PAY_FIXED === 'transfer' ? '銀行振込で申し込む'
-                  : PAY_FIXED === 'stripe'   ? 'カード決済で申し込む'
-                  : '申し込む';
+  btn.textContent = PAY_FIXED === 'stripe' ? 'カード決済で申し込む' : '銀行振込で申し込む';
 
   // reset
   ['inp-name','inp-email','inp-phone','inp-promoter'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  // 利用規約リセット
+  vipTermsAgreed = false;
+  document.getElementById('vip-terms-checkbox').classList.remove('checked');
+  document.getElementById('vip-terms-box').scrollTop = 0;
+  const hint = document.getElementById('vip-scroll-hint');
+  if (hint) hint.style.opacity = '0.7';
+  document.getElementById('submit-btn').disabled = true;
+
   const errEl = document.getElementById('form-error');
   errEl.style.display = 'none';
   document.getElementById('modal-form').style.display = 'block';
   document.getElementById('modal-result').className = 'result-section';
+
+  // 規約ボックスをスクロールしたらヒントを隠す
+  const termsBox = document.getElementById('vip-terms-box');
+  termsBox.onscroll = function() {
+    if (hint) hint.style.opacity = '0';
+  };
 
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -701,9 +817,10 @@ async function submitForm() {
   const promoter = document.getElementById('inp-promoter').value.trim();
   const errEl    = document.getElementById('form-error');
 
-  if (!name)  { showErr('代表者氏名を入力してください'); return; }
-  if (!email) { showErr('メールアドレスを入力してください'); return; }
-  if (!phone) { showErr('電話番号を入力してください'); return; }
+  if (!name)           { showErr('代表者氏名を入力してください'); return; }
+  if (!email)          { showErr('メールアドレスを入力してください'); return; }
+  if (!phone)          { showErr('電話番号を入力してください'); return; }
+  if (!vipTermsAgreed) { showErr('利用規約に同意してください'); return; }
   errEl.style.display = 'none';
 
   const payMethod = PAY_FIXED || 'transfer';
