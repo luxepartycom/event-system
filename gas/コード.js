@@ -2516,6 +2516,61 @@ function initVipTablesForEvent() {
   Logger.log('イベントID: ' + eventId);
 }
 
+// ── ステージングSSにテストデータを投入（GASエディタから手動実行） ──
+// 本番SSには一切書き込まない。staging SS のみに vip_tables テストデータを追加する。
+function seedStagingVipTables() {
+  var stagingId = PropertiesService.getScriptProperties().getProperty('STAGING_SPREADSHEET_ID');
+  if (!stagingId) {
+    Logger.log('ERROR: STAGING_SPREADSHEET_ID が未設定。先に setupStagingSpreadsheet() を実行してください');
+    return;
+  }
+  var stgSS  = SpreadsheetApp.openById(stagingId);
+  var s      = stgSS.getSheetByName('vip_tables');
+  var header = [
+    'table_id','event_id','table_name','table_type',
+    'capacity','price','status','reserved_by','reserved_email',
+    'reserved_phone','reserved_at','payment_method',
+    'transfer_deadline','confirmed_at','guest_id','notes'
+  ];
+  if (!s) { s = stgSS.insertSheet('vip_tables'); }
+  if (s.getLastRow() < 1) { s.appendRow(header); }
+  var existH = s.getRange(1,1,1,s.getLastColumn()).getValues()[0].map(function(c){ return String(c).trim(); });
+
+  var eventId = 'EV-MP45BP13';
+  var tables = [
+    { name:'S1', type:'Secret VIP',  capacity:5, price:500000 },
+    { name:'S2', type:'Secret VIP',  capacity:4, price:300000 },
+    { name:'S3', type:'Secret VIP',  capacity:5, price:500000 },
+    { name:'V1', type:'VVIP',        capacity:4, price:300000 },
+    { name:'V2', type:'VVIP',        capacity:4, price:300000 },
+    { name:'V3', type:'VVIP',        capacity:5, price:300000 },
+    { name:'V4', type:'VVIP',        capacity:5, price:300000 },
+    { name:'V5', type:'VVIP',        capacity:5, price:300000 },
+    { name:'V6', type:'VVIP',        capacity:5, price:300000 },
+    { name:'G1', type:'GOLD VIP',    capacity:5, price:1000000 },
+    { name:'G2', type:'GOLD VIP',    capacity:5, price:1000000 },
+    { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
+  ];
+  tables.forEach(function(t) {
+    var tid = 'VT-STG-' + t.name;
+    var row = existH.map(function(k) {
+      switch(k) {
+        case 'table_id':   return tid;
+        case 'event_id':   return eventId;
+        case 'table_name': return t.name;
+        case 'table_type': return t.type;
+        case 'capacity':   return t.capacity;
+        case 'price':      return t.price;
+        case 'status':     return 'available';
+        default:           return '';
+      }
+    });
+    s.appendRow(row);
+  });
+  SpreadsheetApp.flush();
+  Logger.log('✅ Staging vip_tables 投入完了: ' + tables.length + '件 / イベント: ' + eventId);
+}
+
 // ================================================================
 // VIP期限管理 ヘルパー関数群
 // ================================================================
