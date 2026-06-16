@@ -2042,7 +2042,7 @@ function doPost(e) {
             var rowSt   = String(vtRRows[i][vtRH.indexOf('status')]||'');
             if (rowType === rankType && rowSt === 'available') {
               if (evIdR && rowEv === evIdR) { tRowR = i; break; }
-              if (!evIdR && tRowR < 0) tRowR = i;
+              if (!evIdR && tRowR < 0) { tRowR = i; break; }
             }
           }
           // event_id指定で見つからなければ全体から探す
@@ -2056,19 +2056,27 @@ function doPost(e) {
           if (tRowR < 0) return res({ ok: false, message: '現在このランクに空きはありません' });
 
           var tableIdR = String(vtRRows[tRowR][vtRH.indexOf('table_id')]||'');
-          var curStR   = String(vtRRows[tRowR][vtRH.indexOf('status')]||'');
-          if (curStR !== 'available') return res({ ok: false, message: 'このテーブルはすでに予約済みです' });
+          // シートから直接再読みして最新状態を確認（TOCTOU対策: キャッシュではなく実値）
+          var statusColIdxR = vtRH.indexOf('status') + 1;
+          if (statusColIdxR < 1) return res({ ok: false, message: 'シートのスキーマエラー（statusカラム未定義）' });
+          var liveStR = String(vtsR.getRange(tRowR+1, statusColIdxR).getValue() || '');
+          if (liveStR !== 'available') return res({ ok: false, message: 'このテーブルはすでに予約済みです' });
 
           var vGidR    = 'VIP-' + Date.now().toString(36).toUpperCase();
           var payMethodR = body.payment_method || 'stripe';
           var nowR     = new Date();
           var deadlineR = new Date(nowR.getTime() + 3 * 24 * 60 * 60 * 1000);
           var newStR   = payMethodR === 'transfer' ? 'pending_payment' : 'reserved';
-          vtsR.getRange(tRowR+1, vtRH.indexOf('status')+1).setValue(newStR);
-          var cmR = { reserved_by: body.name||'', reserved_email: body.email||'', reserved_phone: body.phone||'',
+          // 全フィールドを一括 setValues で書き込む（途中失敗による不整合を最小化）
+          var rowDataR = vtsR.getRange(tRowR+1, 1, 1, vtRH.length).getValues()[0];
+          var cmR = {
+            status: newStR,
+            reserved_by: body.name||'', reserved_email: body.email||'', reserved_phone: body.phone||'',
             reserved_at: nowStr(), payment_method: payMethodR, guest_id: vGidR,
-            transfer_deadline: payMethodR==='transfer' ? Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy-MM-dd') : '' };
-          Object.keys(cmR).forEach(function(k){ var ci=vtRH.indexOf(k); if(ci>=0) vtsR.getRange(tRowR+1,ci+1).setValue(cmR[k]); });
+            transfer_deadline: payMethodR==='transfer' ? Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy-MM-dd') : ''
+          };
+          Object.keys(cmR).forEach(function(k){ var ci=vtRH.indexOf(k); if(ci>=0) rowDataR[ci]=cmR[k]; });
+          vtsR.getRange(tRowR+1, 1, 1, vtRH.length).setValues([rowDataR]);
 
           var tNameR  = String(vtRRows[tRowR][vtRH.indexOf('table_name')]||'');
           var tTypeR  = String(vtRRows[tRowR][vtRH.indexOf('table_type')]||'');
@@ -2257,14 +2265,19 @@ function getVipTables(eventId) {
 // ── VIPテーブル追加 ─────────────────────────────────────────────
 function addVipTableIfNeeded() {
   var s = sheet('vip_tables');
+  var header = [
+    'table_id','event_id','table_name','table_type',
+    'capacity','price','status','reserved_by','reserved_email',
+    'reserved_phone','reserved_at','payment_method',
+    'transfer_deadline','confirmed_at','guest_id','notes'
+  ];
   if (!s) {
     s = SS.insertSheet('vip_tables');
-    s.appendRow([
-      'table_id','event_id','table_name','table_type',
-      'capacity','price','status','reserved_by','reserved_email',
-      'reserved_phone','reserved_at','payment_method',
-      'transfer_deadline','confirmed_at','guest_id','notes'
-    ]);
+    s.appendRow(header);
+    SpreadsheetApp.flush();
+  } else if (s.getLastRow() < 1) {
+    // シートが存在するが全行削除された場合、ヘッダーを復元
+    s.appendRow(header);
     SpreadsheetApp.flush();
   }
   return s;
