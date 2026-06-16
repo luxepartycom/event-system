@@ -10,6 +10,7 @@ function requestExternalAccess() {
 
 // ── 環境ルーティング（staging / production 自動切り替え） ──
 var _STAGING_DEPLOY_ID = 'AKfycbwYH2RFU4G2RYF6XyYn9-kv5CPSoNREKj52N5-WnKLn7kIAE3KFaEK0Ubn0OQQdvlDJ';
+var _imgUrlCache = {}; // セッション内 Drive→GitHub URL キャッシュ
 function _getSpreadsheet() {
   try {
     var url = ScriptApp.getService().getUrl();
@@ -67,15 +68,75 @@ function sheetToObjects(s) {
     });
 }
 
+function extractDriveFileId_(url) {
+  if (!url) return null;
+  var m = url.match(/\/file\/d\/([^\/\?#]+)/);
+  if (m) return m[1];
+  m = url.match(/[?&]id=([^&]+)/);
+  if (m) return m[1];
+  return null;
+}
+
+// Drive画像をGitHub assetsブランチに公開し raw.githubusercontent.com URL を返す。
+// セッション内キャッシュにより同一画像の重複アップロードを防止。
+// GITHUB_TOKEN が未設定の場合はフォールバック URL を返す。
 function convertDriveUrl(url) {
   if (!url) return '';
-  // Drive URL からファイルIDを抽出し、GoogleのCDN(lh3)経由に変換
-  // lh3.googleusercontent.com はGmailプロキシを通過しAndroidでも表示される
-  var match = url.match(/\/file\/d\/([^\/\?]+)/);
-  if (match) return 'https://lh3.googleusercontent.com/d/' + match[1];
-  var match2 = url.match(/[?&]id=([^&]+)/);
-  if (match2) return 'https://lh3.googleusercontent.com/d/' + match2[1];
-  return url;
+  if (_imgUrlCache[url]) return _imgUrlCache[url];
+  var fileId = extractDriveFileId_(url);
+  if (!fileId) return url;
+  var result = publishFlierToGitHub_(fileId);
+  _imgUrlCache[url] = result;
+  return result;
+}
+
+function publishFlierToGitHub_(fileId) {
+  var token = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+  if (!token) {
+    console.warn('GITHUB_TOKEN 未設定: 画像が一部のメールクライアントで表示されない場合があります');
+    return 'https://drive.google.com/uc?export=view&id=' + fileId;
+  }
+  try {
+    var driveResp = UrlFetchApp.fetch(
+      'https://drive.google.com/uc?export=view&id=' + fileId,
+      {followRedirects: true, muteHttpExceptions: true}
+    );
+    if (driveResp.getResponseCode() !== 200) {
+      console.error('Drive画像取得失敗 ' + driveResp.getResponseCode() + ' id=' + fileId);
+      return 'https://drive.google.com/uc?export=view&id=' + fileId;
+    }
+    var blob = driveResp.getBlob();
+    var ext = (blob.getContentType() || 'image/jpeg').split('/')[1] || 'jpg';
+    if (ext === 'jpeg') ext = 'jpg';
+    var filename = fileId + '.' + ext;
+
+    var apiUrl = 'https://api.github.com/repos/luxepartycom/event-system/contents/flyers/' + filename;
+    var headers = {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/vnd.github.v3+json'
+    };
+
+    var sha = null;
+    var check = UrlFetchApp.fetch(apiUrl + '?ref=assets', {headers: headers, muteHttpExceptions: true});
+    if (check.getResponseCode() === 200) {
+      sha = JSON.parse(check.getContentText()).sha;
+    }
+
+    var body = {message: 'flyer: ' + filename, content: Utilities.base64Encode(blob.getBytes()), branch: 'assets'};
+    if (sha) body.sha = sha;
+
+    var put = UrlFetchApp.fetch(apiUrl, {
+      method: 'PUT', headers: headers, payload: JSON.stringify(body), muteHttpExceptions: true
+    });
+    if (put.getResponseCode() === 200 || put.getResponseCode() === 201) {
+      return 'https://raw.githubusercontent.com/luxepartycom/event-system/assets/flyers/' + filename;
+    }
+    console.error('GitHub upload失敗: ' + put.getContentText());
+    return 'https://drive.google.com/uc?export=view&id=' + fileId;
+  } catch (e) {
+    console.error('publishFlierToGitHub_ error: ' + e.message);
+    return 'https://drive.google.com/uc?export=view&id=' + fileId;
+  }
 }
 
 // ウォームアップ用ping関数（5分おきのトリガーで実行）
