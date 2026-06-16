@@ -102,46 +102,77 @@ function publishFlierToGitHub_(fileId) {
     return 'https://drive.google.com/uc?export=view&id=' + fileId;
   }
   try {
-    var driveResp = UrlFetchApp.fetch(
-      'https://drive.google.com/uc?export=view&id=' + fileId,
-      {followRedirects: true, muteHttpExceptions: true}
+    var blob = null;
+
+    // Step 1: GAS OAuth トークン付きで 800px 圧縮サムネイルを取得
+    var gasToken = ScriptApp.getOAuthToken();
+    var thumbResp = UrlFetchApp.fetch(
+      'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800',
+      {headers: {'Authorization': 'Bearer ' + gasToken}, followRedirects: true, muteHttpExceptions: true}
     );
-    if (driveResp.getResponseCode() !== 200) {
-      console.error('Drive画像取得失敗 ' + driveResp.getResponseCode() + ' id=' + fileId);
+    if (thumbResp.getResponseCode() === 200) {
+      var thumbBlob = thumbResp.getBlob();
+      if ((thumbBlob.getContentType() || '').indexOf('image') !== -1) {
+        blob = thumbBlob;
+      }
+    }
+
+    // Step 2: サムネイル失敗時はフルサイズで取得（公開URL・認証不要）
+    if (!blob) {
+      console.warn('サムネイル取得失敗。フルサイズにフォールバック id=' + fileId);
+      var fullResp = UrlFetchApp.fetch(
+        'https://drive.google.com/uc?export=view&id=' + fileId,
+        {followRedirects: true, muteHttpExceptions: true}
+      );
+      if (fullResp.getResponseCode() === 200) {
+        var fullBlob = fullResp.getBlob();
+        if ((fullBlob.getContentType() || '').indexOf('image') !== -1) {
+          blob = fullBlob;
+        }
+      }
+    }
+
+    // Step 3: 両方失敗 → Drive URL を直接返す（最終手段）
+    if (!blob) {
+      console.error('画像バイナリ取得失敗 id=' + fileId);
       return 'https://drive.google.com/uc?export=view&id=' + fileId;
     }
-    var blob = driveResp.getBlob();
-    var ct = blob.getContentType() || '';
-    if (ct.indexOf('image') === -1) {
-      console.error('Drive応答が画像ではない (contentType=' + ct + ') id=' + fileId);
-      return 'https://drive.google.com/uc?export=view&id=' + fileId;
-    }
+
+    var ct = blob.getContentType() || 'image/jpeg';
     var ext = ct.split('/')[1] || 'jpg';
     if (ext === 'jpeg') ext = 'jpg';
     var filename = fileId + '.' + ext;
 
     var apiUrl = 'https://api.github.com/repos/luxepartycom/event-system/contents/flyers/' + filename;
-    var headers = {
+    var ghHeaders = {
       'Authorization': 'Bearer ' + token,
       'Accept': 'application/vnd.github.v3+json'
     };
+    var githubUrl = 'https://raw.githubusercontent.com/luxepartycom/event-system/assets/flyers/' + filename;
 
     var sha = null;
-    var check = UrlFetchApp.fetch(apiUrl + '?ref=assets', {headers: headers, muteHttpExceptions: true});
+    var fileExists = false;
+    var check = UrlFetchApp.fetch(apiUrl + '?ref=assets', {headers: ghHeaders, muteHttpExceptions: true});
     if (check.getResponseCode() === 200) {
       sha = JSON.parse(check.getContentText()).sha;
+      fileExists = true;
     }
 
     var body = {message: 'flyer: ' + filename, content: Utilities.base64Encode(blob.getBytes()), branch: 'assets'};
     if (sha) body.sha = sha;
 
     var put = UrlFetchApp.fetch(apiUrl, {
-      method: 'PUT', headers: headers, payload: JSON.stringify(body), muteHttpExceptions: true
+      method: 'PUT', headers: ghHeaders, payload: JSON.stringify(body), muteHttpExceptions: true
     });
     if (put.getResponseCode() === 200 || put.getResponseCode() === 201) {
-      return 'https://raw.githubusercontent.com/luxepartycom/event-system/assets/flyers/' + filename;
+      return githubUrl;
     }
-    console.error('GitHub upload失敗: ' + put.getContentText());
+    // upload失敗でも既存ファイルがあれば GitHub URL を返す（前回upload分が有効）
+    if (fileExists) {
+      console.warn('GitHub upload失敗だが既存ファイルを使用: ' + filename);
+      return githubUrl;
+    }
+    console.error('GitHub upload失敗: ' + put.getContentText().substring(0, 200));
     return 'https://drive.google.com/uc?export=view&id=' + fileId;
   } catch (e) {
     console.error('publishFlierToGitHub_ error: ' + e.message);
