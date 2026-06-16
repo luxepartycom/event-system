@@ -103,7 +103,7 @@ function publishFlierToGitHub_(fileId) {
   }
   try {
     var driveResp = UrlFetchApp.fetch(
-      'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800',
+      'https://drive.google.com/uc?export=view&id=' + fileId,
       {followRedirects: true, muteHttpExceptions: true}
     );
     if (driveResp.getResponseCode() !== 200) {
@@ -111,7 +111,12 @@ function publishFlierToGitHub_(fileId) {
       return 'https://drive.google.com/uc?export=view&id=' + fileId;
     }
     var blob = driveResp.getBlob();
-    var ext = (blob.getContentType() || 'image/jpeg').split('/')[1] || 'jpg';
+    var ct = blob.getContentType() || '';
+    if (ct.indexOf('image') === -1) {
+      console.error('Drive応答が画像ではない (contentType=' + ct + ') id=' + fileId);
+      return 'https://drive.google.com/uc?export=view&id=' + fileId;
+    }
+    var ext = ct.split('/')[1] || 'jpg';
     if (ext === 'jpeg') ext = 'jpg';
     var filename = fileId + '.' + ext;
 
