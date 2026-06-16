@@ -2067,17 +2067,23 @@ function doPost(e) {
           // ランク名から空きテーブルを自動割り当てして予約
           var rankType = body.rank_type || '';
           var evIdR = body.event_id || '';
+          var invitedByR = body.invited_by || '';
+          // price_hint: Secret VIPの¥500,000 / ¥300,000 等を区別するテーブル絞り込み用
+          var priceHintR = body.price_hint ? Number(body.price_hint) : 0;
           if (!rankType) return res({ ok: false, message: 'ランクを指定してください' });
           var vtsR = addVipTableIfNeeded();
           var vtRRows = vtsR.getRange(1,1,vtsR.getLastRow(),vtsR.getLastColumn()).getValues();
           var vtRH = vtRRows[0].map(function(c){ return String(c).trim(); });
-          // ランク名は table_type カラムで照合、event_id も一致するものを優先（なければ全体から探す）
+          var priceColR = vtRH.indexOf('price');
+          // ランク名は table_type カラムで照合、price_hint・event_id も一致するものを優先
           var tRowR = -1;
           for (var i=1; i<vtRRows.length; i++) {
             var rowType = String(vtRRows[i][vtRH.indexOf('table_type')]||'');
             var rowEv   = String(vtRRows[i][vtRH.indexOf('event_id')]||'');
             var rowSt   = String(vtRRows[i][vtRH.indexOf('status')]||'');
-            if (rowType === rankType && rowSt === 'available') {
+            var rowPrR  = priceColR >= 0 ? Number(vtRRows[i][priceColR]||0) : 0;
+            var priceOk = priceHintR <= 0 || rowPrR === priceHintR;
+            if (rowType === rankType && rowSt === 'available' && priceOk) {
               if (evIdR && rowEv === evIdR) { tRowR = i; break; }
               if (!evIdR && tRowR < 0) { tRowR = i; break; }
             }
@@ -2087,7 +2093,9 @@ function doPost(e) {
             for (var i=1; i<vtRRows.length; i++) {
               var rowType2 = String(vtRRows[i][vtRH.indexOf('table_type')]||'');
               var rowSt2   = String(vtRRows[i][vtRH.indexOf('status')]||'');
-              if (rowType2 === rankType && rowSt2 === 'available') { tRowR = i; break; }
+              var rowPrR2  = priceColR >= 0 ? Number(vtRRows[i][priceColR]||0) : 0;
+              var priceOk2 = priceHintR <= 0 || rowPrR2 === priceHintR;
+              if (rowType2 === rankType && rowSt2 === 'available' && priceOk2) { tRowR = i; break; }
             }
           }
           if (tRowR < 0) return res({ ok: false, message: '現在このランクに空きはありません' });
@@ -2125,12 +2133,12 @@ function doPost(e) {
             vrsR = SS.insertSheet('vip_reservations');
             vrsR.appendRow(['reservation_id','table_id','event_id','table_name','table_type',
               'name','email','phone','payment_method','status',
-              'transfer_deadline','confirmed_at','guest_id','reserved_at','notes']);
+              'transfer_deadline','confirmed_at','guest_id','reserved_at','notes','invited_by']);
           }
           vrsR.appendRow(['RES-'+Date.now().toString(36).toUpperCase(),tableIdR,evIdR2,tNameR,tTypeR,
             body.name||'',body.email||'',body.phone||'',payMethodR,newStR,
             payMethodR==='transfer'?Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy-MM-dd'):'',
-            '',vGidR,nowStr(),body.notes||'']);
+            '',vGidR,nowStr(),body.notes||'',invitedByR]);
           SpreadsheetApp.flush();
 
           if (payMethodR === 'transfer') {
@@ -2141,9 +2149,10 @@ function doPost(e) {
               var evNameVR=''; var evSVR=sheet('events');
               if(evSVR){var evRVR=evSVR.getDataRange().getValues();var evHVR=evRVR[0].map(function(c){return String(c).trim();});
                 for(var ei=1;ei<evRVR.length;ei++){if(String(evRVR[ei][evHVR.indexOf('event_id')])===evIdR2){evNameVR=String(evRVR[ei][evHVR.indexOf('name')]||'');break;}}}
+              var invitedLineVR = invitedByR ? '\n紹介者: '+invitedByR : '';
               GmailApp.sendEmail(body.email,
                 '【LUXE PARTY TOKYO】VIPテーブル仮予約のご確認',
-                body.name+'様\n\nこの度はLUXE PARTY TOKYOにお申し込みいただき、誠にありがとうございます。\nVIPテーブルの仮予約を承りました。\n\n■ご予約内容\nイベント: '+evNameVR+'\nランク: '+tTypeR+'\nテーブル: '+tNameR+'\n料金: ¥'+tPriceR.toLocaleString()+'（税込）\n\n■お振込のお願い\n'+Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy年MM月dd日')+'までにお振込ください。\n期限を過ぎると自動キャンセルとなります。\n\n'+bankInfoR+'\n振込金額: ¥'+tPriceR.toLocaleString()+'（税込）\n\n'+companyInfoVR+'\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nご入金確認後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+replyToVR,
+                body.name+'様\n\nこの度はLUXE PARTY TOKYOにお申し込みいただき、誠にありがとうございます。\nVIPテーブルの仮予約を承りました。\n\n■ご予約内容\nイベント: '+evNameVR+'\nランク: '+tTypeR+'\nテーブル: '+tNameR+'\n料金: ¥'+tPriceR.toLocaleString()+'（税込）'+invitedLineVR+'\n\n■お振込のお願い\n'+Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy年MM月dd日')+'までにお振込ください。\n期限を過ぎると自動キャンセルとなります。\n\n'+bankInfoR+'\n振込金額: ¥'+tPriceR.toLocaleString()+'（税込）\n\n'+companyInfoVR+'\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nご入金確認後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+replyToVR,
                 {name:'LUXE PARTY TOKYO',replyTo:replyToVR});
             } catch(e){ console.log('VIP振込メールエラー(rank):',e); }
           }
