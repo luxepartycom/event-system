@@ -2568,7 +2568,12 @@ function seedStagingVipTables() {
     'transfer_deadline','confirmed_at','guest_id','notes'
   ];
   if (!s) { s = stgSS.insertSheet('vip_tables'); }
-  if (s.getLastRow() < 1) { s.appendRow(header); }
+  // ヘッダー確保 + データ行をすべてクリア（べき等: 何度実行しても重複しない）
+  if (s.getLastRow() < 1) {
+    s.appendRow(header);
+  } else if (s.getLastRow() > 1) {
+    s.deleteRows(2, s.getLastRow() - 1);
+  }
   var existH = s.getRange(1,1,1,s.getLastColumn()).getValues()[0].map(function(c){ return String(c).trim(); });
 
   var eventId = 'EV-MP45BP13';
