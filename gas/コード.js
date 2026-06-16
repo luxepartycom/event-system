@@ -1470,9 +1470,9 @@ function doPost(e) {
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" style="padding:2px;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;" alt=""></td>';
+              imagesHtml += '<tr><td width="50%" style="padding:2px;"><a href="' + allImgs[gi] + '" target="_blank" style="display:block;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></a></td>';
               imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" style="padding:2px;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;" alt=""></td></tr>'
+                ? '<td width="50%" style="padding:2px;"><a href="' + allImgs[gi+1] + '" target="_blank" style="display:block;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></a></td></tr>'
                 : '<td width="50%"></td></tr>';
             }
             imagesHtml += '</tbody></table>';
@@ -1561,9 +1561,9 @@ function doPost(e) {
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" style="padding:2px;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;" alt=""></td>';
+              imagesHtml += '<tr><td width="50%" style="padding:2px;"><a href="' + allImgs[gi] + '" target="_blank" style="display:block;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></a></td>';
               imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" style="padding:2px;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;" alt=""></td></tr>'
+                ? '<td width="50%" style="padding:2px;"><a href="' + allImgs[gi+1] + '" target="_blank" style="display:block;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></a></td></tr>'
                 : '<td width="50%"></td></tr>';
             }
             imagesHtml += '</tbody></table>';
