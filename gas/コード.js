@@ -8,8 +8,45 @@ function requestExternalAccess() {
 //  重複コード削除・速度最適化版
 // ═══════════════════════════════════════════════════════════
 
-const SS = SpreadsheetApp.getActiveSpreadsheet();
+// ── 環境ルーティング（staging / production 自動切り替え） ──
+var _STAGING_DEPLOY_ID = 'AKfycbwYH2RFU4G2RYF6XyYn9-kv5CPSoNREKj52N5-WnKLn7kIAE3KFaEK0Ubn0OQQdvlDJ';
+function _getSpreadsheet() {
+  try {
+    var url = ScriptApp.getService().getUrl();
+    if (url.indexOf(_STAGING_DEPLOY_ID) >= 0) {
+      var stagingId = PropertiesService.getScriptProperties().getProperty('STAGING_SPREADSHEET_ID');
+      if (stagingId) return SpreadsheetApp.openById(stagingId);
+    }
+  } catch(e) {}
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+var SS = _getSpreadsheet();
 function sheet(name) { return SS.getSheetByName(name); }
+
+// ── staging スプレッドシート初回セットアップ（GASエディタから一度だけ手動実行） ──
+function setupStagingSpreadsheet() {
+  var prodSS = SpreadsheetApp.getActiveSpreadsheet();
+  var newSS = SpreadsheetApp.create('LUXE PARTY TOKYO — staging');
+  var defaultSheet = newSS.getSheets()[0];
+  var firstDone = false;
+  prodSS.getSheets().forEach(function(s) {
+    var lastCol = s.getLastColumn();
+    if (lastCol < 1) return;
+    var headers = s.getRange(1, 1, 1, lastCol).getValues()[0];
+    if (!firstDone) {
+      defaultSheet.setName(s.getName());
+      defaultSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      firstDone = true;
+    } else {
+      var ns = newSS.insertSheet(s.getName());
+      ns.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+  });
+  var ssId = newSS.getId();
+  PropertiesService.getScriptProperties().setProperty('STAGING_SPREADSHEET_ID', ssId);
+  Logger.log('✅ Staging SS 作成完了: ' + newSS.getUrl());
+  Logger.log('ID: ' + ssId);
+}
 function res(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
