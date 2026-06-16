@@ -2558,6 +2558,8 @@ function initVipTablesForEvent() {
   ];
 
   var s = addVipTableIfNeeded();
+  // べき等化: 既存データ行をすべてクリアしてから投入
+  if (s.getLastRow() > 1) s.deleteRows(2, s.getLastRow() - 1);
   var h = s.getRange(1,1,1,s.getLastColumn()).getValues()[0].map(function(c){ return String(c).trim(); });
 
   tables.forEach(function(t) {
