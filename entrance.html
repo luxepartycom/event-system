@@ -994,7 +994,9 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   </div>
 
 <script>
-const API      = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+const _PROD_API = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+const _STG_API  = 'https://script.google.com/macros/s/AKfycbwYH2RFU4G2RYF6XyYn9-kv5CPSoNREKj52N5-WnKLn7kIAE3KFaEK0Ubn0OQQdvlDJ/exec';
+const API       = /localhost|\.vercel\.app/.test(location.hostname) ? _STG_API : _PROD_API;
 const BASE_URL = 'https://luxepartycom.github.io/event-system/';
 
 let allEvents      = [];
