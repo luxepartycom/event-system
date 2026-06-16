@@ -69,39 +69,14 @@ function sheetToObjects(s) {
 
 function convertDriveUrl(url) {
   if (!url) return '';
-  // https://drive.google.com/file/d/XXXXX/view → 直接表示URLに変換
-  var match = url.match(/\/file\/d\/([^\/]+)/);
-  if (match) return 'https://drive.google.com/uc?export=view&id=' + match[1];
-  // https://drive.google.com/open?id=XXXXX 形式
+  // Drive URL からファイルIDを抽出し、GoogleのCDN(lh3)経由に変換
+  // lh3.googleusercontent.com はGmailプロキシを通過しAndroidでも表示される
+  var match = url.match(/\/file\/d\/([^\/\?]+)/);
+  if (match) return 'https://lh3.googleusercontent.com/d/' + match[1];
   var match2 = url.match(/[?&]id=([^&]+)/);
-  if (match2) return 'https://drive.google.com/uc?export=view&id=' + match2[1];
+  if (match2) return 'https://lh3.googleusercontent.com/d/' + match2[1];
   return url;
 }
-
-function extractDriveId(url) {
-  if (!url) return '';
-  var m = url.match(/\/file\/d\/([^\/]+)/);
-  if (m) return m[1];
-  var m2 = url.match(/[?&]id=([^&]+)/);
-  if (m2) return m2[1];
-  return '';
-}
-
-function preloadDriveImages(data) {
-  var urls = [];
-  if (data.image) urls.push(String(data.image));
-  (data.gallery || []).forEach(function(u){ if(u) urls.push(String(u)); });
-  var blobs = {};
-  urls.forEach(function(url, i) {
-    var id = extractDriveId(url);
-    if (!id) return;
-    try {
-      blobs['lptimg' + i] = DriveApp.getFileById(id).getBlob();
-    } catch(e) {
-      console.error('画像プリロード失敗: ' + url + ' - ' + e.message);
-    }
-  });
-  return blobs;
 }
 
 // ウォームアップ用ping関数（5分おきのトリガーで実行）
@@ -1427,24 +1402,18 @@ function doPost(e) {
 
         var sentFree = 0, sentPaid = 0, unsubCount = 0, totalSent = 0;
 
-        function buildHtml(data, guestName, unsubUrl, imageBlobs) {
-          var allImgUrls = [];
-          if (data.image) allImgUrls.push(String(data.image));
-          (data.gallery || []).forEach(function(u){ if(u) allImgUrls.push(String(u)); });
+        function buildHtml(data, guestName, unsubUrl) {
+          var allImgs = [];
+          if (data.image) allImgs.push(convertDriveUrl(String(data.image)));
+          (data.gallery || []).forEach(function(u){ var c = convertDriveUrl(String(u||'')); if(c) allImgs.push(c); });
           var imagesHtml = '';
-          if (allImgUrls.length > 0) {
+          if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
-            for (var gi = 0; gi < allImgUrls.length; gi += 2) {
-              var cid0 = 'lptimg' + gi;
-              var src0 = (imageBlobs && imageBlobs[cid0]) ? 'cid:' + cid0 : convertDriveUrl(allImgUrls[gi]);
-              imagesHtml += '<tr><td width="50%" style="padding:2px;"><img src="' + src0 + '" style="width:100%;display:block;" alt=""></td>';
-              if (allImgUrls[gi+1]) {
-                var cid1 = 'lptimg' + (gi+1);
-                var src1 = (imageBlobs && imageBlobs[cid1]) ? 'cid:' + cid1 : convertDriveUrl(allImgUrls[gi+1]);
-                imagesHtml += '<td width="50%" style="padding:2px;"><img src="' + src1 + '" style="width:100%;display:block;" alt=""></td></tr>';
-              } else {
-                imagesHtml += '<td width="50%"></td></tr>';
-              }
+            for (var gi = 0; gi < allImgs.length; gi += 2) {
+              imagesHtml += '<tr><td width="50%" style="padding:2px;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;" alt=""></td>';
+              imagesHtml += allImgs[gi+1]
+                ? '<td width="50%" style="padding:2px;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;" alt=""></td></tr>'
+                : '<td width="50%"></td></tr>';
             }
             imagesHtml += '</tbody></table>';
           }
@@ -1473,7 +1442,7 @@ function doPost(e) {
             + '</div></div>';
         }
 
-        function sendToGuests(guests, data, type, imageBlobs) {
+        function sendToGuests(guests, data, type) {
           var sent = 0;
           var sentEmailsForType = type === 'free' ? sentEmailsFree : sentEmailsPaid;
           for (var i = 0; i < guests.length; i++) {
@@ -1486,8 +1455,8 @@ function doPost(e) {
             if (sentEmailsForType[email.toLowerCase()]) { continue; }
             try {
               var unsubUrl = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec?action=unsubscribe&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(g.name || '');
-              var html = buildHtml(data, g.name || '', unsubUrl, imageBlobs);
-              var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8', inlineImages: imageBlobs || {} };
+              var html = buildHtml(data, g.name || '', unsubUrl);
+              var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8' };
               if (replyTo) opts.replyTo = replyTo;
               GmailApp.sendEmail(email, sanitizeSubject(data.subject || ''), g.name + ' 様', opts);
               logSheet.appendRow([nowStr(), campaignId, type, email, data.subject || '', 'sent']);
@@ -1502,10 +1471,8 @@ function doPost(e) {
           return sent;
         }
 
-        var imageBlobsFree = preloadDriveImages(dataFree);
-        var imageBlobsPaid = preloadDriveImages(dataPaid);
-        sentFree = sendToGuests(guestsFree, dataFree, 'free', imageBlobsFree);
-        sentPaid = sendToGuests(guestsPaid, dataPaid, 'paid', imageBlobsPaid);
+        sentFree = sendToGuests(guestsFree, dataFree, 'free');
+        sentPaid = sendToGuests(guestsPaid, dataPaid, 'paid');
         SpreadsheetApp.flush();
 
         var remaining = (guestsFree.length - sentFree) + (guestsPaid.length - sentPaid);
@@ -1526,24 +1493,18 @@ function doPost(e) {
         if (!testEmail) return res({ ok: false, message: 'メールアドレスが必要です' });
         if (!testData.subject) return res({ ok: false, message: '件名を入力してください' });
 
-        function buildTestHtml(data, unsubUrl, imageBlobs) {
-          var allImgUrls = [];
-          if (data.image) allImgUrls.push(String(data.image));
-          (data.gallery || []).forEach(function(u){ if(u) allImgUrls.push(String(u)); });
+        function buildTestHtml(data, unsubUrl) {
+          var allImgs = [];
+          if (data.image) allImgs.push(convertDriveUrl(String(data.image)));
+          (data.gallery || []).forEach(function(u){ var c = convertDriveUrl(String(u||'')); if(c) allImgs.push(c); });
           var imagesHtml = '';
-          if (allImgUrls.length > 0) {
+          if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
-            for (var gi = 0; gi < allImgUrls.length; gi += 2) {
-              var cid0 = 'lptimg' + gi;
-              var src0 = (imageBlobs && imageBlobs[cid0]) ? 'cid:' + cid0 : convertDriveUrl(allImgUrls[gi]);
-              imagesHtml += '<tr><td width="50%" style="padding:2px;"><img src="' + src0 + '" style="width:100%;display:block;" alt=""></td>';
-              if (allImgUrls[gi+1]) {
-                var cid1 = 'lptimg' + (gi+1);
-                var src1 = (imageBlobs && imageBlobs[cid1]) ? 'cid:' + cid1 : convertDriveUrl(allImgUrls[gi+1]);
-                imagesHtml += '<td width="50%" style="padding:2px;"><img src="' + src1 + '" style="width:100%;display:block;" alt=""></td></tr>';
-              } else {
-                imagesHtml += '<td width="50%"></td></tr>';
-              }
+            for (var gi = 0; gi < allImgs.length; gi += 2) {
+              imagesHtml += '<tr><td width="50%" style="padding:2px;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;" alt=""></td>';
+              imagesHtml += allImgs[gi+1]
+                ? '<td width="50%" style="padding:2px;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;" alt=""></td></tr>'
+                : '<td width="50%"></td></tr>';
             }
             imagesHtml += '</tbody></table>';
           }
@@ -1575,9 +1536,8 @@ function doPost(e) {
 
         try {
           var testUnsubUrl = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec?action=unsubscribe&email=' + encodeURIComponent(testEmail) + '&name=テスト';
-          var testImageBlobs = preloadDriveImages(testData);
-          var testHtml = buildTestHtml(testData, testUnsubUrl, testImageBlobs);
-          var testOpts = { htmlBody: testHtml, name: 'LUXE PARTY TOKYO【テスト】', charset: 'UTF-8', inlineImages: testImageBlobs };
+          var testHtml = buildTestHtml(testData, testUnsubUrl);
+          var testOpts = { htmlBody: testHtml, name: 'LUXE PARTY TOKYO【テスト】', charset: 'UTF-8' };
           if (replyTo2) testOpts.replyTo = replyTo2;
           GmailApp.sendEmail(
             testEmail,
