@@ -83,15 +83,28 @@ function getDriveViewUrl_(url) {
 }
 
 // Drive画像をGitHub assetsブランチに公開し raw.githubusercontent.com URL を返す。
-// セッション内キャッシュにより同一画像の重複アップロードを防止。
+// セッション内キャッシュ + CacheService(6時間)で重複アップロードを防止し GitHub CDN キャッシュを温存。
 // GITHUB_TOKEN が未設定の場合はフォールバック URL を返す。
 function convertDriveUrl(url) {
   if (!url) return '';
   if (_imgUrlCache[url]) return _imgUrlCache[url];
   var fileId = extractDriveFileId_(url);
   if (!fileId) return url;
+
+  // GAS CacheService で永続キャッシュ確認（6時間、同一ファイルの再アップロードをスキップ）
+  var cacheKey = 'img_w600_' + fileId;
+  var cached = CacheService.getScriptCache().get(cacheKey);
+  if (cached) {
+    _imgUrlCache[url] = cached;
+    return cached;
+  }
+
   var result = publishFlierToGitHub_(fileId);
   _imgUrlCache[url] = result;
+  // GitHub URL のみキャッシュ（Drive フォールバック URL はキャッシュしない）
+  if (result.indexOf('githubusercontent') !== -1) {
+    CacheService.getScriptCache().put(cacheKey, result, 21600);
+  }
   return result;
 }
 
@@ -102,46 +115,74 @@ function publishFlierToGitHub_(fileId) {
     return 'https://drive.google.com/uc?export=view&id=' + fileId;
   }
   try {
-    var driveResp = UrlFetchApp.fetch(
-      'https://drive.google.com/uc?export=view&id=' + fileId,
-      {followRedirects: true, muteHttpExceptions: true}
-    );
-    if (driveResp.getResponseCode() !== 200) {
-      console.error('Drive画像取得失敗 ' + driveResp.getResponseCode() + ' id=' + fileId);
+    var blob = null;
+
+    // Step 1: DriveApp 経由でバイナリ直接取得（GAS組み込み認証で最も確実）
+    try {
+      var driveBlob = DriveApp.getFileById(fileId).getBlob();
+      if ((driveBlob.getContentType() || '').indexOf('image') !== -1) {
+        blob = driveBlob;
+      }
+    } catch (driveErr) {
+      console.warn('DriveApp取得失敗 id=' + fileId + ': ' + driveErr.message);
+    }
+
+    // Step 2: DriveApp 失敗時はフルサイズ公開URLからフォールバック
+    if (!blob) {
+      console.warn('DriveApp失敗。公開URLにフォールバック id=' + fileId);
+      var fullResp = UrlFetchApp.fetch(
+        'https://drive.google.com/uc?export=view&id=' + fileId,
+        {followRedirects: true, muteHttpExceptions: true}
+      );
+      if (fullResp.getResponseCode() === 200) {
+        var fullBlob = fullResp.getBlob();
+        if ((fullBlob.getContentType() || '').indexOf('image') !== -1) {
+          blob = fullBlob;
+        }
+      }
+    }
+
+    // Step 3: 両方失敗 → Drive URL を直接返す（最終手段）
+    if (!blob) {
+      console.error('画像バイナリ取得失敗 id=' + fileId);
       return 'https://drive.google.com/uc?export=view&id=' + fileId;
     }
-    var blob = driveResp.getBlob();
-    var ct = blob.getContentType() || '';
-    if (ct.indexOf('image') === -1) {
-      console.error('Drive応答が画像ではない (contentType=' + ct + ') id=' + fileId);
-      return 'https://drive.google.com/uc?export=view&id=' + fileId;
-    }
+
+    var ct = blob.getContentType() || 'image/jpeg';
     var ext = ct.split('/')[1] || 'jpg';
     if (ext === 'jpeg') ext = 'jpg';
     var filename = fileId + '.' + ext;
 
     var apiUrl = 'https://api.github.com/repos/luxepartycom/event-system/contents/flyers/' + filename;
-    var headers = {
+    var ghHeaders = {
       'Authorization': 'Bearer ' + token,
       'Accept': 'application/vnd.github.v3+json'
     };
+    var githubUrl = 'https://raw.githubusercontent.com/luxepartycom/event-system/assets/flyers/' + filename;
 
     var sha = null;
-    var check = UrlFetchApp.fetch(apiUrl + '?ref=assets', {headers: headers, muteHttpExceptions: true});
+    var fileExists = false;
+    var check = UrlFetchApp.fetch(apiUrl + '?ref=assets', {headers: ghHeaders, muteHttpExceptions: true});
     if (check.getResponseCode() === 200) {
       sha = JSON.parse(check.getContentText()).sha;
+      fileExists = true;
     }
 
     var body = {message: 'flyer: ' + filename, content: Utilities.base64Encode(blob.getBytes()), branch: 'assets'};
     if (sha) body.sha = sha;
 
     var put = UrlFetchApp.fetch(apiUrl, {
-      method: 'PUT', headers: headers, payload: JSON.stringify(body), muteHttpExceptions: true
+      method: 'PUT', headers: ghHeaders, payload: JSON.stringify(body), muteHttpExceptions: true
     });
     if (put.getResponseCode() === 200 || put.getResponseCode() === 201) {
-      return 'https://raw.githubusercontent.com/luxepartycom/event-system/assets/flyers/' + filename;
+      return githubUrl;
     }
-    console.error('GitHub upload失敗: ' + put.getContentText());
+    // upload失敗でも既存ファイルがあれば GitHub URL を返す（前回upload分が有効）
+    if (fileExists) {
+      console.warn('GitHub upload失敗だが既存ファイルを使用: ' + filename);
+      return githubUrl;
+    }
+    console.error('GitHub upload失敗: ' + put.getContentText().substring(0, 200));
     return 'https://drive.google.com/uc?export=view&id=' + fileId;
   } catch (e) {
     console.error('publishFlierToGitHub_ error: ' + e.message);
@@ -154,6 +195,16 @@ function ping() {
   // GASをウォーム状態に保つためのダミー処理
   SpreadsheetApp.getActiveSpreadsheet().getName();
   console.log('ping: ' + new Date().toISOString());
+}
+
+// メール画像セル生成（GitHub URL の場合のみタップで拡大リンクを付与）
+function _mkImgCell_(url) {
+  if (!url) return '<td width="50%" height="180" style="background:#111;"></td>';
+  var img = '<img src="' + url + '" style="width:100%;display:block;border:0;" alt="">';
+  var inner = (url.indexOf('githubusercontent') !== -1)
+    ? '<a href="' + url + '" style="display:block;">' + img + '</a>'
+    : img;
+  return '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;">' + inner + '</td>';
 }
 
 function nowStr() {
@@ -1474,17 +1525,15 @@ function doPost(e) {
 
         function buildHtml(data, guestName, unsubUrl) {
           var allImgs = [];
-          var origUrls = [];
-          if (data.image) { var _u0 = String(data.image); allImgs.push(convertDriveUrl(_u0)); origUrls.push(getDriveViewUrl_(_u0)); }
-          (data.gallery || []).forEach(function(u) { if (!u) return; var c = convertDriveUrl(String(u)); if (c) { allImgs.push(c); origUrls.push(getDriveViewUrl_(String(u))); } });
+          if (data.image) { var _u0 = String(data.image); allImgs.push(convertDriveUrl(_u0)); }
+          (data.gallery || []).forEach(function(u) { if (!u) return; var c = convertDriveUrl(String(u)); if (c) allImgs.push(c); });
           var imagesHtml = '';
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" style="padding:2px;background:#111;"><a href="' + (origUrls[gi]||allImgs[gi]) + '" target="_blank" style="display:block;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></a></td>';
-              imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" style="padding:2px;background:#111;"><a href="' + (origUrls[gi+1]||allImgs[gi+1]) + '" target="_blank" style="display:block;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></a></td></tr>'
-                : '<td width="50%" style="background:#111;"></td></tr>';
+              imagesHtml += '<tr>' + _mkImgCell_(allImgs[gi])
+                + (allImgs[gi+1] ? _mkImgCell_(allImgs[gi+1]) : '<td width="50%" height="180" style="background:#111;"></td>')
+                + '</tr>';
             }
             imagesHtml += '</tbody></table>';
           }
@@ -1566,17 +1615,15 @@ function doPost(e) {
 
         function buildTestHtml(data, unsubUrl) {
           var allImgs = [];
-          var origUrls = [];
-          if (data.image) { var _u0 = String(data.image); allImgs.push(convertDriveUrl(_u0)); origUrls.push(getDriveViewUrl_(_u0)); }
-          (data.gallery || []).forEach(function(u) { if (!u) return; var c = convertDriveUrl(String(u)); if (c) { allImgs.push(c); origUrls.push(getDriveViewUrl_(String(u))); } });
+          if (data.image) { var _u0 = String(data.image); allImgs.push(convertDriveUrl(_u0)); }
+          (data.gallery || []).forEach(function(u) { if (!u) return; var c = convertDriveUrl(String(u)); if (c) allImgs.push(c); });
           var imagesHtml = '';
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" style="padding:2px;background:#111;"><a href="' + (origUrls[gi]||allImgs[gi]) + '" target="_blank" style="display:block;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></a></td>';
-              imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" style="padding:2px;background:#111;"><a href="' + (origUrls[gi+1]||allImgs[gi+1]) + '" target="_blank" style="display:block;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></a></td></tr>'
-                : '<td width="50%" style="background:#111;"></td></tr>';
+              imagesHtml += '<tr>' + _mkImgCell_(allImgs[gi])
+                + (allImgs[gi+1] ? _mkImgCell_(allImgs[gi+1]) : '<td width="50%" height="180" style="background:#111;"></td>')
+                + '</tr>';
             }
             imagesHtml += '</tbody></table>';
           }

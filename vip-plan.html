@@ -139,7 +139,7 @@ body {
   display:inline-flex;
   align-items:center;
   gap:5px;
-  font-size:0.48rem;
+  font-size:0.625rem;
   letter-spacing:0.12em;
   padding:3px 9px;
   border-radius:2px;
@@ -636,44 +636,41 @@ const RANK_KEYS = {
   'VVIP':        'vvip'
 };
 
-// テーブル1件 = カード1枚（満席テーブルはグレーアウト表示）
+// ランク+価格ごとに1枚のカード（残件数表示）
 function renderPlans(tables) {
-  // ランク別に分類 → 価格降順 → テーブル名昇順
-  const groups = {};
-  RANK_TYPE_ORDER.forEach(t => { groups[t] = []; });
+  // (table_type, price) でグループ化し、空きテーブル数を集計
+  const groupMap = {};
   tables.forEach(t => {
-    if (groups[t.table_type] !== undefined) groups[t.table_type].push(t);
-  });
-  RANK_TYPE_ORDER.forEach(rankName => {
-    groups[rankName].sort((a, b) =>
-      Number(b.price) - Number(a.price) ||
-      String(a.table_name).localeCompare(String(b.table_name))
-    );
+    const key = t.table_type + '|' + t.price;
+    if (!groupMap[key]) groupMap[key] = { table_type: t.table_type, price: Number(t.price), available: 0 };
+    if (String(t.status) === 'available') groupMap[key].available++;
   });
 
   const container = document.getElementById('plans-container');
   container.innerHTML = '';
 
   RANK_TYPE_ORDER.forEach(rankName => {
-    const rankTables = groups[rankName];
-    if (!rankTables || rankTables.length === 0) return;
+    // このランクのグループを価格降順で取得
+    const rankGroups = Object.values(groupMap)
+      .filter(g => g.table_type === rankName)
+      .sort((a, b) => b.price - a.price);
+    if (rankGroups.length === 0) return;
 
     const rankKey = RANK_KEYS[rankName];
     let cardsHtml = '';
 
-    rankTables.forEach(t => {
-      const price = Number(t.price);
-      const cfg = (RANK_CONFIG[rankName] || {})[price];
+    rankGroups.forEach(g => {
+      const cfg = (RANK_CONFIG[rankName] || {})[g.price];
       if (!cfg) return;
 
-      const isAvailable = String(t.status) === 'available';
+      const isAvailable = g.available > 0;
       const stockCls = isAvailable ? 'stock-available' : 'stock-out';
-      const stockLbl = isAvailable ? '空き' : '満席';
-      const priceDisp = '¥' + (price / 10000) + '万';
+      const stockLbl = isAvailable ? `残${g.available}件` : '満席';
+      const priceDisp = '¥' + (g.price / 10000) + '万';
       const benefitsHtml = cfg.benefits.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
       const cardCls = isAvailable ? '' : ' sold-out';
       const onclick = isAvailable
-        ? `onclick="openModal('${cfg.key}','${rankName}','','${cfg.men}',${price},'${cfg.benefits.join(',')}')"`
+        ? `onclick="openModal('${cfg.key}','${rankName}','','${cfg.men}',${g.price},'${cfg.benefits.join(',')}')"`
         : '';
 
       cardsHtml += `
