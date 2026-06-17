@@ -1524,9 +1524,9 @@ function doPost(e) {
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><a href="' + allImgs[gi] + '" target="_blank" style="display:block;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></a></td>';
+              imagesHtml += '<tr><td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></td>';
               imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><a href="' + allImgs[gi+1] + '" target="_blank" style="display:block;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></a></td></tr>'
+                ? '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></td></tr>'
                 : '<td width="50%" height="180" style="background:#111;"></td></tr>';
             }
             imagesHtml += '</tbody></table>';
@@ -1615,9 +1615,9 @@ function doPost(e) {
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><a href="' + allImgs[gi] + '" target="_blank" style="display:block;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></a></td>';
+              imagesHtml += '<tr><td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></td>';
               imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><a href="' + allImgs[gi+1] + '" target="_blank" style="display:block;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></a></td></tr>'
+                ? '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></td></tr>'
                 : '<td width="50%" height="180" style="background:#111;"></td></tr>';
             }
             imagesHtml += '</tbody></table>';
