@@ -916,30 +916,7 @@ async function submitForm() {
       return;
     }
 
-    if (payMethod === 'stripe') {
-      const s = await fetch(VERCEL, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          event_id:   EVENT_ID,
-          event_name: 'LUXE PARTY TOKYO — ' + rankType,
-          name, email,
-          gender:     'male',
-          invited_by: promoter,
-          amount:     d.price || currentPlan.price,
-          plan_id:    '',
-          cancel_url: location.href
-        })
-      }).then(r => r.json());
-
-      if (s.ok && s.checkout_url) {
-        location.href = s.checkout_url;
-      } else {
-        showErr('決済ページの準備に失敗しました。お時間をおいて再度お試しください。');
-      }
-    } else {
-      showResult(d, name, promoter);
-    }
+    showResult(d, name, promoter);
   } catch(e) {
     document.getElementById('loading').classList.remove('show');
     document.getElementById('submit-btn').disabled = false;
@@ -957,9 +934,14 @@ function showResult(d, name, promoter) {
   document.getElementById('modal-form').style.display = 'none';
   const rs = document.getElementById('modal-result');
   rs.classList.add('show');
-  let sub = name + ' 様、ご予約を承りました。\n確認メールをお送りしましたのでご確認ください。';
-  if (d.transfer_deadline) {
-    sub += '\n\n' + d.transfer_deadline + ' までにお振込ください。\nご入金確認後、招待状QRコードをお送りします。';
+  let sub;
+  if (d.payment_method === 'stripe') {
+    sub = name + ' 様、お申し込みを承りました。\nご登録のメールアドレスにお支払いURLをお送りしました。\nメールよりカード決済をお済ませください。';
+  } else {
+    sub = name + ' 様、ご予約を承りました。\n確認メールをお送りしましたのでご確認ください。';
+    if (d.transfer_deadline) {
+      sub += '\n\n' + d.transfer_deadline + ' までにお振込ください。\nご入金確認後、招待状QRコードをお送りします。';
+    }
   }
   if (promoter) sub += '\n\n紹介者: ' + promoter;
   document.getElementById('r-sub').style.whiteSpace = 'pre-line';
