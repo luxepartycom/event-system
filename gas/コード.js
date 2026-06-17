@@ -117,22 +117,19 @@ function publishFlierToGitHub_(fileId) {
   try {
     var blob = null;
 
-    // Step 1: GAS OAuth トークン付きで 800px 圧縮サムネイルを取得
-    var gasToken = ScriptApp.getOAuthToken();
-    var thumbResp = UrlFetchApp.fetch(
-      'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w600',
-      {headers: {'Authorization': 'Bearer ' + gasToken}, followRedirects: true, muteHttpExceptions: true}
-    );
-    if (thumbResp.getResponseCode() === 200) {
-      var thumbBlob = thumbResp.getBlob();
-      if ((thumbBlob.getContentType() || '').indexOf('image') !== -1) {
-        blob = thumbBlob;
+    // Step 1: DriveApp 経由でバイナリ直接取得（GAS組み込み認証で最も確実）
+    try {
+      var driveBlob = DriveApp.getFileById(fileId).getBlob();
+      if ((driveBlob.getContentType() || '').indexOf('image') !== -1) {
+        blob = driveBlob;
       }
+    } catch (driveErr) {
+      console.warn('DriveApp取得失敗 id=' + fileId + ': ' + driveErr.message);
     }
 
-    // Step 2: サムネイル失敗時はフルサイズで取得（公開URL・認証不要）
+    // Step 2: DriveApp 失敗時はフルサイズ公開URLからフォールバック
     if (!blob) {
-      console.warn('サムネイル取得失敗。フルサイズにフォールバック id=' + fileId);
+      console.warn('DriveApp失敗。公開URLにフォールバック id=' + fileId);
       var fullResp = UrlFetchApp.fetch(
         'https://drive.google.com/uc?export=view&id=' + fileId,
         {followRedirects: true, muteHttpExceptions: true}
@@ -198,6 +195,16 @@ function ping() {
   // GASをウォーム状態に保つためのダミー処理
   SpreadsheetApp.getActiveSpreadsheet().getName();
   console.log('ping: ' + new Date().toISOString());
+}
+
+// メール画像セル生成（GitHub URL の場合のみタップで拡大リンクを付与）
+function _mkImgCell_(url) {
+  if (!url) return '<td width="50%" height="180" style="background:#111;"></td>';
+  var img = '<img src="' + url + '" style="width:100%;display:block;border:0;" alt="">';
+  var inner = (url.indexOf('githubusercontent') !== -1)
+    ? '<a href="' + url + '" style="display:block;">' + img + '</a>'
+    : img;
+  return '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;">' + inner + '</td>';
 }
 
 function nowStr() {
@@ -1524,10 +1531,9 @@ function doPost(e) {
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></td>';
-              imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></td></tr>'
-                : '<td width="50%" height="180" style="background:#111;"></td></tr>';
+              imagesHtml += '<tr>' + _mkImgCell_(allImgs[gi])
+                + (allImgs[gi+1] ? _mkImgCell_(allImgs[gi+1]) : '<td width="50%" height="180" style="background:#111;"></td>')
+                + '</tr>';
             }
             imagesHtml += '</tbody></table>';
           }
@@ -1615,10 +1621,9 @@ function doPost(e) {
           if (allImgs.length > 0) {
             imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
             for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr><td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + allImgs[gi] + '" style="width:100%;display:block;border:0;" alt=""></td>';
-              imagesHtml += allImgs[gi+1]
-                ? '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + allImgs[gi+1] + '" style="width:100%;display:block;border:0;" alt=""></td></tr>'
-                : '<td width="50%" height="180" style="background:#111;"></td></tr>';
+              imagesHtml += '<tr>' + _mkImgCell_(allImgs[gi])
+                + (allImgs[gi+1] ? _mkImgCell_(allImgs[gi+1]) : '<td width="50%" height="180" style="background:#111;"></td>')
+                + '</tr>';
             }
             imagesHtml += '</tbody></table>';
           }
