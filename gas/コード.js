@@ -207,6 +207,22 @@ function _mkImgCell_(url) {
   return '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;">' + inner + '</td>';
 }
 
+// メール送信オプションを生成（List-Unsubscribeヘッダー付き）
+function _buildMailOpts_(html, email, name) {
+  var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO' };
+  try {
+    var gasUrl = ScriptApp.getService().getUrl();
+    if (gasUrl) {
+      var unsubUrl = gasUrl + '?action=unsubscribe&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(name || '');
+      opts.headers = {
+        'List-Unsubscribe': '<' + unsubUrl + '>',
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+      };
+    }
+  } catch(e) {}
+  return opts;
+}
+
 function nowStr() {
   return Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm');
 }
@@ -336,7 +352,7 @@ function sendDayOfEmails() {
         const html = buildDayOfHtml(g, ev, evDateStr, payLabel, qrPageUrl, descRow, false);
         GmailApp.sendEmail(g.email, subject,
           g.name + '\u69d8\u3001\u672c\u65e5\u306f\u300c' + ev.name + '\u300d\u3067\u3059\u3002QR: ' + qrPageUrl,
-          { htmlBody: html, name: 'LUXE PARTY TOKYO' });
+          _buildMailOpts_(html, g.email, g.name));
         const refreshed = gs.getDataRange().getValues();
         const gcol = refreshed[0].map(h => String(h).trim()).indexOf('guest_id');
         for (let i=1; i<refreshed.length; i++) {
@@ -409,7 +425,7 @@ function sendDayOfEmailsTest() {
         : '';
       const subject = '[\u30c6\u30b9\u30c8][LUXE PARTY TOKYO]\u5f53\u65e5\u30e1\u30fc\u30eb \u2014 ' + ev.name;
       GmailApp.sendEmail(g.email, subject, '[\u30c6\u30b9\u30c8]' + g.name + '\u69d8 QR: ' + qrPageUrl,
-        { htmlBody: buildDayOfHtml(g, ev, evDateStr, payLabel, qrPageUrl, descRow, true), name: 'LUXE PARTY TOKYO' });
+        _buildMailOpts_(buildDayOfHtml(g, ev, evDateStr, payLabel, qrPageUrl, descRow, true), g.email, g.name));
       sent++;
       Utilities.sleep(300);
     } catch(e) { console.log('\u9001\u4fe1\u30a8\u30e9\u30fc: ' + e.message); }
@@ -941,7 +957,7 @@ function doPost(e) {
           + '<p style="font-size:0.6rem;color:#444;line-height:1.8;">\u203b \u3053\u306e\u30e1\u30fc\u30eb\u306f\u30b7\u30b9\u30c6\u30e0\u304b\u3089\u81ea\u52d5\u9001\u4fe1\u3055\u308c\u3066\u3044\u307e\u3059\u3002<br>\u203b URL\u304c\u958b\u3051\u306a\u3044\u5834\u5408\u306f\u7533\u3057\u8fbc\u307f\u5b8c\u4e86\u753b\u9762\u306e\u30b9\u30af\u30ea\u30fc\u30f3\u30b7\u30e7\u30c3\u30c8\u3092\u30b9\u30bf\u30c3\u30d5\u306b\u3054\u63d0\u793a\u304f\u3060\u3055\u3044\u3002</p>'
           + '</div>';
         try {
-          GmailApp.sendEmail(email, subject, name + '\u69d8\u3001QR: ' + qrPageUrl, { htmlBody: html, name: 'LUXE PARTY TOKYO' });
+          GmailApp.sendEmail(email, subject, name + '\u69d8\u3001QR: ' + qrPageUrl, _buildMailOpts_(html, email, name));
           return res({ ok: true });
         } catch(mailErr) { return res({ ok: false, message: mailErr.message }); }
       }
@@ -1324,7 +1340,7 @@ function doPost(e) {
               + '</div>'
               + '<p style="font-size:0.6rem;color:#444;line-height:1.8;">\u203b \u3053\u306e\u30e1\u30fc\u30eb\u306f\u30b7\u30b9\u30c6\u30e0\u304b\u3089\u81ea\u52d5\u9001\u4fe1\u3055\u308c\u3066\u3044\u307e\u3059\u3002</p>'
               + '</div>';
-            GmailApp.sendEmail(g2_email, subj2, g2_name + '\u69d8\u3001QR: ' + qrUrl2, { htmlBody: html2, name: 'LUXE PARTY TOKYO' });
+            GmailApp.sendEmail(g2_email, subj2, g2_name + '\u69d8\u3001QR: ' + qrUrl2, _buildMailOpts_(html2, g2_email, g2_name));
           } catch(mailErr2) { console.error('QRメール送信失敗: ' + mailErr2.message + ' / to=' + g2_email + ' / guest=' + new_gid); }
           return res({ ok: true, guest_id: new_gid, name: g2_name, amount: g2_amount, event_name: ev2_name });
         } catch(e2) { return res({ ok: false, message: 'Stripe\u53d6\u5f97\u30a8\u30e9\u30fc: ' + e2.message }); }
@@ -1576,7 +1592,8 @@ function doPost(e) {
             try {
               var unsubUrl = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec?action=unsubscribe&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(g.name || '');
               var html = buildHtml(data, g.name || '', unsubUrl);
-              var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8' };
+              var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8',
+                headers: { 'List-Unsubscribe': '<' + unsubUrl + '>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } };
               if (replyTo) opts.replyTo = replyTo;
               GmailApp.sendEmail(email, sanitizeSubject(data.subject || ''), g.name + ' 様', opts);
               logSheet.appendRow([nowStr(), campaignId, type, email, data.subject || '', 'sent']);
@@ -2590,18 +2607,29 @@ function initVipTablesForEvent() {
   var eventId = 'EV-MP45BP13'; // ← 対象イベントIDに変更
 
   var tables = [
+    // B1F — Diamond VIP
+    { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
+    { name:'D2', type:'Diamond VIP', capacity:7, price:1000000 },
+    { name:'D3', type:'Diamond VIP', capacity:7, price:1000000 },
+    // B1F — Secret VIP
     { name:'S1', type:'Secret VIP',  capacity:5, price:500000 },
     { name:'S2', type:'Secret VIP',  capacity:4, price:300000 },
     { name:'S3', type:'Secret VIP',  capacity:5, price:500000 },
+    // B1F — VVIP
     { name:'V1', type:'VVIP',        capacity:4, price:300000 },
     { name:'V2', type:'VVIP',        capacity:4, price:300000 },
     { name:'V3', type:'VVIP',        capacity:5, price:300000 },
     { name:'V4', type:'VVIP',        capacity:5, price:300000 },
     { name:'V5', type:'VVIP',        capacity:5, price:300000 },
     { name:'V6', type:'VVIP',        capacity:5, price:300000 },
-    { name:'G1', type:'GOLD VIP',    capacity:5, price:1000000 },
-    { name:'G2', type:'GOLD VIP',    capacity:5, price:1000000 },
-    { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
+    // 1F — VVIP ¥30万
+    { name:'V7',  type:'VVIP',       capacity:3, price:300000 },
+    { name:'V8',  type:'VVIP',       capacity:3, price:300000 },
+    { name:'V11', type:'VVIP',       capacity:3, price:300000 },
+    { name:'V12', type:'VVIP',       capacity:3, price:300000 },
+    // 1F — VVIP ¥20万
+    { name:'V9',  type:'VVIP',       capacity:2, price:200000 },
+    { name:'V10', type:'VVIP',       capacity:2, price:200000 },
   ];
 
   var s = addVipTableIfNeeded();
@@ -2659,18 +2687,29 @@ function seedStagingVipTables() {
 
   var eventId = 'EV-MP45BP13';
   var tables = [
+    // B1F — Diamond VIP
+    { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
+    { name:'D2', type:'Diamond VIP', capacity:7, price:1000000 },
+    { name:'D3', type:'Diamond VIP', capacity:7, price:1000000 },
+    // B1F — Secret VIP
     { name:'S1', type:'Secret VIP',  capacity:5, price:500000 },
     { name:'S2', type:'Secret VIP',  capacity:4, price:300000 },
     { name:'S3', type:'Secret VIP',  capacity:5, price:500000 },
+    // B1F — VVIP
     { name:'V1', type:'VVIP',        capacity:4, price:300000 },
     { name:'V2', type:'VVIP',        capacity:4, price:300000 },
     { name:'V3', type:'VVIP',        capacity:5, price:300000 },
     { name:'V4', type:'VVIP',        capacity:5, price:300000 },
     { name:'V5', type:'VVIP',        capacity:5, price:300000 },
     { name:'V6', type:'VVIP',        capacity:5, price:300000 },
-    { name:'G1', type:'GOLD VIP',    capacity:5, price:1000000 },
-    { name:'G2', type:'GOLD VIP',    capacity:5, price:1000000 },
-    { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
+    // 1F — VVIP ¥30万
+    { name:'V7',  type:'VVIP',       capacity:3, price:300000 },
+    { name:'V8',  type:'VVIP',       capacity:3, price:300000 },
+    { name:'V11', type:'VVIP',       capacity:3, price:300000 },
+    { name:'V12', type:'VVIP',       capacity:3, price:300000 },
+    // 1F — VVIP ¥20万
+    { name:'V9',  type:'VVIP',       capacity:2, price:200000 },
+    { name:'V10', type:'VVIP',       capacity:2, price:200000 },
   ];
   tables.forEach(function(t) {
     var tid = 'VT-STG-' + t.name;
