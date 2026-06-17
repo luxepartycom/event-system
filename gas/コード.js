@@ -2289,6 +2289,7 @@ function doPost(e) {
             } catch(e){ console.log('VIP振込メールエラー(rank):',e); }
           }
 
+          var checkoutUrlR = '';
           if (payMethodR === 'stripe') {
             try {
               var skR2 = PropertiesService.getScriptProperties().getProperty('STRIPE_SECRET_KEY')||'';
@@ -2319,18 +2320,14 @@ function doPost(e) {
                   muteHttpExceptions:true
                 });
                 var sDataR = JSON.parse(sResR.getContentText());
-                if (!sDataR.error && sDataR.url) {
-                  GmailApp.sendEmail(body.email,
-                    '【LUXE PARTY TOKYO】VIPテーブル お支払いのご案内',
-                    body.name+'様\n\nこの度はLUXE PARTY TOKYOにお申し込みいただき、誠にありがとうございます。\n\n■ご予約内容\nイベント: '+evNameVR+'\nランク: '+tTypeR+'\nテーブル: '+tNameR+'\n料金: ¥'+tPriceR.toLocaleString()+'（税込）'+invitedLineVR+'\n\n■お支払いURL\n以下のURLよりカード決済をお済ませください。\n'+sDataR.url+'\n\n※URLの有効期限は24時間です。\n※お支払い完了後、QRコード招待状をお送りします。\n\n■ご注意\n・本予約はキャンセル・返金不可となります。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nLUXE PARTY TOKYO\n'+replyToVR,
-                    {name:'LUXE PARTY TOKYO',replyTo:replyToVR});
-                }
+                if (!sDataR.error && sDataR.url) { checkoutUrlR = sDataR.url; }
               }
-            } catch(eStripeR){ console.log('VIP Stripeメール送信エラー:',eStripeR); }
+            } catch(eStripeR){ console.log('VIP Stripeセッション作成エラー:',eStripeR); }
           }
 
           return res({ ok:true, guest_id:vGidR, table_name:tNameR, rank_type:tTypeR,
             payment_method:payMethodR,
+            checkout_url: checkoutUrlR,
             transfer_deadline: payMethodR==='transfer'?Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy年MM月dd日'):'',
             price:tPriceR });
         }

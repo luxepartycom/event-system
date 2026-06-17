@@ -537,14 +537,14 @@ function showResult(d, name, price) {
   if (d.payment_method === 'transfer') {
     badge.textContent = '仮予約を受け付けました — 振込確認後に正式確定します';
     badge.className = 'result-badge transfer';
-    document.getElementById('res-sub').textContent = '確認メールをお送りしました。3日以内にお振込ください。\nメールが届かない場合は、迷惑メールフォルダをご確認ください。';
+    document.getElementById('res-sub').textContent = '確認メールをお送りしました。3日以内にお振込ください。\nメールが届かない場合は、迷惑メールフォルダをご確認の上、「迷惑メールでない」ボタンを押してください。';
     document.getElementById('transfer-box').style.display = 'block';
     document.getElementById('transfer-body').innerHTML =
       '振込期限: ' + d.transfer_deadline + '<br>振込金額: ¥' + Number(price).toLocaleString() + '<br><br>振込先口座はメールをご確認ください。<br>ご入金確認後、QRコード招待状をお送りいたします。';
   } else {
     badge.textContent = '✅ ご予約が確定しました';
     badge.className = 'result-badge';
-    document.getElementById('res-sub').textContent = 'QRコード招待状をメールでお送りします。\nメールが届かない場合は、迷惑メールフォルダをご確認ください。';
+    document.getElementById('res-sub').textContent = 'QRコード招待状をメールでお送りします。\nメールが届かない場合は、迷惑メールフォルダをご確認の上、「迷惑メールでない」ボタンを押してください。';
   }
 
   document.getElementById('res-rank').textContent = selectedRank + (d.table_name ? ' (' + d.table_name + ')' : '');

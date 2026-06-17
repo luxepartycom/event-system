@@ -916,6 +916,10 @@ async function submitForm() {
       return;
     }
 
+    if (payMethod === 'stripe' && d.checkout_url) {
+      location.href = d.checkout_url;
+      return;
+    }
     showResult(d, name, promoter);
   } catch(e) {
     document.getElementById('loading').classList.remove('show');
@@ -943,7 +947,7 @@ function showResult(d, name, promoter) {
       sub += '\n\n' + d.transfer_deadline + ' までにお振込ください。\nご入金確認後、招待状QRコードをお送りします。';
     }
   }
-  sub += '\n\nメールが届かない場合は、迷惑メールフォルダをご確認ください。';
+  sub += '\n\nメールが届かない場合は、迷惑メールフォルダをご確認の上、「迷惑メールでない」ボタンを押してください。';
   if (promoter) sub += '\n\n紹介者: ' + promoter;
   document.getElementById('r-sub').style.whiteSpace = 'pre-line';
   document.getElementById('r-sub').textContent = sub;
