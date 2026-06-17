@@ -64,6 +64,10 @@ window.addEventListener('load', async () => {
       document.getElementById('error').style.display = 'block';
       return;
     }
+    if (d.guest_id) {
+      location.href = 'vip-ticket.html?id=' + encodeURIComponent(d.guest_id);
+      return;
+    }
     document.getElementById('res-name').textContent   = d.name || '—';
     document.getElementById('res-table').textContent  = d.table_name || '—';
     document.getElementById('res-event').textContent  = d.event_name || '—';
