@@ -2609,8 +2609,8 @@ function initVipTablesForEvent() {
   var tables = [
     // B1F — Diamond VIP
     { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
-    { name:'D2', type:'Diamond VIP', capacity:7, price:1000000 },
-    { name:'D3', type:'Diamond VIP', capacity:7, price:1000000 },
+    { name:'D2', type:'Diamond VIP', capacity:5, price:1000000 },
+    { name:'D3', type:'Diamond VIP', capacity:5, price:1000000 },
     // B1F — Secret VIP
     { name:'S1', type:'Secret VIP',  capacity:5, price:500000 },
     { name:'S2', type:'Secret VIP',  capacity:4, price:300000 },
@@ -2689,8 +2689,8 @@ function seedStagingVipTables() {
   var tables = [
     // B1F — Diamond VIP
     { name:'D1', type:'Diamond VIP', capacity:7, price:1000000 },
-    { name:'D2', type:'Diamond VIP', capacity:7, price:1000000 },
-    { name:'D3', type:'Diamond VIP', capacity:7, price:1000000 },
+    { name:'D2', type:'Diamond VIP', capacity:5, price:1000000 },
+    { name:'D3', type:'Diamond VIP', capacity:5, price:1000000 },
     // B1F — Secret VIP
     { name:'S1', type:'Secret VIP',  capacity:5, price:500000 },
     { name:'S2', type:'Secret VIP',  capacity:4, price:300000 },
