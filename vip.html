@@ -51,8 +51,9 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .form-section{display:none;}
 .form-section.visible{display:block;}
 .form-group{margin-bottom:20px;}
-.form-label{font-size:0.5rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;text-transform:uppercase;}
+.form-label{font-size:0.5rem;letter-spacing:0.15em;color:rgba(245,240,232,0.9);display:block;margin-bottom:8px;text-transform:uppercase;}
 .form-input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.8rem;outline:none;transition:border-color 0.2s;}
+.form-input::placeholder{color:rgba(255,255,255,0.2);}
 .form-input:focus{border-bottom-color:var(--gold);}
 .form-note{font-size:0.5rem;color:var(--gray);margin-top:6px;line-height:1.6;}
 .pay-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
