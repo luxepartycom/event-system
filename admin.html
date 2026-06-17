@@ -2035,7 +2035,8 @@ function renderEventGrid() {
   sorted.forEach((ev, evIndex) => {
     const freeUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=free';
     const paidUrl   = BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid';
-    const vipUrl    = BASE_URL + 'vip-plan.html?e=' + ev.event_id;
+    const vipTransferUrl = BASE_URL + 'vip-plan.html?e=' + ev.event_id + '&pay=transfer';
+    const vipStripeUrl   = BASE_URL + 'vip-plan.html?e=' + ev.event_id + '&pay=stripe';
     const promoList = getPromoUrls(ev.event_id);
     const promoHtml = promoList.length
       ? promoList.map(u => buildPromoItem(ev.event_id, u)).join('')
@@ -2067,8 +2068,12 @@ function renderEventGrid() {
         <div class="ev-url-row"><div class="ev-url-text">${paidUrl}</div><button class="copy-btn" onclick="copyText('${paidUrl}',this)">📋</button></div>
       </div>
       <div class="ev-url-block">
-        <div class="ev-url-label" style="color:#C9A84C">👑 VIP テーブル予約URL</div>
-        <div class="ev-url-row"><div class="ev-url-text">${vipUrl}</div><button class="copy-btn" onclick="copyText('${vipUrl}',this)">📋</button></div>
+        <div class="ev-url-label" style="color:#C9A84C">👑 VIP テーブル予約URL（銀行振込）</div>
+        <div class="ev-url-row"><div class="ev-url-text">${vipTransferUrl}</div><button class="copy-btn" onclick="copyText('${vipTransferUrl}',this)">📋</button></div>
+      </div>
+      <div class="ev-url-block">
+        <div class="ev-url-label" style="color:#C9A84C">👑 VIP テーブル予約URL（カード決済）</div>
+        <div class="ev-url-row"><div class="ev-url-text">${vipStripeUrl}</div><button class="copy-btn" onclick="copyText('${vipStripeUrl}',this)">📋</button></div>
       </div>
       <div class="ev-promo-section">
         <div class="ev-promo-header">
