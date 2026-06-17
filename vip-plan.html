@@ -91,6 +91,31 @@ body {
   padding:0 20px 80px;
 }
 
+/* Floor Section */
+.floor-section { margin-bottom:64px; }
+.floor-heading {
+  display:flex;
+  align-items:center;
+  gap:20px;
+  margin-bottom:36px;
+  padding-bottom:12px;
+  border-bottom:1px solid rgba(201,168,76,0.15);
+}
+.floor-label {
+  font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;
+  font-size:clamp(0.85rem, 3vw, 1rem);
+  letter-spacing:0.45em;
+  color:var(--gold);
+  white-space:nowrap;
+  opacity:0.85;
+}
+.floor-sublabel {
+  font-size:0.55rem;
+  letter-spacing:0.25em;
+  color:#555;
+  text-transform:uppercase;
+}
+
 /* Rank Section */
 .rank-section { margin-bottom:52px; }
 .rank-heading {
@@ -624,7 +649,10 @@ const RANK_CONFIG = {
      500000: { key:'secret', men:'5名', benefits:['ドンペリ x1','アルマンド x1','フード','ミネラルウォーター x5','Red Bull x5'] },
      300000: { key:'secret', men:'4名', benefits:['クリスタル x1'] }
   },
-  'VVIP':        {  300000: { key:'vvip',    men:'4〜5名', benefits:['ドンペリ x1'] } }
+  'VVIP':        {
+    300000: { key:'vvip', men:'3〜5名', benefits:['ドンペリ x1'] },
+    200000: { key:'vvip', men:'2名',    benefits:['ドンペリ x1'] }
+  }
 };
 
 // テーブル種別の表示順
@@ -636,66 +664,95 @@ const RANK_KEYS = {
   'VVIP':        'vvip'
 };
 
-// ランク+価格ごとに1枚のカード（残件数表示）
+// テーブル名からフロアを判定（V1-V6 = B1F、V7以降 = 1F）
+function getFloor(tableName) {
+  const name = String(tableName);
+  if (name.startsWith('D') || name.startsWith('S')) return 'B1F';
+  const vNum = parseInt(name.replace('V', ''), 10);
+  return (!isNaN(vNum) && vNum <= 6) ? 'B1F' : '1F';
+}
+
+const FLOOR_ORDER = [
+  { id:'B1F', label:'B1F', sub:'BASEMENT 1F' },
+  { id:'1F',  label:'1F',  sub:'FIRST FLOOR' }
+];
+
+// フロア→ランク→価格でグループ化、1種類1カード・残件数表示
 function renderPlans(tables) {
-  // (table_type, price) でグループ化し、空きテーブル数を集計
   const groupMap = {};
   tables.forEach(t => {
-    const key = t.table_type + '|' + t.price;
-    if (!groupMap[key]) groupMap[key] = { table_type: t.table_type, price: Number(t.price), available: 0 };
+    const floor = getFloor(t.table_name);
+    const key = floor + '|' + t.table_type + '|' + t.price;
+    if (!groupMap[key]) groupMap[key] = { floor, table_type: t.table_type, price: Number(t.price), available: 0 };
     if (String(t.status) === 'available') groupMap[key].available++;
   });
 
   const container = document.getElementById('plans-container');
   container.innerHTML = '';
 
-  RANK_TYPE_ORDER.forEach(rankName => {
-    // このランクのグループを価格降順で取得
-    const rankGroups = Object.values(groupMap)
-      .filter(g => g.table_type === rankName)
-      .sort((a, b) => b.price - a.price);
-    if (rankGroups.length === 0) return;
+  FLOOR_ORDER.forEach(({ id: floorId, label: floorLabel, sub: floorSub }) => {
+    let floorHtml = '';
 
-    const rankKey = RANK_KEYS[rankName];
-    let cardsHtml = '';
+    RANK_TYPE_ORDER.forEach(rankName => {
+      const rankGroups = Object.values(groupMap)
+        .filter(g => g.floor === floorId && g.table_type === rankName)
+        .sort((a, b) => b.price - a.price);
+      if (rankGroups.length === 0) return;
 
-    rankGroups.forEach(g => {
-      const cfg = (RANK_CONFIG[rankName] || {})[g.price];
-      if (!cfg) return;
+      const rankKey = RANK_KEYS[rankName];
+      let cardsHtml = '';
 
-      const isAvailable = g.available > 0;
-      const stockCls = isAvailable ? 'stock-available' : 'stock-out';
-      const stockLbl = isAvailable ? `残${g.available}件` : '満席';
-      const priceDisp = '¥' + (g.price / 10000) + '万';
-      const benefitsHtml = cfg.benefits.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
-      const cardCls = isAvailable ? '' : ' sold-out';
-      const onclick = isAvailable
-        ? `onclick="openModal('${cfg.key}','${rankName}','','${cfg.men}',${g.price},'${cfg.benefits.join(',')}')"`
-        : '';
+      rankGroups.forEach(g => {
+        const cfg = (RANK_CONFIG[rankName] || {})[g.price];
+        if (!cfg) return;
 
-      cardsHtml += `
-        <div class="plan-card${cardCls}" ${onclick}>
-          <div class="plan-card-inner">
-            <div>
-              <div class="plan-stock ${stockCls}"><span class="plan-stock-dot"></span>${stockLbl}</div>
-              <div class="plan-men">${cfg.men}</div>
-              <div class="plan-benefits">${benefitsHtml}</div>
+        const isAvailable = g.available > 0;
+        const stockCls = isAvailable ? 'stock-available' : 'stock-out';
+        const stockLbl = isAvailable ? `残${g.available}件` : '満席';
+        const priceDisp = '¥' + (g.price / 10000) + '万';
+        const benefitsHtml = cfg.benefits.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
+        const cardCls = isAvailable ? '' : ' sold-out';
+        const onclick = isAvailable
+          ? `onclick="openModal('${cfg.key}','${rankName}','','${cfg.men}',${g.price},'${cfg.benefits.join(',')}')"`
+          : '';
+
+        cardsHtml += `
+          <div class="plan-card${cardCls}" ${onclick}>
+            <div class="plan-card-inner">
+              <div>
+                <div class="plan-stock ${stockCls}"><span class="plan-stock-dot"></span>${stockLbl}</div>
+                <div class="plan-men">${cfg.men}</div>
+                <div class="plan-benefits">${benefitsHtml}</div>
+              </div>
+              <div class="plan-right">
+                <div class="plan-price">${priceDisp}<span>円</span></div>
+                <button class="plan-btn">申し込む</button>
+              </div>
             </div>
-            <div class="plan-right">
-              <div class="plan-price">${priceDisp}<span>円</span></div>
-              <button class="plan-btn">申し込む</button>
-            </div>
+          </div>`;
+      });
+
+      floorHtml += `
+        <div class="rank-section rank-${rankKey}">
+          <div class="rank-heading">
+            <div class="rank-name">${rankName.toUpperCase()}</div>
+            <div class="rank-heading-line"></div>
           </div>
+          ${cardsHtml}
         </div>`;
     });
 
+    if (!floorHtml) return;
+
     container.insertAdjacentHTML('beforeend', `
-      <div class="rank-section rank-${rankKey}">
-        <div class="rank-heading">
-          <div class="rank-name">${rankName.toUpperCase()}</div>
-          <div class="rank-heading-line"></div>
+      <div class="floor-section">
+        <div class="floor-heading">
+          <div>
+            <div class="floor-label">${floorLabel}</div>
+            <div class="floor-sublabel">${floorSub}</div>
+          </div>
         </div>
-        ${cardsHtml}
+        ${floorHtml}
       </div>`);
   });
 }
