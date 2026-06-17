@@ -2450,7 +2450,30 @@ function doPost(e) {
           var vrsCVS=sheet('vip_reservations');if(vrsCVS&&vrsCVS.getLastRow()>1){var vrCV=vrsCVS.getRange(1,1,vrsCVS.getLastRow(),vrsCVS.getLastColumn()).getValues(),vrHCV=vrCV[0].map(function(c){return String(c).trim();});for(var j=1;j<vrCV.length;j++){if(String(vrCV[j][vrHCV.indexOf('guest_id')])===guestIdCV){vrsCVS.getRange(j+1,vrHCV.indexOf('status')+1).setValue('confirmed');vrsCVS.getRange(j+1,vrHCV.indexOf('confirmed_at')+1).setValue(nowStr());break;}}}
           SpreadsheetApp.flush();
           var evNameCV='',evSCV=sheet('events');if(evSCV){var evRCV=evSCV.getDataRange().getValues(),evHCV=evRCV[0].map(function(c){return String(c).trim();});for(var ei=1;ei<evRCV.length;ei++){if(String(evRCV[ei][evHCV.indexOf('event_id')])===evIdCV){evNameCV=String(evRCV[ei][evHCV.indexOf('name')]||'');break;}}}
-          try{var rtCV=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';var qrCV='https://luxepartycom.github.io/event-system/vip-ticket.html?id='+guestIdCV;GmailApp.sendEmail(gEmailCV,'【LUXE PARTY TOKYO】VIPご招待状 / QRコード',gNameCV+'様\n\nお支払いを確認いたしました。誠にありがとうございます。\nご予約が確定いたしました。\n\n■当日のご案内\n受付にて以下のQRコードをご提示ください。\nQRコードURL: '+qrCV+'\n\n本QRコードはご来場予定の各位にご共有いただけます。受付にて各自ご提示ください。\nご入場は購入席数を上限とさせていただきます。上限を超えるご入場をご希望の場合は、男性お一人につき5万円の追加料金が発生いたします。\n\n■ご注意\n・本予約はキャンセル・返金不可となります。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nLUXE PARTY TOKYO\n'+rtCV,{name:'LUXE PARTY TOKYO',replyTo:rtCV});}catch(eCVMail){console.log('VIPconfirmmail:',eCVMail);}
+          try{
+            var rtCV=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
+            var qrCV='https://luxepartycom.github.io/event-system/vip-ticket.html?id='+guestIdCV;
+            var bodyCV=gNameCV+'様\n\nカード決済が完了しました。VIPテーブルのご予約が確定いたしました。\n\n'
+              +'■ご予約内容\n'
+              +'イベント: '+(evNameCV||'LUXE PARTY TOKYO')+'\n'
+              +'ランク: '+tTypeCV+'\n'
+              +'テーブル: '+tNameCV+'\n'
+              +'お支払い金額: ¥'+amtCV.toLocaleString()+'（決済済み）\n\n'
+              +'■QRコード招待状\n'
+              +'以下のURLよりQRコードをご確認いただけます。\n'
+              +qrCV+'\n\n'
+              +'▶ このURLをご一行様全員にご共有ください\n'
+              +'各自でQRコードをご提示いただき、受付をスムーズにお通りいただけます。\n\n'
+              +'■当日のご案内\n'
+              +'・受付にてQRコードをご提示ください\n'
+              +'・ご入場は購入席数を上限とさせていただきます\n'
+              +'・上限を超えるご入場をご希望の場合は、男性お一人につき5万円の追加料金が発生いたします\n\n'
+              +'■ご注意\n'
+              +'・本予約はキャンセル・返金不可となります\n'
+              +'・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します\n\n'
+              +'LUXE PARTY TOKYO\n'+rtCV;
+            GmailApp.sendEmail(gEmailCV,'【LUXE PARTY TOKYO】VIPご招待状 / QRコード',bodyCV,{name:'LUXE PARTY TOKYO',replyTo:rtCV});
+          }catch(eCVMail){console.log('VIPconfirmmail:',eCVMail);}
           return res({ok:true,guest_id:guestIdCV,name:gNameCV,amount:amtCV,table_name:tNameCV,event_name:evNameCV});
         }
 default: return res({ ok: false, message: '\u4e0d\u660e\u306aaction: ' + action });
