@@ -89,6 +89,8 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .amount-highlight .ah-value{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.6rem;color:var(--gold);}
 .amount-note{font-size:0.55rem;color:var(--gray);text-align:right;margin-top:-10px;margin-bottom:12px;line-height:1.8;}
 .ev-description{margin-top:14px;padding:12px 14px;border-top:1px solid rgba(201,168,76,0.2);background:rgba(201,168,76,0.05);font-size:0.67rem;color:rgba(245,240,232,0.8);line-height:2;white-space:pre-wrap;text-align:left;letter-spacing:0.04em;}
+#ev-images{display:none;margin:0 -24px 28px;gap:3px;}
+#ev-images img{width:100%;display:block;aspect-ratio:4/3;object-fit:cover;}
 .mail-notice{margin-top:20px;padding:14px 16px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gray);line-height:1.8;text-align:center;}
 .contact-notice{margin-top:16px;padding:14px 16px;background:rgba(180,30,30,0.08);border:1px solid rgba(207,68,68,0.25);border-left:3px solid #CF4444;font-size:0.62rem;color:var(--white);line-height:1.9;text-align:left;}
 .contact-notice .cn-title{display:block;color:#CF4444;font-size:0.65rem;font-weight:700;margin-bottom:6px;letter-spacing:0.05em;}
@@ -135,6 +137,8 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
       <div class="ev-description" id="ev-description" style="display:none;"></div>
     </div>
   </div>
+
+  <div id="ev-images"></div>
 
   <div class="form-section">
     <label class="form-label">お名前</label>
@@ -365,6 +369,15 @@ window.addEventListener('load', async () => {
     if(promoter){hiddenPromoter=promoter;document.getElementById('f-invited-by-section').style.display='none';document.getElementById('f-invited-by-hidden').value=promoter;}
     const descEl=document.getElementById('ev-description');
     if(ev.description&&String(ev.description).trim()){const dh=String(ev.description).trim().replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--gold);word-break:break-all;">$1</a>');descEl.innerHTML=dh;descEl.style.display='block';}
+    // フライヤー画像表示
+    (function(){
+      function driveThumb(u){if(!u)return null;const s=String(u).trim();const m=s.match(/\/file\/d\/([^\/\?#]+)/)||s.match(/[?&]id=([^&]+)/);return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w800':null;}
+      const imgs=[];
+      if(ev.image){const t=driveThumb(ev.image);if(t)imgs.push(t);}
+      const gal=ev.gallery?(Array.isArray(ev.gallery)?ev.gallery:String(ev.gallery).split(',')):[];
+      gal.forEach(function(u){const t=driveThumb(String(u).trim());if(t)imgs.push(t);});
+      if(imgs.length>0){const el=document.getElementById('ev-images');el.style.display='grid';el.style.gridTemplateColumns=imgs.length===1?'1fr':'1fr 1fr';el.innerHTML=imgs.map(function(u){return'<img src="'+u+'" alt="" loading="lazy">';}).join('');}
+    })();
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('form-screen').style.display='block';
   } catch(err){showError('読み込みに失敗しました。しばらく経ってから再度お試しください。');}
