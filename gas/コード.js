@@ -177,20 +177,9 @@ function _mkImgCell_(url) {
   return '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + url + '" style="width:100%;display:block;border:0;" alt=""></td>';
 }
 
-// メール送信オプションを生成（List-Unsubscribeヘッダー付き）
+// メール送信オプションを生成
 function _buildMailOpts_(html, email, name) {
-  var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO' };
-  try {
-    var gasUrl = ScriptApp.getService().getUrl();
-    if (gasUrl) {
-      var unsubUrl = gasUrl + '?action=unsubscribe&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(name || '');
-      opts.headers = {
-        'List-Unsubscribe': '<' + unsubUrl + '>',
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-      };
-    }
-  } catch(e) {}
-  return opts;
+  return { htmlBody: html, name: 'LUXE PARTY TOKYO' };
 }
 
 function nowStr() {
@@ -1543,8 +1532,7 @@ function doPost(e) {
             + '<a href="https://x.com/luxepartytokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">X</a>'
             + '</div>'
             + '<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">'
-            + 'このメールは LUXE PARTY TOKYO からお送りしています。<br>'
-            + '配信停止をご希望の方は<a href="' + unsubUrl + '" style="color:#666;">こちら</a>からお手続きください。'
+            + 'このメールは LUXE PARTY TOKYO からお送りしています。'
             + '</div></div>';
         }
 
@@ -1635,8 +1623,7 @@ function doPost(e) {
             + '<a href="https://x.com/luxepartytokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">X</a>'
             + '</div>'
             + '<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">'
-            + 'このメールは LUXE PARTY TOKYO からお送りしています。<br>'
-            + '配信停止をご希望の方は<a href="' + unsubUrl + '" style="color:#666;">こちら</a>からお手続きください。'
+            + 'このメールは LUXE PARTY TOKYO からお送りしています。'
             + '</div></div>';
         }
 
