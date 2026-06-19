@@ -117,34 +117,14 @@ function publishFlierToGitHub_(fileId) {
   try {
     var blob = null;
 
-    // Step 1: thumbnail URL + Bearer token で圧縮JPEG取得（1リクエスト・100-300KB）
+    // DriveApp でフルサイズ取得（確実・Android表示確認済み）
     try {
-      var gasToken = ScriptApp.getOAuthToken();
-      var thumbResp = UrlFetchApp.fetch(
-        'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800',
-        { headers: { 'Authorization': 'Bearer ' + gasToken }, followRedirects: true, muteHttpExceptions: true }
-      );
-      if (thumbResp.getResponseCode() === 200) {
-        var thumbBlob = thumbResp.getBlob();
-        if ((thumbBlob.getContentType() || '').indexOf('image') !== -1) {
-          blob = thumbBlob;
-        }
+      var driveBlob = DriveApp.getFileById(fileId).getBlob();
+      if ((driveBlob.getContentType() || '').indexOf('image') !== -1) {
+        blob = driveBlob;
       }
-    } catch (thumbErr) {
-      console.warn('thumbnail取得失敗 id=' + fileId + ': ' + thumbErr.message);
-    }
-
-    // Step 2: thumbnail 失敗時は DriveApp でフルサイズ取得（確実だが大容量）
-    if (!blob) {
-      console.warn('thumbnail失敗。DriveApp フルサイズにフォールバック id=' + fileId);
-      try {
-        var driveBlob = DriveApp.getFileById(fileId).getBlob();
-        if ((driveBlob.getContentType() || '').indexOf('image') !== -1) {
-          blob = driveBlob;
-        }
-      } catch (driveErr) {
-        console.warn('DriveApp取得失敗 id=' + fileId + ': ' + driveErr.message);
-      }
+    } catch (driveErr) {
+      console.warn('DriveApp取得失敗 id=' + fileId + ': ' + driveErr.message);
     }
 
     // Step 3: 両方失敗 → Drive URL を直接返す（最終手段）
