@@ -90,13 +90,19 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .amount-note{font-size:0.55rem;color:var(--gray);text-align:right;margin-top:-10px;margin-bottom:12px;line-height:1.8;}
 .ev-description{margin-top:14px;padding:12px 14px;border-top:1px solid rgba(201,168,76,0.2);background:rgba(201,168,76,0.05);font-size:0.67rem;color:rgba(245,240,232,0.8);line-height:2;white-space:pre-wrap;text-align:left;letter-spacing:0.04em;}
 #ev-images{display:none;margin:0 -24px 28px;}
-#ev-grid{display:flex;gap:3px;}
-#ev-grid-left{flex:1;aspect-ratio:3/4;object-fit:cover;display:block;min-width:0;}
-#ev-grid-right{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;}
-#ev-grid-right img{flex:1;width:100%;object-fit:cover;display:block;min-height:0;}
-#ev-scroll{display:flex;gap:6px;overflow-x:auto;padding:6px 24px 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-top:3px;}
-#ev-scroll::-webkit-scrollbar{display:none;}
-#ev-scroll img{flex:0 0 120px;height:90px;object-fit:cover;border-radius:4px;}
+#ev-grid-top{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+#ev-grid-top img{width:100%;aspect-ratio:3/4;object-fit:cover;cursor:pointer;}
+#ev-thumbs{display:flex;gap:6px;overflow-x:auto;padding:4px 24px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-top:3px;}
+#ev-thumbs::-webkit-scrollbar{display:none;}
+#ev-thumbs img{flex:0 0 90px;height:120px;object-fit:cover;border-radius:3px;cursor:pointer;}
+#ev-lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.96);z-index:9999;align-items:center;justify-content:center;}
+#ev-lb.open{display:flex;}
+#ev-lb-img{max-width:100%;max-height:88vh;object-fit:contain;display:block;}
+#ev-lb-close{position:absolute;top:12px;right:16px;color:#fff;font-size:2rem;cursor:pointer;background:none;border:none;line-height:1;padding:8px;-webkit-tap-highlight-color:transparent;}
+#ev-lb-prev,#ev-lb-next{position:absolute;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.8);font-size:1.6rem;cursor:pointer;background:rgba(255,255,255,0.1);border:none;padding:18px 14px;-webkit-tap-highlight-color:transparent;}
+#ev-lb-prev{left:0;border-radius:0 4px 4px 0;}
+#ev-lb-next{right:0;border-radius:4px 0 0 4px;}
+#ev-lb-count{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:0.58rem;letter-spacing:0.25em;white-space:nowrap;}
 .mail-notice{margin-top:20px;padding:14px 16px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gray);line-height:1.8;text-align:center;}
 .contact-notice{margin-top:16px;padding:14px 16px;background:rgba(180,30,30,0.08);border:1px solid rgba(207,68,68,0.25);border-left:3px solid #CF4444;font-size:0.62rem;color:var(--white);line-height:1.9;text-align:left;}
 .contact-notice .cn-title{display:block;color:#CF4444;font-size:0.65rem;font-weight:700;margin-bottom:6px;letter-spacing:0.05em;}
@@ -381,7 +387,7 @@ window.addEventListener('load', async () => {
       const imgs=[];
       // image はカンマ区切りで複数URL対応。gallery は後方互換で残す
       [ev.image||'', ev.gallery||''].join(',').split(',').forEach(function(u){const t=driveThumb(u.trim());if(t)imgs.push(t);});
-      if(imgs.length>0){const el=document.getElementById('ev-images');el.style.display='block';let h='';if(imgs.length===1){h='<img src="'+imgs[0]+'" alt="" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;">';}else{const right=imgs.slice(1,3);const scroll=imgs.slice(3);h='<div id="ev-grid"><img id="ev-grid-left" src="'+imgs[0]+'" alt="">';if(right.length){h+='<div id="ev-grid-right">'+right.map(function(u){return'<img src="'+u+'" alt="" loading="lazy">';}).join('')+'</div>';}h+='</div>';if(scroll.length){h+='<div id="ev-scroll">'+scroll.map(function(u){return'<img src="'+u+'" alt="" loading="lazy">';}).join('')+'</div>';}}el.innerHTML=h;}
+      if(imgs.length>0){window._lbAll=imgs;const el=document.getElementById('ev-images');el.style.display='block';let h='';if(imgs.length===1){h='<img src="'+imgs[0]+'" alt="" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block;cursor:pointer;" onclick="_lbOpen(0)">';}else{h='<div id="ev-grid-top">'+imgs.slice(0,2).map(function(u,i){return'<img src="'+u+'" alt="" onclick="_lbOpen('+i+')">';}).join('')+'</div>';if(imgs.length>2){h+='<div id="ev-thumbs">'+imgs.slice(2).map(function(u,i){return'<img src="'+u+'" alt="" loading="lazy" onclick="_lbOpen('+(i+2)+')">';}).join('')+'</div>';}}el.innerHTML=h;var lbEl=document.getElementById('ev-lb');var _lbTX=0;lbEl.addEventListener('touchstart',function(e){_lbTX=e.changedTouches[0].clientX;},{passive:true});lbEl.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-_lbTX;if(Math.abs(dx)>50){dx<0?_lbNext():_lbPrev();}});}
     })();
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('form-screen').style.display='block';
@@ -619,6 +625,20 @@ function showResult(data,name,email,invitedBy){
   container.innerHTML='';
   try{const svg=makeQRSvg(data.guest_id);container.innerHTML=svg;}catch(e){container.innerHTML='<div style="padding:16px;font-family:monospace;font-size:14px;color:#000;">'+data.guest_id+'</div>';}
 }
+var _lbAll=[],_lbIdx=0;
+function _lbOpen(i){_lbIdx=i;_lbShow();document.getElementById('ev-lb').classList.add('open');document.body.style.overflow='hidden';}
+function _lbClose(){document.getElementById('ev-lb').classList.remove('open');document.body.style.overflow='';}
+function _lbPrev(){_lbIdx=(_lbIdx-1+_lbAll.length)%_lbAll.length;_lbShow();}
+function _lbNext(){_lbIdx=(_lbIdx+1)%_lbAll.length;_lbShow();}
+function _lbShow(){document.getElementById('ev-lb-img').src=_lbAll[_lbIdx];document.getElementById('ev-lb-count').textContent=(_lbIdx+1)+' / '+_lbAll.length;}
+document.addEventListener('keydown',function(e){if(!document.getElementById('ev-lb').classList.contains('open'))return;if(e.key==='ArrowLeft')_lbPrev();else if(e.key==='ArrowRight')_lbNext();else if(e.key==='Escape')_lbClose();});
 </script>
+<div id="ev-lb" onclick="if(event.target===this)_lbClose()">
+  <button id="ev-lb-close" onclick="_lbClose()">×</button>
+  <button id="ev-lb-prev" onclick="_lbPrev()">‹</button>
+  <img id="ev-lb-img" src="" alt="">
+  <button id="ev-lb-next" onclick="_lbNext()">›</button>
+  <div id="ev-lb-count"></div>
+</div>
 </body>
 </html>
