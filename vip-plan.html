@@ -446,10 +446,9 @@ body {
   margin-bottom:10px;
 }
 .result-sub { font-size:0.58rem; color:var(--gray); line-height:2; }
-.contact-notice { display:none; margin-top:20px; padding:14px; background:rgba(201,168,76,0.06); border:1px solid rgba(201,168,76,0.2); font-size:0.6rem; color:var(--gray); line-height:1.9; text-align:center; }
+.contact-notice { display:none; margin-top:20px; padding:14px 16px; background:rgba(180,30,30,0.08); border:1px solid rgba(207,68,68,0.25); border-left:3px solid #CF4444; font-size:0.62rem; color:var(--white); line-height:1.9; text-align:left; }
 .contact-notice.show { display:block; }
-.contact-notice strong { color:var(--gold); display:block; font-size:0.68rem; margin:4px 0; letter-spacing:0.05em; }
-.contact-notice small { font-size:0.54rem; opacity:0.7; }
+.contact-notice .cn-title { display:block; color:#CF4444; font-size:0.65rem; font-weight:700; margin-bottom:6px; letter-spacing:0.05em; }
 
 /* Terms */
 .terms-box {
@@ -618,10 +617,10 @@ body {
       <div class="result-title">お申し込みを受け付けました</div>
       <div class="result-sub" id="r-sub"></div>
       <div class="contact-notice" id="contact-notice">
-        📩 QRコードはメールでお送りします<br>
-        <strong>info@luxepartytokyo.com</strong>
-        を連絡先に追加いただくと<br>確実にメインの受信トレイへ届きます<br>
-        <small>（Gmail の場合、プロモーションタブに届くことがあります）</small>
+        <span class="cn-title">⚠ メールを必ずご確認ください</span>
+        ご請求書・QRコードはメールでお送りします。前日にも再送します。<br>
+        届かない場合は<strong>迷惑メールフォルダ</strong>を確認し<br>
+        「迷惑メールでない」を押してください。
       </div>
     </div>
   </div>

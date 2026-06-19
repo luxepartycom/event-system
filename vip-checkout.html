@@ -20,9 +20,8 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 .info-key{color:var(--gray);}
 .info-val{color:var(--white);}
 .mail-notice{margin-top:20px;padding:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gray);line-height:1.8;}
-.contact-notice{margin-top:12px;padding:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:0.6rem;color:var(--gray);line-height:1.9;text-align:center;}
-.contact-notice strong{color:var(--gold);display:block;font-size:0.68rem;margin:4px 0;letter-spacing:0.05em;}
-.contact-notice small{font-size:0.54rem;opacity:0.7;}
+.contact-notice{margin-top:12px;padding:14px 16px;background:rgba(180,30,30,0.08);border:1px solid rgba(207,68,68,0.25);border-left:3px solid #CF4444;font-size:0.62rem;color:var(--white);line-height:1.9;text-align:left;}
+.contact-notice .cn-title{display:block;color:#CF4444;font-size:0.65rem;font-weight:700;margin-bottom:6px;letter-spacing:0.05em;}
 #error{display:none;padding:20px;font-size:0.75rem;color:#CF4444;line-height:1.8;}
 </style>
 </head>
@@ -44,10 +43,10 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
     </div>
     <div class="mail-notice">📧 QRコード招待状をメールで送信しました<br>ご一行様でご共有ください</div>
     <div class="contact-notice">
-      📩 メールが届かない場合は受信トレイをご確認ください<br>
-      <strong>info@luxepartytokyo.com</strong>
-      を連絡先に追加いただくと<br>確実にメインの受信トレイへ届きます<br>
-      <small>（Gmail の場合、プロモーションタブに届くことがあります）</small>
+      <span class="cn-title">⚠ メールを必ずご確認ください</span>
+      QRコードを送信しました。前日にも再送します。<br>
+      届かない場合は<strong>迷惑メールフォルダ</strong>を確認し<br>
+      「迷惑メールでない」を押してください。
     </div>
   </div>
 </div>
