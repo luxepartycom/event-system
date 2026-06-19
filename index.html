@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LUXE PARTY TOKYO — ご招待</title>
+<link rel="preconnect" href="https://drive.google.com">
+<link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
 <style>
 :root{
   --gold:#C9A84C;--gold-light:#E8D08A;--gold-dim:#7a6230;
@@ -383,11 +385,11 @@ window.addEventListener('load', async () => {
     if(ev.description&&String(ev.description).trim()){const dh=String(ev.description).trim().replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--gold);word-break:break-all;">$1</a>');descEl.innerHTML=dh;descEl.style.display='block';}
     // フライヤー画像表示
     (function(){
-      function driveThumb(u){if(!u)return null;const s=String(u).trim();const m=s.match(/\/file\/d\/([^\/\?#]+)/)||s.match(/[?&]id=([^&]+)/);return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w800':null;}
-      const imgs=[];
+      function driveThumb(u,sz){if(!u)return null;const s=String(u).trim();const m=s.match(/\/file\/d\/([^\/\?#]+)/)||s.match(/[?&]id=([^&]+)/);return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz='+(sz||'w800'):null;}
+      const imgItems=[];
       // image はカンマ区切りで複数URL対応。gallery は後方互換で残す
-      [ev.image||'', ev.gallery||''].join(',').split(',').forEach(function(u){const t=driveThumb(u.trim());if(t)imgs.push(t);});
-      if(imgs.length>0){window._lbAll=imgs;const el=document.getElementById('ev-images');el.style.display='block';let h='';if(imgs.length===1){h='<img src="'+imgs[0]+'" alt="" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block;cursor:pointer;" onclick="_lbOpen(0)">';}else{h='<div id="ev-grid-top">'+imgs.slice(0,2).map(function(u,i){return'<img src="'+u+'" alt="" onclick="_lbOpen('+i+')">';}).join('')+'</div>';if(imgs.length>2){h+='<div id="ev-thumbs">'+imgs.slice(2).map(function(u,i){return'<img src="'+u+'" alt="" loading="lazy" onclick="_lbOpen('+(i+2)+')">';}).join('')+'</div>';}}el.innerHTML=h;var lbEl=document.getElementById('ev-lb');var _lbTX=0;lbEl.addEventListener('touchstart',function(e){_lbTX=e.changedTouches[0].clientX;},{passive:true});lbEl.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-_lbTX;if(Math.abs(dx)>50){dx<0?_lbNext():_lbPrev();}});}
+      [ev.image||'', ev.gallery||''].join(',').split(',').forEach(function(u){const full=driveThumb(u.trim(),'w800');if(full)imgItems.push({grid:driveThumb(u.trim(),'w400'),thumb:driveThumb(u.trim(),'w200'),full:full});});
+      if(imgItems.length>0){window._lbAll=imgItems.map(function(x){return x.full;});const el=document.getElementById('ev-images');el.style.display='block';let h='';if(imgItems.length===1){h='<img src="'+imgItems[0].grid+'" alt="" style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block;cursor:pointer;" fetchpriority="high" onclick="_lbOpen(0)">';}else{h='<div id="ev-grid-top">'+imgItems.slice(0,2).map(function(x,i){return'<img src="'+x.grid+'" alt="" fetchpriority="high" onclick="_lbOpen('+i+')">';}).join('')+'</div>';if(imgItems.length>2){h+='<div id="ev-thumbs">'+imgItems.slice(2).map(function(x,i){return'<img src="'+x.thumb+'" alt="" loading="lazy" decoding="async" onclick="_lbOpen('+(i+2)+')">';}).join('')+'</div>';}}el.innerHTML=h;var lbEl=document.getElementById('ev-lb');var _lbTX=0;lbEl.addEventListener('touchstart',function(e){_lbTX=e.changedTouches[0].clientX;},{passive:true});lbEl.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-_lbTX;if(Math.abs(dx)>50){dx<0?_lbNext():_lbPrev();}});}
     })();
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('form-screen').style.display='block';
