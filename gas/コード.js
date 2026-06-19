@@ -1,4 +1,4 @@
-// 権限承認用（一度だけ手動実行してください）
+// v10.1 — 権限承認用（一度だけ手動実行してください）
 function requestExternalAccess() {
   UrlFetchApp.fetch('https://api.anthropic.com');
 }
