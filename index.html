@@ -378,7 +378,7 @@ window.addEventListener('load', async () => {
       const imgs=[];
       // image はカンマ区切りで複数URL対応。gallery は後方互換で残す
       [ev.image||'', ev.gallery||''].join(',').split(',').forEach(function(u){const t=driveThumb(u.trim());if(t)imgs.push(t);});
-      if(imgs.length>0){const el=document.getElementById('ev-images');el.style.display='block';let h='<img id="ev-hero" src="'+imgs[0]+'" alt="" loading="lazy">';if(imgs.length>1){h+='<div id="ev-scroll">'+imgs.slice(1).map(function(u){return'<img src="'+u+'" alt="" loading="lazy">';}).join('')+'</div>';}el.innerHTML=h;}
+      if(imgs.length>0){const el=document.getElementById('ev-images');el.style.display='block';let h='<img id="ev-hero" src="'+imgs[0]+'" alt="">';if(imgs.length>1){h+='<div id="ev-scroll">'+imgs.slice(1).map(function(u){return'<img src="'+u+'" alt="" loading="lazy">';}).join('')+'</div>';}el.innerHTML=h;}
     })();
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('form-screen').style.display='block';
