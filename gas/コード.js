@@ -177,6 +177,27 @@ function _mkImgCell_(url) {
   return '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + url + '" style="width:100%;display:block;border:0;" alt=""></td>';
 }
 
+// HTML内の drive.google.com/thumbnail URL を CID インライン画像に変換
+// blobs: {fileId: Blob} の事前取得済みマップ（省略時は DriveApp で都度取得）
+function _toCidImages_(html, blobs) {
+  var inlineImages = {};
+  var idx = 0;
+  var newHtml = html.replace(
+    /src="https:\/\/drive\.google\.com\/thumbnail\?id=([^"&]+)[^"]*"/g,
+    function(match, fileId) {
+      var key = 'img' + idx++;
+      try {
+        var blob = (blobs && blobs[fileId]) ? blobs[fileId] : DriveApp.getFileById(fileId).getBlob();
+        inlineImages[key] = blob;
+        return 'src="cid:' + key + '"';
+      } catch(e) {
+        return match;
+      }
+    }
+  );
+  return { html: newHtml, inlineImages: inlineImages };
+}
+
 // メール送信オプションを生成
 function _buildMailOpts_(html, email, name) {
   return { htmlBody: html, name: 'LUXE PARTY TOKYO' };
@@ -1526,11 +1547,6 @@ function doPost(e) {
             + '<p style="font-size:0.78rem;color:#aaa;line-height:1.9;margin-bottom:24px;white-space:pre-wrap;">' + encodeEmojiForHtml(data.greeting || '') + '</p>'
             + '<p style="font-size:0.75rem;color:#ccc;line-height:1.9;margin-bottom:28px;">' + bodyHtml + '</p>'
             + ctaRow
-            + '<div style="text-align:center;margin-bottom:24px;font-size:0.6rem;color:#666;">'
-            + '<a href="https://www.instagram.com/luxe_party_tokyo/" style="color:#C9A84C;text-decoration:none;margin:0 8px;">Instagram</a>'
-            + '<a href="https://www.tiktok.com/@luxe.party.tokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">TikTok</a>'
-            + '<a href="https://x.com/luxepartytokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">X</a>'
-            + '</div>'
             + '<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">'
             + 'このメールは LUXE PARTY TOKYO からお送りしています。'
             + '</div></div>';
@@ -1548,10 +1564,9 @@ function doPost(e) {
             // typeごとに送信済みをスキップ（free送信済みはfreeのみスキップ）
             if (sentEmailsForType[email.toLowerCase()]) { continue; }
             try {
-              var unsubUrl = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec?action=unsubscribe&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(g.name || '');
-              var html = buildHtml(data, g.name || '', unsubUrl);
-              var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8',
-                headers: { 'List-Unsubscribe': '<' + unsubUrl + '>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } };
+              var html = buildHtml(data, g.name || '', '');
+              var cid = _toCidImages_(html, _campaignBlobs);
+              var opts = { htmlBody: cid.html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8', inlineImages: cid.inlineImages };
               if (replyTo) opts.replyTo = replyTo;
               GmailApp.sendEmail(email, sanitizeSubject(data.subject || ''), g.name + ' 様', opts);
               logSheet.appendRow([nowStr(), campaignId, type, email, data.subject || '', 'sent']);
@@ -1565,6 +1580,19 @@ function doPost(e) {
           }
           return sent;
         }
+
+        // CID用: 全画像ブロブを送信前に一括取得（各受信者ループで再取得しない）
+        var _campaignBlobs = {};
+        [dataFree, dataPaid].forEach(function(d) {
+          var fids = [];
+          if (d.image) { var fid0 = extractDriveFileId_(String(d.image)); if (fid0) fids.push(fid0); }
+          (d.gallery || []).forEach(function(u) { if (!u) return; var fid = extractDriveFileId_(String(u)); if (fid) fids.push(fid); });
+          fids.forEach(function(fid) {
+            if (!_campaignBlobs[fid]) {
+              try { _campaignBlobs[fid] = DriveApp.getFileById(fid).getBlob(); } catch(e) {}
+            }
+          });
+        });
 
         sentFree = sendToGuests(guestsFree, dataFree, 'free');
         sentPaid = sendToGuests(guestsPaid, dataPaid, 'paid');
@@ -1617,20 +1645,15 @@ function doPost(e) {
             + '<p style="font-size:0.78rem;color:#aaa;line-height:1.9;margin-bottom:24px;white-space:pre-wrap;">' + encodeEmojiForHtml(data.greeting || '') + '</p>'
             + '<p style="font-size:0.75rem;color:#ccc;line-height:1.9;margin-bottom:28px;">' + bodyHtml + '</p>'
             + ctaRow
-            + '<div style="text-align:center;margin-bottom:24px;font-size:0.6rem;color:#666;">'
-            + '<a href="https://www.instagram.com/luxe_party_tokyo/" style="color:#C9A84C;text-decoration:none;margin:0 8px;">Instagram</a>'
-            + '<a href="https://www.tiktok.com/@luxe.party.tokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">TikTok</a>'
-            + '<a href="https://x.com/luxepartytokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">X</a>'
-            + '</div>'
             + '<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">'
             + 'このメールは LUXE PARTY TOKYO からお送りしています。'
             + '</div></div>';
         }
 
         try {
-          var testUnsubUrl = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec?action=unsubscribe&email=' + encodeURIComponent(testEmail) + '&name=テスト';
-          var testHtml = buildTestHtml(testData, testUnsubUrl);
-          var testOpts = { htmlBody: testHtml, name: 'LUXE PARTY TOKYO【テスト】', charset: 'UTF-8' };
+          var testHtml = buildTestHtml(testData, '');
+          var testCid = _toCidImages_(testHtml);
+          var testOpts = { htmlBody: testCid.html, name: 'LUXE PARTY TOKYO【テスト】', charset: 'UTF-8', inlineImages: testCid.inlineImages };
           if (replyTo2) testOpts.replyTo = replyTo2;
           GmailApp.sendEmail(
             testEmail,
