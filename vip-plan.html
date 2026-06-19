@@ -338,7 +338,7 @@ body {
   font-size:1.5rem;
   color:var(--white);
 }
-.modal-price-sub { font-size:0.5rem; color:rgba(245,240,232,0.75); }
+.modal-price-sub { font-size:0.5rem; color:var(--gray); }
 
 .modal-benefits-row {
   background:#0a0a0a;
@@ -349,7 +349,7 @@ body {
   flex-wrap:wrap;
   gap:4px 14px;
 }
-.modal-benefit-item { font-size:0.55rem; color:rgba(245,240,232,0.75); letter-spacing:0.05em; }
+.modal-benefit-item { font-size:0.55rem; color:#999; letter-spacing:0.05em; }
 .modal-benefit-item::before { content:'· '; }
 
 /* Form */
@@ -357,14 +357,14 @@ body {
 .form-label {
   font-size:0.44rem;
   letter-spacing:0.15em;
-  color:rgba(245,240,232,0.9);
+  color:var(--gray);
   display:block;
   margin-bottom:8px;
   text-transform:uppercase;
 }
 .form-optional {
   font-size:0.38rem;
-  color:rgba(245,240,232,0.35);
+  color:#444;
   margin-left:6px;
   letter-spacing:0;
   text-transform:none;
@@ -373,7 +373,7 @@ body {
   width:100%;
   background:transparent;
   border:none;
-  border-bottom:1px solid rgba(255,255,255,0.12);
+  border-bottom:1px solid #1e1e1e;
   padding:9px 0;
   color:var(--white);
   font-family:inherit;
@@ -381,9 +381,8 @@ body {
   outline:none;
   transition:border-color 0.2s;
 }
-.form-input::placeholder { color:rgba(255,255,255,0.2); }
 .form-input:focus { border-bottom-color:var(--gold); }
-.form-hint { font-size:0.44rem; color:rgba(255,255,255,0.2); margin-top:5px; }
+.form-hint { font-size:0.44rem; color:#333; margin-top:5px; }
 
 #form-error {
   display:none;
@@ -446,7 +445,10 @@ body {
   color:var(--gold);
   margin-bottom:10px;
 }
-.result-sub { font-size:0.58rem; color:rgba(245,240,232,0.75); line-height:2; }
+.result-sub { font-size:0.58rem; color:var(--gray); line-height:2; }
+.contact-notice { display:none; margin-top:20px; padding:14px 16px; background:rgba(180,30,30,0.08); border:1px solid rgba(207,68,68,0.25); border-left:3px solid #CF4444; font-size:0.62rem; color:var(--white); line-height:1.9; text-align:left; }
+.contact-notice.show { display:block; }
+.contact-notice .cn-title { display:block; color:#CF4444; font-size:0.65rem; font-weight:700; margin-bottom:6px; letter-spacing:0.05em; }
 
 /* Terms */
 .terms-box {
@@ -461,10 +463,10 @@ body {
 .terms-box::-webkit-scrollbar { width:3px; }
 .terms-box::-webkit-scrollbar-track { background:rgba(255,255,255,0.03); }
 .terms-box::-webkit-scrollbar-thumb { background:rgba(201,168,76,0.3); }
-.terms-body { font-size:0.55rem; color:rgba(245,240,232,0.75); line-height:2; }
-.terms-body h4 { font-size:0.5rem; color:rgba(245,240,232,0.65); letter-spacing:0.15em; text-transform:uppercase; margin:12px 0 5px; font-weight:500; }
+.terms-body { font-size:0.55rem; color:rgba(245,240,232,0.6); line-height:2; }
+.terms-body h4 { font-size:0.5rem; color:#555; letter-spacing:0.15em; text-transform:uppercase; margin:12px 0 5px; font-weight:500; }
 .terms-body p { margin-bottom:6px; }
-.terms-scroll-hint { font-size:0.44rem; color:rgba(245,240,232,0.65); text-align:center; margin-bottom:10px; letter-spacing:0.1em; transition:opacity 0.3s; }
+.terms-scroll-hint { font-size:0.44rem; color:var(--gray); text-align:center; margin-bottom:10px; letter-spacing:0.1em; opacity:0.7; transition:opacity 0.3s; }
 .terms-agree-row {
   display:flex;
   align-items:center;
@@ -488,15 +490,15 @@ body {
 }
 .terms-checkbox.checked { background:var(--gold); border-color:var(--gold); }
 .terms-checkbox.checked::after { content:'✓'; font-size:0.7rem; color:#000; font-weight:700; }
-.terms-agree-text { font-size:0.6rem; color:rgba(245,240,232,0.75); line-height:1.6; }
+.terms-agree-text { font-size:0.6rem; color:var(--gray); line-height:1.6; }
 .terms-agree-text span { color:var(--white); }
 
 /* Notes */
 .page-notes {
-  border-top:1px solid rgba(255,255,255,0.08);
+  border-top:1px solid #111;
   padding-top:24px;
   font-size:0.48rem;
-  color:rgba(245,240,232,0.75);
+  color:#2e2e2e;
   line-height:2.4;
   text-align:center;
 }
@@ -593,7 +595,7 @@ body {
             <p>本イベントは招待制です。会場の雰囲気・趣旨・安全管理等の観点から、運営側が不適切と判断した場合には、入場のお断りまたはご退場をお願いする場合があります。その際、入場料・テーブル料金の返金はいたしかねます。</p>
             <h4>【メール配信について】</h4>
             <p>お申し込みいただいたメールアドレスに対し、今後開催するイベントのご案内をお送りする場合があります。配信停止をご希望の方は、メール本文内の配信停止リンクよりお手続きください。</p>
-            <p style="margin-top:14px;color:rgba(245,240,232,0.7);">ご予約をもって、上記事項へのご理解・ご同意をいただいたものとみなします。</p>
+            <p style="margin-top:14px;color:rgba(245,240,232,0.4);">ご予約をもって、上記事項へのご理解・ご同意をいただいたものとみなします。</p>
           </div>
         </div>
         <div class="terms-scroll-hint" id="vip-scroll-hint">▼ スクロールして全文をお読みください</div>
@@ -614,6 +616,12 @@ body {
       <div class="result-check">✓</div>
       <div class="result-title">お申し込みを受け付けました</div>
       <div class="result-sub" id="r-sub"></div>
+      <div class="contact-notice" id="contact-notice">
+        <span class="cn-title">⚠ メールを必ずご確認ください</span>
+        ご請求書・QRコードはメールでお送りします。前日にも再送します。<br>
+        届かない場合は<strong>迷惑メールフォルダ</strong>を確認し<br>
+        「迷惑メールでない」を押してください。
+      </div>
     </div>
   </div>
 </div>
@@ -645,18 +653,18 @@ const RANK_STYLE = {
 // 特典・定員の定義（ランク+価格で決まる表示設定）
 const RANK_CONFIG = {
   'Diamond VIP': {
-    7: { key:'diamond', men:'男性6〜7名 / 15名席', benefits:['ドンペリ x1','クリスタル x1','アルマンドマグナム x1','フード','ミネラルウォーター x10','Red Bull x10'] },
-    5: { key:'diamond', men:'男性5名 / 10名席',    benefits:['ドンペリ x1','クリスタル x1','アルマンドマグナム x1','フード','ミネラルウォーター x10','Red Bull x10'] }
+    7: { key:'diamond', men:'6〜7名', benefits:['ドンペリ x1','クリスタル x1','アルマンドマグナム x1','フード','ミネラルウォーター x10','Red Bull x10'] },
+    5: { key:'diamond', men:'4〜5名', benefits:['ドンペリ x1','クリスタル x1','アルマンドマグナム x1','フード','ミネラルウォーター x10','Red Bull x10'] }
   },
   'GOLD VIP':    { 1000000: { key:'gold',    men:'4〜5名', benefits:['ドンペリ x1','アルマンド x1','フード','ミネラルウォーター x5','Red Bull x5'] } },
   'Secret VIP':  {
-     500000: { key:'secret', men:'男性4〜5名 / 10名席', benefits:['ドンペリ x1','アルマンド x1','フード','ミネラルウォーター x5','Red Bull x5'] },
-     300000: { key:'secret', men:'男性3〜4名 / 8名席',  benefits:['クリスタル x1'] }
+     500000: { key:'secret', men:'5名', benefits:['ドンペリ x1','アルマンド x1','フード','ミネラルウォーター x5','Red Bull x5'] },
+     300000: { key:'secret', men:'4名', benefits:['クリスタル x1'] }
   },
   'VVIP':        {
-    300000: { key:'vvip', men:'男性3〜5名 / 6〜10名席', benefits:['ドンペリ x1'] },
-    200000: { key:'vvip', men:'男性2名 / 4名席',        benefits:['ドンペリ x1'] },
-    100:    { key:'vvip', men:'男性2名 / 4名席',        benefits:['ドンペリ x1'] }
+    300000: { key:'vvip', men:'3〜5名', benefits:['ドンペリ x1'] },
+    200000: { key:'vvip', men:'2名',    benefits:['ドンペリ x1'] },
+    100:    { key:'vvip', men:'2名',    benefits:['ドンペリ x1'] }
   }
 };
 
@@ -917,11 +925,30 @@ async function submitForm() {
       return;
     }
 
-    if (payMethod === 'stripe' && d.checkout_url) {
-      location.href = d.checkout_url;
-      return;
+    if (payMethod === 'stripe') {
+      const s = await fetch(VERCEL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          event_id:   EVENT_ID,
+          event_name: 'LUXE PARTY TOKYO — ' + rankType,
+          name, email,
+          gender:     'male',
+          invited_by: promoter,
+          amount:     d.price || currentPlan.price,
+          plan_id:    '',
+          cancel_url: location.href
+        })
+      }).then(r => r.json());
+
+      if (s.ok && s.checkout_url) {
+        location.href = s.checkout_url;
+      } else {
+        showErr('決済ページの準備に失敗しました。お時間をおいて再度お試しください。');
+      }
+    } else {
+      showResult(d, name, promoter);
     }
-    showResult(d, name, promoter);
   } catch(e) {
     document.getElementById('loading').classList.remove('show');
     document.getElementById('submit-btn').disabled = false;
@@ -939,19 +966,14 @@ function showResult(d, name, promoter) {
   document.getElementById('modal-form').style.display = 'none';
   const rs = document.getElementById('modal-result');
   rs.classList.add('show');
-  let sub;
-  if (d.payment_method === 'stripe') {
-    sub = name + ' 様、お申し込みを承りました。\nご登録のメールアドレスにお支払いURLをお送りしました。\nメールよりカード決済をお済ませください。';
-  } else {
-    sub = name + ' 様、ご予約を承りました。\n確認メールをお送りしましたのでご確認ください。';
-    if (d.transfer_deadline) {
-      sub += '\n\n' + d.transfer_deadline + ' までにお振込ください。\nご入金確認後、招待状QRコードをお送りします。';
-    }
+  let sub = name + ' 様、ご予約を承りました。\n確認メールをお送りしましたのでご確認ください。';
+  if (d.transfer_deadline) {
+    sub += '\n\n' + d.transfer_deadline + ' までにお振込ください。\nご入金確認後、招待状QRコードをお送りします。';
   }
-  sub += '\n\nメールが届かない場合は、迷惑メールフォルダをご確認の上、「迷惑メールでない」ボタンを押してください。';
   if (promoter) sub += '\n\n紹介者: ' + promoter;
   document.getElementById('r-sub').style.whiteSpace = 'pre-line';
   document.getElementById('r-sub').textContent = sub;
+  document.getElementById('contact-notice').classList.add('show');
 }
 </script>
 </body>

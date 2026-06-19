@@ -1,4 +1,4 @@
-// 権限承認用（一度だけ手動実行してください）
+// v10.2 — 権限承認用（一度だけ手動実行してください）
 function requestExternalAccess() {
   UrlFetchApp.fetch('https://api.anthropic.com');
 }
@@ -90,21 +90,10 @@ function convertDriveUrl(url) {
   if (_imgUrlCache[url]) return _imgUrlCache[url];
   var fileId = extractDriveFileId_(url);
   if (!fileId) return url;
-
-  // GAS CacheService で永続キャッシュ確認（6時間、同一ファイルの再アップロードをスキップ）
-  var cacheKey = 'img_w600_' + fileId;
-  var cached = CacheService.getScriptCache().get(cacheKey);
-  if (cached) {
-    _imgUrlCache[url] = cached;
-    return cached;
-  }
-
-  var result = publishFlierToGitHub_(fileId);
+  // Drive thumbnail URL: Google CDN直配信・Gmail信頼ドメイン・Android対応
+  // ※ファイルは「リンクを知っている全員が閲覧可」設定が必須
+  var result = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800';
   _imgUrlCache[url] = result;
-  // GitHub URL のみキャッシュ（Drive フォールバック URL はキャッシュしない）
-  if (result.indexOf('githubusercontent') !== -1) {
-    CacheService.getScriptCache().put(cacheKey, result, 21600);
-  }
   return result;
 }
 
@@ -117,7 +106,7 @@ function publishFlierToGitHub_(fileId) {
   try {
     var blob = null;
 
-    // Step 1: DriveApp 経由でバイナリ直接取得（GAS組み込み認証で最も確実）
+    // DriveApp でフルサイズ取得（確実・Android表示確認済み）
     try {
       var driveBlob = DriveApp.getFileById(fileId).getBlob();
       if ((driveBlob.getContentType() || '').indexOf('image') !== -1) {
@@ -125,21 +114,6 @@ function publishFlierToGitHub_(fileId) {
       }
     } catch (driveErr) {
       console.warn('DriveApp取得失敗 id=' + fileId + ': ' + driveErr.message);
-    }
-
-    // Step 2: DriveApp 失敗時はフルサイズ公開URLからフォールバック
-    if (!blob) {
-      console.warn('DriveApp失敗。公開URLにフォールバック id=' + fileId);
-      var fullResp = UrlFetchApp.fetch(
-        'https://drive.google.com/uc?export=view&id=' + fileId,
-        {followRedirects: true, muteHttpExceptions: true}
-      );
-      if (fullResp.getResponseCode() === 200) {
-        var fullBlob = fullResp.getBlob();
-        if ((fullBlob.getContentType() || '').indexOf('image') !== -1) {
-          blob = fullBlob;
-        }
-      }
     }
 
     // Step 3: 両方失敗 → Drive URL を直接返す（最終手段）
@@ -197,30 +171,36 @@ function ping() {
   console.log('ping: ' + new Date().toISOString());
 }
 
-// メール画像セル生成（GitHub URL の場合のみタップで拡大リンクを付与）
+// メール画像セル生成
 function _mkImgCell_(url) {
   if (!url) return '<td width="50%" height="180" style="background:#111;"></td>';
-  var img = '<img src="' + url + '" style="width:100%;display:block;border:0;" alt="">';
-  var inner = (url.indexOf('githubusercontent') !== -1)
-    ? '<a href="' + url + '" style="display:block;">' + img + '</a>'
-    : img;
-  return '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;">' + inner + '</td>';
+  return '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + url + '" style="width:100%;display:block;border:0;" alt=""></td>';
 }
 
-// メール送信オプションを生成（List-Unsubscribeヘッダー付き）
-function _buildMailOpts_(html, email, name) {
-  var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO' };
-  try {
-    var gasUrl = ScriptApp.getService().getUrl();
-    if (gasUrl) {
-      var unsubUrl = gasUrl + '?action=unsubscribe&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(name || '');
-      opts.headers = {
-        'List-Unsubscribe': '<' + unsubUrl + '>',
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
-      };
+// HTML内の drive.google.com/thumbnail URL を CID インライン画像に変換
+// blobs: {fileId: Blob} の事前取得済みマップ（省略時は DriveApp で都度取得）
+function _toCidImages_(html, blobs) {
+  var inlineImages = {};
+  var idx = 0;
+  var newHtml = html.replace(
+    /src="https:\/\/drive\.google\.com\/thumbnail\?id=([^"&]+)[^"]*"/g,
+    function(match, fileId) {
+      var key = 'img' + idx++;
+      try {
+        var blob = (blobs && blobs[fileId]) ? blobs[fileId] : DriveApp.getFileById(fileId).getBlob();
+        inlineImages[key] = blob;
+        return 'src="cid:' + key + '"';
+      } catch(e) {
+        return match;
+      }
     }
-  } catch(e) {}
-  return opts;
+  );
+  return { html: newHtml, inlineImages: inlineImages };
+}
+
+// メール送信オプションを生成
+function _buildMailOpts_(html, email, name) {
+  return { htmlBody: html, name: 'LUXE PARTY TOKYO' };
 }
 
 function nowStr() {
@@ -1567,14 +1547,8 @@ function doPost(e) {
             + '<p style="font-size:0.78rem;color:#aaa;line-height:1.9;margin-bottom:24px;white-space:pre-wrap;">' + encodeEmojiForHtml(data.greeting || '') + '</p>'
             + '<p style="font-size:0.75rem;color:#ccc;line-height:1.9;margin-bottom:28px;">' + bodyHtml + '</p>'
             + ctaRow
-            + '<div style="text-align:center;margin-bottom:24px;font-size:0.6rem;color:#666;">'
-            + '<a href="https://www.instagram.com/luxe_party_tokyo/" style="color:#C9A84C;text-decoration:none;margin:0 8px;">Instagram</a>'
-            + '<a href="https://www.tiktok.com/@luxe.party.tokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">TikTok</a>'
-            + '<a href="https://x.com/luxepartytokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">X</a>'
-            + '</div>'
             + '<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">'
-            + 'このメールは LUXE PARTY TOKYO からお送りしています。<br>'
-            + '配信停止をご希望の方は<a href="' + unsubUrl + '" style="color:#666;">こちら</a>からお手続きください。'
+            + 'このメールは LUXE PARTY TOKYO からお送りしています。'
             + '</div></div>';
         }
 
@@ -1590,10 +1564,9 @@ function doPost(e) {
             // typeごとに送信済みをスキップ（free送信済みはfreeのみスキップ）
             if (sentEmailsForType[email.toLowerCase()]) { continue; }
             try {
-              var unsubUrl = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec?action=unsubscribe&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(g.name || '');
-              var html = buildHtml(data, g.name || '', unsubUrl);
-              var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8',
-                headers: { 'List-Unsubscribe': '<' + unsubUrl + '>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } };
+              var html = buildHtml(data, g.name || '', '');
+              var cid = _toCidImages_(html, _campaignBlobs);
+              var opts = { htmlBody: cid.html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8', inlineImages: cid.inlineImages };
               if (replyTo) opts.replyTo = replyTo;
               GmailApp.sendEmail(email, sanitizeSubject(data.subject || ''), g.name + ' 様', opts);
               logSheet.appendRow([nowStr(), campaignId, type, email, data.subject || '', 'sent']);
@@ -1607,6 +1580,19 @@ function doPost(e) {
           }
           return sent;
         }
+
+        // CID用: 全画像ブロブを送信前に一括取得（各受信者ループで再取得しない）
+        var _campaignBlobs = {};
+        [dataFree, dataPaid].forEach(function(d) {
+          var fids = [];
+          if (d.image) { var fid0 = extractDriveFileId_(String(d.image)); if (fid0) fids.push(fid0); }
+          (d.gallery || []).forEach(function(u) { if (!u) return; var fid = extractDriveFileId_(String(u)); if (fid) fids.push(fid); });
+          fids.forEach(function(fid) {
+            if (!_campaignBlobs[fid]) {
+              try { _campaignBlobs[fid] = DriveApp.getFileById(fid).getBlob(); } catch(e) {}
+            }
+          });
+        });
 
         sentFree = sendToGuests(guestsFree, dataFree, 'free');
         sentPaid = sendToGuests(guestsPaid, dataPaid, 'paid');
@@ -1659,21 +1645,15 @@ function doPost(e) {
             + '<p style="font-size:0.78rem;color:#aaa;line-height:1.9;margin-bottom:24px;white-space:pre-wrap;">' + encodeEmojiForHtml(data.greeting || '') + '</p>'
             + '<p style="font-size:0.75rem;color:#ccc;line-height:1.9;margin-bottom:28px;">' + bodyHtml + '</p>'
             + ctaRow
-            + '<div style="text-align:center;margin-bottom:24px;font-size:0.6rem;color:#666;">'
-            + '<a href="https://www.instagram.com/luxe_party_tokyo/" style="color:#C9A84C;text-decoration:none;margin:0 8px;">Instagram</a>'
-            + '<a href="https://www.tiktok.com/@luxe.party.tokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">TikTok</a>'
-            + '<a href="https://x.com/luxepartytokyo" style="color:#C9A84C;text-decoration:none;margin:0 8px;">X</a>'
-            + '</div>'
             + '<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">'
-            + 'このメールは LUXE PARTY TOKYO からお送りしています。<br>'
-            + '配信停止をご希望の方は<a href="' + unsubUrl + '" style="color:#666;">こちら</a>からお手続きください。'
+            + 'このメールは LUXE PARTY TOKYO からお送りしています。'
             + '</div></div>';
         }
 
         try {
-          var testUnsubUrl = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec?action=unsubscribe&email=' + encodeURIComponent(testEmail) + '&name=テスト';
-          var testHtml = buildTestHtml(testData, testUnsubUrl);
-          var testOpts = { htmlBody: testHtml, name: 'LUXE PARTY TOKYO【テスト】', charset: 'UTF-8' };
+          var testHtml = buildTestHtml(testData, '');
+          var testCid = _toCidImages_(testHtml);
+          var testOpts = { htmlBody: testCid.html, name: 'LUXE PARTY TOKYO【テスト】', charset: 'UTF-8', inlineImages: testCid.inlineImages };
           if (replyTo2) testOpts.replyTo = replyTo2;
           GmailApp.sendEmail(
             testEmail,
@@ -2279,6 +2259,7 @@ function doPost(e) {
           var replyToVR = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
 
           if (payMethodR === 'transfer') {
+            console.warn('[VIP振込] メール送信開始 to=' + body.email + ' name=' + body.name);
             try {
               var bankInfoR = PropertiesService.getScriptProperties().getProperty('BANK_INFO')||'【お振込先】\nさわやか信用金庫 渋谷支店\n普通 No.1254947\n株式会社リュクス';
               var companyInfoVR = '【発行者情報】\n株式会社リュクス\n〒150-0041 東京都渋谷区神南1-23-14\nTel: 03-6892-7253\n担当: 池田隆史\n登録番号: T2011001152835';
@@ -2286,7 +2267,8 @@ function doPost(e) {
                 '【LUXE PARTY TOKYO】VIPテーブル仮予約のご確認',
                 body.name+'様\n\nこの度はLUXE PARTY TOKYOにお申し込みいただき、誠にありがとうございます。\nVIPテーブルの仮予約を承りました。\n\n■ご予約内容\nイベント: '+evNameVR+'\nランク: '+tTypeR+'\nテーブル: '+tNameR+'\n料金: ¥'+tPriceR.toLocaleString()+'（税込）'+invitedLineVR+'\n\n■お振込のお願い\n'+Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy年MM月dd日')+'までにお振込ください。\n期限を過ぎると自動キャンセルとなります。\n\n'+bankInfoR+'\n振込金額: ¥'+tPriceR.toLocaleString()+'（税込）\n\n'+companyInfoVR+'\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nご入金確認後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+replyToVR,
                 {name:'LUXE PARTY TOKYO',replyTo:replyToVR});
-            } catch(e){ console.log('VIP振込メールエラー(rank):',e); }
+              console.warn('[VIP振込] メール送信成功 to=' + body.email);
+            } catch(e){ console.error('[VIP振込] メール送信エラー: ' + e.toString() + ' to=' + body.email); }
           }
 
           var checkoutUrlR = '';
@@ -2963,4 +2945,19 @@ function sendVipDailySummary() {
       GmailApp.sendEmail(email, '【VIP管理】本日のVIP予約状況 '+today, body, {name:'LPT VIP管理'});
     } catch(e) { console.log('Daily summary error:', e); }
   });
+}
+
+// GASエディタから直接実行してGmailApp権限を確認するテスト関数
+function testGmailPermission() {
+  var replyTo = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO') || 'luxe.party.com@gmail.com';
+  try {
+    GmailApp.sendEmail(
+      replyTo,
+      '[GAS権限テスト] LUXE PARTY TOKYOメール送信確認',
+      'このメールが届いた場合、GmailApp.sendEmailの権限は正常です。\n送信時刻: ' + new Date().toLocaleString('ja-JP')
+    );
+    console.warn('testGmailPermission: 送信成功 → ' + replyTo);
+  } catch(e) {
+    console.error('testGmailPermission: 送信失敗 → ' + e.toString());
+  }
 }

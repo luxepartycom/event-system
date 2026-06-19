@@ -15,11 +15,13 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 #main{display:none;}
 .badge{background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.3);padding:14px;margin-bottom:24px;font-size:0.68rem;color:#4CAF82;line-height:1.8;}
 .title{font-family:'Hiragino Mincho ProN',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px;}
-.sub{font-size:0.62rem;color:rgba(245,240,232,0.75);line-height:1.8;margin-bottom:28px;}
+.sub{font-size:0.62rem;color:var(--gray);line-height:1.8;margin-bottom:28px;}
 .info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.68rem;}
 .info-key{color:var(--gray);}
 .info-val{color:var(--white);}
-.mail-notice{margin-top:20px;padding:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:rgba(245,240,232,0.75);line-height:1.8;}
+.mail-notice{margin-top:20px;padding:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:0.62rem;color:var(--gray);line-height:1.8;}
+.contact-notice{margin-top:12px;padding:14px 16px;background:rgba(180,30,30,0.08);border:1px solid rgba(207,68,68,0.25);border-left:3px solid #CF4444;font-size:0.62rem;color:var(--white);line-height:1.9;text-align:left;}
+.contact-notice .cn-title{display:block;color:#CF4444;font-size:0.65rem;font-weight:700;margin-bottom:6px;letter-spacing:0.05em;}
 #error{display:none;padding:20px;font-size:0.75rem;color:#CF4444;line-height:1.8;}
 </style>
 </head>
@@ -39,7 +41,13 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
       <div class="info-row"><span class="info-key">イベント</span><span class="info-val" id="res-event">—</span></div>
       <div class="info-row"><span class="info-key">金額</span><span class="info-val" id="res-amount">—</span></div>
     </div>
-    <div class="mail-notice">📧 QRコード招待状をメールで送信しました<br>ご一行様でご共有ください<br><span style="opacity:0.7;">メールが届かない場合は、迷惑メールフォルダをご確認の上、「迷惑メールでない」ボタンを押してください。</span></div>
+    <div class="mail-notice">📧 QRコード招待状をメールで送信しました<br>ご一行様でご共有ください</div>
+    <div class="contact-notice">
+      <span class="cn-title">⚠ メールを必ずご確認ください</span>
+      QRコードを送信しました。前日にも再送します。<br>
+      届かない場合は<strong>迷惑メールフォルダ</strong>を確認し<br>
+      「迷惑メールでない」を押してください。
+    </div>
   </div>
 </div>
 <script>
@@ -62,10 +70,6 @@ window.addEventListener('load', async () => {
     if (!d.ok) {
       document.getElementById('error').innerHTML = d.message || '処理に失敗しました。';
       document.getElementById('error').style.display = 'block';
-      return;
-    }
-    if (d.guest_id) {
-      location.href = 'vip-ticket.html?id=' + encodeURIComponent(d.guest_id);
       return;
     }
     document.getElementById('res-name').textContent   = d.name || '—';
