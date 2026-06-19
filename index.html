@@ -373,9 +373,8 @@ window.addEventListener('load', async () => {
     (function(){
       function driveThumb(u){if(!u)return null;const s=String(u).trim();const m=s.match(/\/file\/d\/([^\/\?#]+)/)||s.match(/[?&]id=([^&]+)/);return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w800':null;}
       const imgs=[];
-      if(ev.image){const t=driveThumb(ev.image);if(t)imgs.push(t);}
-      const gal=ev.gallery?(Array.isArray(ev.gallery)?ev.gallery:String(ev.gallery).split(',')):[];
-      gal.forEach(function(u){const t=driveThumb(String(u).trim());if(t)imgs.push(t);});
+      // image はカンマ区切りで複数URL対応。gallery は後方互換で残す
+      [ev.image||'', ev.gallery||''].join(',').split(',').forEach(function(u){const t=driveThumb(u.trim());if(t)imgs.push(t);});
       if(imgs.length>0){const el=document.getElementById('ev-images');el.style.display='grid';el.style.gridTemplateColumns=imgs.length===1?'1fr':'1fr 1fr';el.innerHTML=imgs.map(function(u){return'<img src="'+u+'" alt="" loading="lazy">';}).join('');}
     })();
     document.getElementById('loading-screen').style.display='none';
