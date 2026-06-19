@@ -90,21 +90,10 @@ function convertDriveUrl(url) {
   if (_imgUrlCache[url]) return _imgUrlCache[url];
   var fileId = extractDriveFileId_(url);
   if (!fileId) return url;
-
-  // GAS CacheService で永続キャッシュ確認（6時間、同一ファイルの再アップロードをスキップ）
-  var cacheKey = 'img_s800_' + fileId;
-  var cached = CacheService.getScriptCache().get(cacheKey);
-  if (cached) {
-    _imgUrlCache[url] = cached;
-    return cached;
-  }
-
-  var result = publishFlierToGitHub_(fileId);
+  // Drive thumbnail URL: Google CDN直配信・Gmail信頼ドメイン・Android対応
+  // ※ファイルは「リンクを知っている全員が閲覧可」設定が必須
+  var result = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800';
   _imgUrlCache[url] = result;
-  // GitHub URL のみキャッシュ（Drive フォールバック URL はキャッシュしない）
-  if (result.indexOf('githubusercontent') !== -1) {
-    CacheService.getScriptCache().put(cacheKey, result, 21600);
-  }
   return result;
 }
 
