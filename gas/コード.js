@@ -117,33 +117,26 @@ function publishFlierToGitHub_(fileId) {
   try {
     var blob = null;
 
-    // Step 1: Drive API v3 thumbnailLink で圧縮サムネイル取得（s800 ≈ 100-300KB）
+    // Step 1: thumbnail URL + Bearer token で圧縮JPEG取得（1リクエスト・100-300KB）
     try {
       var gasToken = ScriptApp.getOAuthToken();
-      var metaResp = UrlFetchApp.fetch(
-        'https://www.googleapis.com/drive/v3/files/' + fileId + '?fields=thumbnailLink',
-        { headers: { 'Authorization': 'Bearer ' + gasToken }, muteHttpExceptions: true }
+      var thumbResp = UrlFetchApp.fetch(
+        'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800',
+        { headers: { 'Authorization': 'Bearer ' + gasToken }, followRedirects: true, muteHttpExceptions: true }
       );
-      if (metaResp.getResponseCode() === 200) {
-        var meta = JSON.parse(metaResp.getContentText());
-        if (meta.thumbnailLink) {
-          var thumbUrl = meta.thumbnailLink.replace(/=s\d+$/, '=s800');
-          var thumbResp = UrlFetchApp.fetch(thumbUrl, { muteHttpExceptions: true, followRedirects: true });
-          if (thumbResp.getResponseCode() === 200) {
-            var thumbBlob = thumbResp.getBlob();
-            if ((thumbBlob.getContentType() || '').indexOf('image') !== -1) {
-              blob = thumbBlob;
-            }
-          }
+      if (thumbResp.getResponseCode() === 200) {
+        var thumbBlob = thumbResp.getBlob();
+        if ((thumbBlob.getContentType() || '').indexOf('image') !== -1) {
+          blob = thumbBlob;
         }
       }
     } catch (thumbErr) {
-      console.warn('thumbnailLink取得失敗 id=' + fileId + ': ' + thumbErr.message);
+      console.warn('thumbnail取得失敗 id=' + fileId + ': ' + thumbErr.message);
     }
 
-    // Step 2: thumbnailLink 失敗時は DriveApp でフルサイズ取得（確実だが大容量）
+    // Step 2: thumbnail 失敗時は DriveApp でフルサイズ取得（確実だが大容量）
     if (!blob) {
-      console.warn('サムネイル失敗。DriveApp フルサイズにフォールバック id=' + fileId);
+      console.warn('thumbnail失敗。DriveApp フルサイズにフォールバック id=' + fileId);
       try {
         var driveBlob = DriveApp.getFileById(fileId).getBlob();
         if ((driveBlob.getContentType() || '').indexOf('image') !== -1) {
@@ -2284,16 +2277,17 @@ function doPost(e) {
             '',vGidR,nowStr(),body.notes||'',invitedByR]);
           SpreadsheetApp.flush();
 
+          var evNameVR=''; var evSVR=sheet('events');
+          if(evSVR){var evRVR=evSVR.getDataRange().getValues();var evHVR=evRVR[0].map(function(c){return String(c).trim();});
+            for(var ei=1;ei<evRVR.length;ei++){if(String(evRVR[ei][evHVR.indexOf('event_id')])===evIdR2){evNameVR=String(evRVR[ei][evHVR.indexOf('name')]||'');break;}}}
+          var invitedLineVR = invitedByR ? '\n紹介者: '+invitedByR : '';
+          var replyToVR = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
+
           if (payMethodR === 'transfer') {
             console.warn('[VIP振込] メール送信開始 to=' + body.email + ' name=' + body.name);
             try {
-              var replyToVR = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
               var bankInfoR = PropertiesService.getScriptProperties().getProperty('BANK_INFO')||'【お振込先】\nさわやか信用金庫 渋谷支店\n普通 No.1254947\n株式会社リュクス';
               var companyInfoVR = '【発行者情報】\n株式会社リュクス\n〒150-0041 東京都渋谷区神南1-23-14\nTel: 03-6892-7253\n担当: 池田隆史\n登録番号: T2011001152835';
-              var evNameVR=''; var evSVR=sheet('events');
-              if(evSVR){var evRVR=evSVR.getDataRange().getValues();var evHVR=evRVR[0].map(function(c){return String(c).trim();});
-                for(var ei=1;ei<evRVR.length;ei++){if(String(evRVR[ei][evHVR.indexOf('event_id')])===evIdR2){evNameVR=String(evRVR[ei][evHVR.indexOf('name')]||'');break;}}}
-              var invitedLineVR = invitedByR ? '\n紹介者: '+invitedByR : '';
               GmailApp.sendEmail(body.email,
                 '【LUXE PARTY TOKYO】VIPテーブル仮予約のご確認',
                 body.name+'様\n\nこの度はLUXE PARTY TOKYOにお申し込みいただき、誠にありがとうございます。\nVIPテーブルの仮予約を承りました。\n\n■ご予約内容\nイベント: '+evNameVR+'\nランク: '+tTypeR+'\nテーブル: '+tNameR+'\n料金: ¥'+tPriceR.toLocaleString()+'（税込）'+invitedLineVR+'\n\n■お振込のお願い\n'+Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy年MM月dd日')+'までにお振込ください。\n期限を過ぎると自動キャンセルとなります。\n\n'+bankInfoR+'\n振込金額: ¥'+tPriceR.toLocaleString()+'（税込）\n\n'+companyInfoVR+'\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nご入金確認後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+replyToVR,
@@ -2301,8 +2295,46 @@ function doPost(e) {
               console.warn('[VIP振込] メール送信成功 to=' + body.email);
             } catch(e){ console.error('[VIP振込] メール送信エラー: ' + e.toString() + ' to=' + body.email); }
           }
+
+          var checkoutUrlR = '';
+          if (payMethodR === 'stripe') {
+            try {
+              var skR2 = PropertiesService.getScriptProperties().getProperty('STRIPE_SECRET_KEY')||'';
+              if (skR2) {
+                var sProdNameR = (evNameVR||'LUXE PARTY TOKYO')+' — '+tTypeR;
+                var sSuccessR = 'https://luxepartycom.github.io/event-system/vip-checkout.html?session_id={CHECKOUT_SESSION_ID}';
+                var sCancelR  = 'https://luxepartycom.github.io/event-system/vip-plan.html?e='+evIdR2;
+                var sPayloadR = 'mode=payment'
+                  +'&payment_method_types[0]=card'
+                  +'&line_items[0][price_data][currency]=jpy'
+                  +'&line_items[0][price_data][unit_amount]='+tPriceR
+                  +'&line_items[0][price_data][product_data][name]='+encodeURIComponent(sProdNameR)
+                  +'&line_items[0][quantity]=1'
+                  +'&success_url='+encodeURIComponent(sSuccessR)
+                  +'&cancel_url='+encodeURIComponent(sCancelR)
+                  +'&customer_email='+encodeURIComponent(body.email||'')
+                  +'&metadata[event_id]='+evIdR2
+                  +'&metadata[table_id]='+tableIdR
+                  +'&metadata[table_name]='+tNameR
+                  +'&metadata[guest_id]='+vGidR
+                  +'&metadata[name]='+encodeURIComponent(body.name||'')
+                  +'&metadata[amount]='+tPriceR;
+                var sAuthR = Utilities.base64Encode(skR2+':');
+                var sResR = UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions',{
+                  method:'post',
+                  headers:{'Authorization':'Basic '+sAuthR,'Content-Type':'application/x-www-form-urlencoded'},
+                  payload:sPayloadR,
+                  muteHttpExceptions:true
+                });
+                var sDataR = JSON.parse(sResR.getContentText());
+                if (!sDataR.error && sDataR.url) { checkoutUrlR = sDataR.url; }
+              }
+            } catch(eStripeR){ console.log('VIP Stripeセッション作成エラー:',eStripeR); }
+          }
+
           return res({ ok:true, guest_id:vGidR, table_name:tNameR, rank_type:tTypeR,
             payment_method:payMethodR,
+            checkout_url: checkoutUrlR,
             transfer_deadline: payMethodR==='transfer'?Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy年MM月dd日'):'',
             price:tPriceR });
         }
@@ -2422,7 +2454,30 @@ function doPost(e) {
           var vrsCVS=sheet('vip_reservations');if(vrsCVS&&vrsCVS.getLastRow()>1){var vrCV=vrsCVS.getRange(1,1,vrsCVS.getLastRow(),vrsCVS.getLastColumn()).getValues(),vrHCV=vrCV[0].map(function(c){return String(c).trim();});for(var j=1;j<vrCV.length;j++){if(String(vrCV[j][vrHCV.indexOf('guest_id')])===guestIdCV){vrsCVS.getRange(j+1,vrHCV.indexOf('status')+1).setValue('confirmed');vrsCVS.getRange(j+1,vrHCV.indexOf('confirmed_at')+1).setValue(nowStr());break;}}}
           SpreadsheetApp.flush();
           var evNameCV='',evSCV=sheet('events');if(evSCV){var evRCV=evSCV.getDataRange().getValues(),evHCV=evRCV[0].map(function(c){return String(c).trim();});for(var ei=1;ei<evRCV.length;ei++){if(String(evRCV[ei][evHCV.indexOf('event_id')])===evIdCV){evNameCV=String(evRCV[ei][evHCV.indexOf('name')]||'');break;}}}
-          try{var rtCV=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';var qrCV='https://luxepartycom.github.io/event-system/vip-ticket.html?id='+guestIdCV;GmailApp.sendEmail(gEmailCV,'【LUXE PARTY TOKYO】VIPご招待状 / QRコード',gNameCV+'様\n\nお支払いを確認いたしました。誠にありがとうございます。\nご予約が確定いたしました。\n\n■当日のご案内\n受付にて以下のQRコードをご提示ください。\nQRコードURL: '+qrCV+'\n\n本QRコードはご来場予定の各位にご共有いただけます。受付にて各自ご提示ください。\nご入場は購入席数を上限とさせていただきます。上限を超えるご入場をご希望の場合は、男性お一人につき5万円の追加料金が発生いたします。\n\n■ご注意\n・本予約はキャンセル・返金不可となります。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nLUXE PARTY TOKYO\n'+rtCV,{name:'LUXE PARTY TOKYO',replyTo:rtCV});}catch(eCVMail){console.log('VIPconfirmmail:',eCVMail);}
+          try{
+            var rtCV=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
+            var qrCV='https://luxepartycom.github.io/event-system/vip-ticket.html?id='+guestIdCV;
+            var bodyCV=gNameCV+'様\n\nカード決済が完了しました。VIPテーブルのご予約が確定いたしました。\n\n'
+              +'■ご予約内容\n'
+              +'イベント: '+(evNameCV||'LUXE PARTY TOKYO')+'\n'
+              +'ランク: '+tTypeCV+'\n'
+              +'テーブル: '+tNameCV+'\n'
+              +'お支払い金額: ¥'+amtCV.toLocaleString()+'（決済済み）\n\n'
+              +'■QRコード招待状\n'
+              +'以下のURLよりQRコードをご確認いただけます。\n'
+              +qrCV+'\n\n'
+              +'▶ このURLをご一行様全員にご共有ください\n'
+              +'各自でQRコードをご提示いただき、受付をスムーズにお通りいただけます。\n\n'
+              +'■当日のご案内\n'
+              +'・受付にてQRコードをご提示ください\n'
+              +'・ご入場は購入席数を上限とさせていただきます\n'
+              +'・上限を超えるご入場をご希望の場合は、男性お一人につき5万円の追加料金が発生いたします\n\n'
+              +'■ご注意\n'
+              +'・本予約はキャンセル・返金不可となります\n'
+              +'・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します\n\n'
+              +'LUXE PARTY TOKYO\n'+rtCV;
+            GmailApp.sendEmail(gEmailCV,'【LUXE PARTY TOKYO】VIPご招待状 / QRコード',bodyCV,{name:'LUXE PARTY TOKYO',replyTo:rtCV});
+          }catch(eCVMail){console.log('VIPconfirmmail:',eCVMail);}
           return res({ok:true,guest_id:guestIdCV,name:gNameCV,amount:amtCV,table_name:tNameCV,event_name:evNameCV});
         }
 default: return res({ ok: false, message: '\u4e0d\u660e\u306aaction: ' + action });
