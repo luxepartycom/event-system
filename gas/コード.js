@@ -182,14 +182,10 @@ function ping() {
   console.log('ping: ' + new Date().toISOString());
 }
 
-// メール画像セル生成（GitHub URL の場合のみタップで拡大リンクを付与）
+// メール画像セル生成
 function _mkImgCell_(url) {
   if (!url) return '<td width="50%" height="180" style="background:#111;"></td>';
-  var img = '<img src="' + url + '" style="width:100%;display:block;border:0;" alt="">';
-  var inner = (url.indexOf('githubusercontent') !== -1)
-    ? '<a href="' + url + '" style="display:block;">' + img + '</a>'
-    : img;
-  return '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;">' + inner + '</td>';
+  return '<td width="50%" height="180" style="padding:2px;background:#111;vertical-align:top;"><img src="' + url + '" style="width:100%;display:block;border:0;" alt=""></td>';
 }
 
 // メール送信オプションを生成（List-Unsubscribeヘッダー付き）
