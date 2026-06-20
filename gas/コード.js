@@ -1520,33 +1520,23 @@ function doPost(e) {
         var sentFree = 0, sentPaid = 0, unsubCount = 0, totalSent = 0;
 
         function buildHtml(data, guestName, unsubUrl) {
-          var allImgs = [];
-          if (data.image) { var _u0 = String(data.image); allImgs.push(convertDriveUrl(_u0)); }
-          (data.gallery || []).forEach(function(u) { if (!u) return; var c = convertDriveUrl(String(u)); if (c) allImgs.push(c); });
-          var imagesHtml = '';
-          if (allImgs.length > 0) {
-            imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
-            for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr>' + _mkImgCell_(allImgs[gi])
-                + (allImgs[gi+1] ? _mkImgCell_(allImgs[gi+1]) : '<td width="50%" height="180" style="background:#111;"></td>')
-                + '</tr>';
-            }
-            imagesHtml += '</tbody></table>';
-          }
           var bodyHtml = encodeEmojiForHtml(String(data.body || '')).replace(/\n/g, '<br>');
-          var ctaRow = data.ctaUrl
-            ? '<div style="text-align:center;margin-bottom:28px;"><a href="' + data.ctaUrl + '" style="display:inline-block;background:#C9A84C;color:#000;text-decoration:none;padding:16px 36px;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;">' + (data.ctaText || '詳細はこちら') + '</a></div>'
+          var btnStyle = 'display:inline-block;background:#C9A84C;color:#000;text-decoration:none;padding:16px 36px;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;';
+          var ctaRow1 = data.ctaUrl
+            ? '<div style="text-align:center;margin-bottom:28px;"><a href="' + data.ctaUrl + '" style="' + btnStyle + '">' + (data.ctaText || '詳細を確認する') + '</a></div>'
+            : '';
+          var ctaRow2 = data.ctaUrl
+            ? '<div style="text-align:center;margin-bottom:28px;"><a href="' + (data.ctaUrl2 || data.ctaUrl) + '" style="' + btnStyle + '">' + (data.ctaText2 || 'イベントに申し込む') + '</a></div>'
             : '';
           return '<html><head><meta charset="UTF-8"></head><body>'
             + '<div style="background:#080808;padding:32px 20px;font-family:sans-serif;color:#F5F0E8;max-width:480px;margin:0 auto;">'
             + '<div style="font-size:1.3rem;color:#C9A84C;letter-spacing:0.3em;margin-bottom:4px;">LUXE PARTY TOKYO</div>'
             + '<div style="font-size:0.6rem;color:#888;letter-spacing:0.2em;margin-bottom:28px;">INVITATION</div>'
-            + imagesHtml
-            + ctaRow
+            + ctaRow1
             + '<p style="font-size:0.9rem;margin-bottom:8px;">' + guestName + ' 様</p>'
             + '<p style="font-size:0.78rem;color:#aaa;line-height:1.9;margin-bottom:24px;white-space:pre-wrap;">' + encodeEmojiForHtml(data.greeting || '') + '</p>'
             + '<p style="font-size:0.75rem;color:#ccc;line-height:1.9;margin-bottom:28px;">' + bodyHtml + '</p>'
-            + ctaRow
+            + ctaRow2
             + '<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">'
             + 'このメールは LUXE PARTY TOKYO からお送りしています。'
             + '</div></div>';
@@ -1565,8 +1555,7 @@ function doPost(e) {
             if (sentEmailsForType[email.toLowerCase()]) { continue; }
             try {
               var html = buildHtml(data, g.name || '', '');
-              var cid = _toCidImages_(html, _campaignBlobs);
-              var opts = { htmlBody: cid.html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8', inlineImages: cid.inlineImages };
+              var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8' };
               if (replyTo) opts.replyTo = replyTo;
               GmailApp.sendEmail(email, sanitizeSubject(data.subject || ''), g.name + ' 様', opts);
               logSheet.appendRow([nowStr(), campaignId, type, email, data.subject || '', 'sent']);
@@ -1580,19 +1569,6 @@ function doPost(e) {
           }
           return sent;
         }
-
-        // CID用: 全画像ブロブを送信前に一括取得（各受信者ループで再取得しない）
-        var _campaignBlobs = {};
-        [dataFree, dataPaid].forEach(function(d) {
-          var fids = [];
-          if (d.image) { var fid0 = extractDriveFileId_(String(d.image)); if (fid0) fids.push(fid0); }
-          (d.gallery || []).forEach(function(u) { if (!u) return; var fid = extractDriveFileId_(String(u)); if (fid) fids.push(fid); });
-          fids.forEach(function(fid) {
-            if (!_campaignBlobs[fid]) {
-              try { _campaignBlobs[fid] = DriveApp.getFileById(fid).getBlob(); } catch(e) {}
-            }
-          });
-        });
 
         sentFree = sendToGuests(guestsFree, dataFree, 'free');
         sentPaid = sendToGuests(guestsPaid, dataPaid, 'paid');
@@ -1617,34 +1593,24 @@ function doPost(e) {
         if (!testData.subject) return res({ ok: false, message: '件名を入力してください' });
 
         function buildTestHtml(data, unsubUrl) {
-          var allImgs = [];
-          if (data.image) { var _u0 = String(data.image); allImgs.push(convertDriveUrl(_u0)); }
-          (data.gallery || []).forEach(function(u) { if (!u) return; var c = convertDriveUrl(String(u)); if (c) allImgs.push(c); });
-          var imagesHtml = '';
-          if (allImgs.length > 0) {
-            imagesHtml = '<table width="100%" cellpadding="2" cellspacing="0" style="margin:0 0 16px 0;"><tbody>';
-            for (var gi = 0; gi < allImgs.length; gi += 2) {
-              imagesHtml += '<tr>' + _mkImgCell_(allImgs[gi])
-                + (allImgs[gi+1] ? _mkImgCell_(allImgs[gi+1]) : '<td width="50%" height="180" style="background:#111;"></td>')
-                + '</tr>';
-            }
-            imagesHtml += '</tbody></table>';
-          }
           var bodyHtml = encodeEmojiForHtml(String(data.body || '')).replace(/\n/g, '<br>');
-          var ctaRow = data.ctaUrl
-            ? '<div style="text-align:center;margin-bottom:28px;"><a href="' + data.ctaUrl + '" style="display:inline-block;background:#C9A84C;color:#000;text-decoration:none;padding:16px 36px;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;">' + (data.ctaText || '詳細はこちら') + '</a></div>'
+          var btnStyle = 'display:inline-block;background:#C9A84C;color:#000;text-decoration:none;padding:16px 36px;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;';
+          var ctaRow1 = data.ctaUrl
+            ? '<div style="text-align:center;margin-bottom:28px;"><a href="' + data.ctaUrl + '" style="' + btnStyle + '">' + (data.ctaText || '詳細を確認する') + '</a></div>'
+            : '';
+          var ctaRow2 = data.ctaUrl
+            ? '<div style="text-align:center;margin-bottom:28px;"><a href="' + (data.ctaUrl2 || data.ctaUrl) + '" style="' + btnStyle + '">' + (data.ctaText2 || 'イベントに申し込む') + '</a></div>'
             : '';
           return '<html><head><meta charset="UTF-8"></head><body>'
             + '<div style="background:#CF4444;padding:8px;font-size:0.65rem;color:#fff;text-align:center;margin-bottom:0;">⚠️ これはテスト送信です / TEST MAIL</div>'
             + '<div style="background:#080808;padding:32px 20px;font-family:sans-serif;color:#F5F0E8;max-width:480px;margin:0 auto;">'
             + '<div style="font-size:1.3rem;color:#C9A84C;letter-spacing:0.3em;margin-bottom:4px;">LUXE PARTY TOKYO</div>'
             + '<div style="font-size:0.6rem;color:#888;letter-spacing:0.2em;margin-bottom:28px;">INVITATION</div>'
-            + imagesHtml
-            + ctaRow
+            + ctaRow1
             + '<p style="font-size:0.9rem;margin-bottom:8px;">テスト 様</p>'
             + '<p style="font-size:0.78rem;color:#aaa;line-height:1.9;margin-bottom:24px;white-space:pre-wrap;">' + encodeEmojiForHtml(data.greeting || '') + '</p>'
             + '<p style="font-size:0.75rem;color:#ccc;line-height:1.9;margin-bottom:28px;">' + bodyHtml + '</p>'
-            + ctaRow
+            + ctaRow2
             + '<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">'
             + 'このメールは LUXE PARTY TOKYO からお送りしています。'
             + '</div></div>';
@@ -1652,8 +1618,7 @@ function doPost(e) {
 
         try {
           var testHtml = buildTestHtml(testData, '');
-          var testCid = _toCidImages_(testHtml);
-          var testOpts = { htmlBody: testCid.html, name: 'LUXE PARTY TOKYO【テスト】', charset: 'UTF-8', inlineImages: testCid.inlineImages };
+          var testOpts = { htmlBody: testHtml, name: 'LUXE PARTY TOKYO【テスト】', charset: 'UTF-8' };
           if (replyTo2) testOpts.replyTo = replyTo2;
           GmailApp.sendEmail(
             testEmail,
