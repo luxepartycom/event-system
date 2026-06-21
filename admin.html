@@ -1561,6 +1561,9 @@ td.muted{color:var(--gray);font-size:0.62rem;}
           📤 両方に送信
         </button>
       </div>
+      <button id="mm-btn-stop" onclick="stopMmSending()" style="display:none;width:100%;margin-top:12px;padding:14px;background:#B01E1E;color:#fff;border:none;border-radius:8px;font-size:0.75rem;font-weight:700;letter-spacing:0.1em;cursor:pointer;">
+        ⛔ 緊急停止（送信を止める）
+      </button>
       <div class="mm-log" id="mm-log" style="display:none;"></div>
     </div>
 
@@ -3879,8 +3882,32 @@ function buildMmEmailHtml(data, type, name) {
   </div>`;
 }
 
-// 送信処理
+// 送信制御フラグ（緊急停止用）
+let mmStopRequested = false;
+let mmSending       = false;
+const MM_BATCH_SIZE = 10; // 1バッチあたりの送信数（停止反応の粒度）
+
+// 緊急停止：次のバッチを投げないようフラグを立てる
+function stopMmSending() {
+  if (!mmSending) return;
+  mmStopRequested = true;
+  const stopBtn = document.getElementById('mm-btn-stop');
+  if (stopBtn) { stopBtn.disabled = true; stopBtn.textContent = '⛔ 停止中…（現在のバッチ完了後に止まります）'; }
+  toast('⛔ 停止リクエストを受け付けました');
+}
+
+// 送信ボタンの有効/無効をまとめて切り替え
+function setMmSendButtonsDisabled(disabled) {
+  ['mm-btn-send-free','mm-btn-send-paid','mm-btn-send-both'].forEach(id => {
+    const b = document.getElementById(id);
+    if (b) b.disabled = disabled;
+  });
+}
+
+// 送信処理（クライアント主導バッチ方式：MM_BATCH_SIZE通ずつ送り、各バッチ境界で停止可能）
 async function sendMmEmail(target) {
+  if (mmSending) { toast('⏳ 送信処理が進行中です'); return; }
+
   const data = getMmFormData();
 
   // バリデーション
@@ -3891,52 +3918,93 @@ async function sendMmEmail(target) {
     toast('❌ 有料参加者向けの件名を入力してください'); return;
   }
 
-  const targetLabel = { free: '無料参加者', paid: '有料参加者', both: '両方' }[target];
-  if (!confirm(`${targetLabel}にメールを送信します。よろしいですか？\n\n※1日${getMmDailyLimit()}通の上限があります。`)) return;
-
-  const logEl = document.getElementById('mm-log');
-  logEl.style.display = 'block';
-  logEl.innerHTML = '⏳ 送信中...';
-
-  const guests = target === 'free' ? mmGuestsFree
-               : target === 'paid' ? mmGuestsPaid
-               : [...mmGuestsFree, ...mmGuestsPaid];
-
   const campaignId = document.getElementById('mm-campaign-id').value.trim();
   if (!campaignId) {
     toast('❌ キャンペーンIDを入力または生成してください');
     return;
   }
 
-  const d = await apiPost({
-    action:      'sendMailMag',
-    target,
-    campaign_id: campaignId,
-    guests_free: target !== 'paid' ? mmGuestsFree : [],
-    guests_paid: target !== 'free' ? mmGuestsPaid : [],
-    data_free:   data.free,
-    data_paid:   data.paid,
-    daily_limit: getMmDailyLimit(),
-  });
+  const targetLabel = { free: '無料参加者', paid: '有料参加者', both: '両方' }[target];
+  const dailyTarget = getMmDailyLimit();
+  if (!confirm(`${targetLabel}にメールを送信します。よろしいですか？\n\n※本日上限 ${dailyTarget}通／${MM_BATCH_SIZE}通ずつ送信します。\n※送信中はいつでも「緊急停止」で止められます（送信済みは取り消せません）。`)) return;
 
-  if (d.ok) {
-    const remaining = (d.message || '').includes('残り');
-    const icon    = remaining ? '⏳' : '✅';
-    const title   = remaining ? '本日分の送信が完了しました' : '全員への送信が完了しました';
-    const freeTotal  = target !== 'paid' ? mmGuestsFree.length : 0;
-    const paidTotal  = target !== 'free' ? mmGuestsPaid.length : 0;
-    const sentFree   = d.sent_free  || 0;
-    const sentPaid   = d.sent_paid  || 0;
-    const remFree    = Math.max(0, freeTotal  - sentFree);
-    const remPaid    = Math.max(0, paidTotal  - sentPaid);
-    logEl.innerHTML  = `${icon} ${title}<br>`
-      + `無料: ${sentFree}通 / 有料: ${sentPaid}通 送信済み<br>`
-      + (remFree + remPaid > 0 ? `<span style="color:#E8A020;">⚠️ 残り 無料:${remFree}名 / 有料:${remPaid}名 未送信（明日以降送信してください）</span><br>` : '')
-      + `配信停止除外: ${d.unsubscribed || 0}名<br>${d.message || ''}`;
-    toast(remaining ? '⏳ 本日分の送信完了（残りあり）' : '✅ メール配信が完了しました');
+  const freeTotal  = target !== 'paid' ? mmGuestsFree.length : 0;
+  const paidTotal  = target !== 'free' ? mmGuestsPaid.length : 0;
+
+  const logEl   = document.getElementById('mm-log');
+  const stopBtn = document.getElementById('mm-btn-stop');
+  logEl.style.display = 'block';
+
+  // 送信状態へ
+  mmStopRequested = false;
+  mmSending       = true;
+  setMmSendButtonsDisabled(true);
+  if (stopBtn) { stopBtn.style.display = 'block'; stopBtn.disabled = false; stopBtn.textContent = '⛔ 緊急停止（送信を止める）'; }
+
+  let totalSentFree = 0, totalSentPaid = 0, totalUnsub = 0;
+  let aborted = false, errored = false, errMsg = '';
+
+  try {
+    while (totalSentFree + totalSentPaid < dailyTarget) {
+      if (mmStopRequested) { aborted = true; break; }
+
+      logEl.innerHTML = `⏳ 送信中… 無料:${totalSentFree}通 / 有料:${totalSentPaid}通`;
+
+      const d = await apiPost({
+        action:      'sendMailMag',
+        target,
+        campaign_id: campaignId,
+        guests_free: target !== 'paid' ? mmGuestsFree : [],
+        guests_paid: target !== 'free' ? mmGuestsPaid : [],
+        data_free:   data.free,
+        data_paid:   data.paid,
+        daily_limit: MM_BATCH_SIZE, // 1バッチ分だけ送らせる
+      });
+
+      if (!d.ok) { errored = true; errMsg = d.message || '不明なエラー'; break; }
+
+      const batchFree = d.sent_free || 0;
+      const batchPaid = d.sent_paid || 0;
+      totalSentFree += batchFree;
+      totalSentPaid += batchPaid;
+      totalUnsub     = d.unsubscribed || totalUnsub;
+
+      // このバッチで1通も送られなければ、未送信なし＝完了
+      if (batchFree + batchPaid === 0) break;
+    }
+  } catch (err) {
+    errored = true; errMsg = (err && err.message) || '通信エラー';
+  }
+
+  // 送信状態を解除
+  mmSending = false;
+  setMmSendButtonsDisabled(false);
+  if (stopBtn) { stopBtn.style.display = 'none'; stopBtn.disabled = false; }
+
+  const remFree = Math.max(0, freeTotal - totalSentFree);
+  const remPaid = Math.max(0, paidTotal - totalSentPaid);
+  const remLine = (remFree + remPaid > 0)
+    ? `<span style="color:#E8A020;">⚠️ 残り 無料:${remFree}名 / 有料:${remPaid}名 未送信</span><br>`
+    : '';
+
+  if (errored) {
+    logEl.innerHTML = `❌ エラーで中断: ${errMsg}<br>`
+      + `送信済み 無料:${totalSentFree}通 / 有料:${totalSentPaid}通<br>${remLine}`;
+    toast('❌ 送信失敗: ' + errMsg);
+  } else if (aborted) {
+    logEl.innerHTML = `⛔ 緊急停止しました<br>`
+      + `送信済み 無料:${totalSentFree}通 / 有料:${totalSentPaid}通（これらは取り消せません）<br>${remLine}`
+      + `<span style="font-size:0.58rem;color:var(--gray);">同じキャンペーンIDで再開すると続きから送信できます</span>`;
+    toast('⛔ 送信を停止しました');
   } else {
-    logEl.innerHTML = '❌ エラー: ' + (d.message || '不明なエラー');
-    toast('❌ 送信失敗: ' + (d.message || ''));
+    const reachedLimit = (totalSentFree + totalSentPaid) >= dailyTarget && (remFree + remPaid > 0);
+    const icon  = reachedLimit ? '⏳' : '✅';
+    const title = reachedLimit ? `本日上限（${dailyTarget}通）に達しました` : '全員への送信が完了しました';
+    logEl.innerHTML = `${icon} ${title}<br>`
+      + `無料:${totalSentFree}通 / 有料:${totalSentPaid}通 送信済み<br>${remLine}`
+      + `配信停止除外: ${totalUnsub}名`
+      + (reachedLimit ? `<br><span style="font-size:0.58rem;color:var(--gray);">残りは明日以降、同じキャンペーンIDで送信してください</span>` : '');
+    toast(reachedLimit ? '⏳ 本日分の送信完了（残りあり）' : '✅ メール配信が完了しました');
   }
 }
 
