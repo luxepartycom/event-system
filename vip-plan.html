@@ -780,15 +780,27 @@ async function loadPlans() {
     document.getElementById('loading').style.display = 'none';
     return;
   }
-  try {
-    const r = await fetch(`${API}?action=getVipTables&event_id=${encodeURIComponent(EVENT_ID)}`);
-    const d = await r.json();
-    if (d.ok) renderPlans(d.tables || []);
-  } catch(e) {
-    document.getElementById('plans-container').innerHTML =
-      '<p style="color:#666;text-align:center;padding:40px;">データの読み込みに失敗しました</p>';
+  // コールドスタート対策：最大3回リトライ＋20秒タイムアウト
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  let d = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 20000);
+      const r = await fetch(`${API}?action=getVipTables&event_id=${encodeURIComponent(EVENT_ID)}`, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      d = await r.json();
+      break;
+    } catch(e) { if (i < 2) await sleep(1500 * (i + 1)); }
   }
   document.getElementById('loading').style.display = 'none';
+  if (d && d.ok) {
+    renderPlans(d.tables || []);
+  } else {
+    document.getElementById('plans-container').innerHTML =
+      '<p style="color:rgba(245,240,232,0.75);text-align:center;padding:40px;line-height:1.9;">回線が混み合っています。<br>しばらく時間をおいて再度お試しください。<br><br><a href="javascript:location.reload()" style="display:inline-block;background:#C9A84C;color:#000;padding:12px 24px;text-decoration:none;font-weight:700;margin-top:8px;font-size:0.8rem;letter-spacing:0.1em;">再読み込み</a></p>';
+  }
 }
 
 loadPlans();
