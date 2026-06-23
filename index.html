@@ -278,7 +278,26 @@ const _STG_API  = 'https://script.google.com/macros/s/AKfycbwYH2RFU4G2RYF6XyYn9-
 const API       = /localhost|\.vercel\.app/.test(location.hostname) ? _STG_API : _PROD_API;
 const BASE_URL = 'https://luxepartycom.github.io/event-system/';
 let currentEvent=null,currentPayType='paid',selectedGender='',termsAgreed=false,hiddenPromoter='',currentPlanId='',currentPlanName='';
-async function apiGet(p){const r=await fetch(API+'?'+new URLSearchParams(p));return r.json();}
+function _sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+// 読み取り系API用：コールドスタート対策の自動リトライ＋タイムアウト
+async function _fetchJsonRetry(url, opts, tries=3, delay=1500){
+  let lastErr;
+  for(let i=0;i<tries;i++){
+    try{
+      const ctrl=new AbortController();
+      const timer=setTimeout(()=>ctrl.abort(),20000);
+      const r=await fetch(url,Object.assign({},opts,{signal:ctrl.signal}));
+      clearTimeout(timer);
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return await r.json();
+    }catch(e){ lastErr=e; if(i<tries-1) await _sleep(delay*(i+1)); }
+  }
+  throw lastErr;
+}
+// 読み取り系（冪等）：リトライあり
+async function apiGet(p){return _fetchJsonRetry(API+'?'+new URLSearchParams(p),{});}
+async function apiPostRead(b){return _fetchJsonRetry(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});}
+// 書き込み系（非冪等）：リトライなし（二重登録防止）
 async function apiPost(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});return r.json();}
 
 window.addEventListener('load', async () => {
@@ -302,7 +321,7 @@ window.addEventListener('load', async () => {
 
     // プランチェック
     if(currentPayType==='paid' && planId) {
-      const planData = await apiPost({action:'checkPlan', plan_id: planId});
+      const planData = await apiPostRead({action:'checkPlan', plan_id: planId});
       if(!planData.ok) {
         // プランが見つからない場合はエラー表示
         showError('プランが見つかりません。URLをご確認ください。<br><small style="color:#888;">plan_id: ' + planId + '</small>');
@@ -394,7 +413,7 @@ window.addEventListener('load', async () => {
     })();
     document.getElementById('loading-screen').style.display='none';
     document.getElementById('form-screen').style.display='block';
-  } catch(err){showError('読み込みに失敗しました。しばらく経ってから再度お試しください。');}
+  } catch(err){showError('回線が混み合っています。<br>恐れ入りますが、しばらく時間をおいて再度お試しください。<br><br><a href="javascript:location.reload()" style="display:inline-block;background:#C9A84C;color:#000;padding:12px 24px;text-decoration:none;font-weight:700;margin-top:8px;font-size:0.8rem;letter-spacing:0.1em;">再読み込み</a>');}
   document.getElementById('terms-box').addEventListener('scroll',function(){const h=document.getElementById('scroll-hint');if(h)h.style.opacity='0';},{passive:true});
 });
 
@@ -573,7 +592,7 @@ async function submitForm(){
   try {
     // 有料プランの場合、送信直前に男女別上限を再チェック
     if(currentPayType==='paid' && currentPlanId) {
-      const recheck = await apiPost({action:'checkPlan', plan_id:currentPlanId, gender:selectedGender});
+      const recheck = await apiPostRead({action:'checkPlan', plan_id:currentPlanId, gender:selectedGender});
       if(recheck.ok && !recheck.is_active) {
           const recheckRedirectBase = recheck.redirect_url || '';
           const recheckRedirectName = recheck.redirect_plan_name || '';
