@@ -724,7 +724,7 @@ function renderPlans(tables) {
 
         const isAvailable = g.available > 0;
         const stockCls = isAvailable ? 'stock-available' : 'stock-out';
-        const stockLbl = isAvailable ? `残${g.available}件` : '満席';
+        const stockLbl = isAvailable ? '' : '満席';
         const priceDisp = '¥' + (g.price / 10000) + '万';
         const benefitsHtml = cfg.benefits.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
         const cardCls = isAvailable ? '' : ' sold-out';
@@ -736,7 +736,7 @@ function renderPlans(tables) {
           <div class="plan-card${cardCls}" ${onclick}>
             <div class="plan-card-inner">
               <div>
-                <div class="plan-stock ${stockCls}"><span class="plan-stock-dot"></span>${stockLbl}</div>
+                ${isAvailable ? '' : `<div class="plan-stock ${stockCls}"><span class="plan-stock-dot"></span>${stockLbl}</div>`}
                 <div class="plan-men">${cfg.men}</div>
                 <div class="plan-benefits">${benefitsHtml}</div>
               </div>

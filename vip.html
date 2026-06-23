@@ -400,7 +400,7 @@ function renderRankCards() {
       <div class="rank-card-name">${info.label}</div>
       <div class="rank-card-info">収容人数: ${info.cap}</div>
       <div class="rank-card-price">${info.priceLabel}</div>
-      <div class="rank-card-avail ${isFull ? 'none' : 'ok'}">${isFull ? '満席' : '残り ' + avail + ' テーブル'}</div>
+      ${isFull ? '<div class="rank-card-avail none">満席</div>' : ''}
     `;
     if (!isFull) card.onclick = () => selectRank(rankKey);
     container.appendChild(card);
