@@ -3629,6 +3629,7 @@ async function checkMailQuota() {
 
   const rem   = d.remaining;
   const used  = d.used;
+  const cap   = d.daily_limit || 1500;
   const reset = d.reset_time_jst;
   const hReset = d.hours_until_reset;
   const mReset = d.minutes_remainder;
@@ -3639,15 +3640,15 @@ async function checkMailQuota() {
   if (rem === 0) {
     inner.className = 'mm-quota-inner mm-quota-ng';
     icon.textContent = '🚫';
-    text.innerHTML = `<strong>本日の送信上限に達しています</strong>（使用済み: ${used}/100通）<br><span style="font-size:0.55rem;">${resetStr}</span>`;
-  } else if (rem <= 20) {
+    text.innerHTML = `<strong>本日の送信上限に達しています</strong>（使用済み: ${used}/${cap}通）<br><span style="font-size:0.55rem;">${resetStr}</span>`;
+  } else if (rem <= 50) {
     inner.className = 'mm-quota-inner mm-quota-warn';
     icon.textContent = '⚠️';
-    text.innerHTML = `残り <strong>${rem}通</strong> 送信可能（使用済み: ${used}/100通）<br><span style="font-size:0.55rem;">${resetStr}</span>`;
+    text.innerHTML = `残り <strong>${rem}通</strong> 送信可能（使用済み: ${used}/${cap}通）<br><span style="font-size:0.55rem;">${resetStr}</span>`;
   } else {
     inner.className = 'mm-quota-inner mm-quota-ok';
     icon.textContent = '✅';
-    text.innerHTML = `本日 <strong>${rem}通</strong> 送信可能（使用済み: ${used}/100通）<br><span style="font-size:0.55rem;">${resetStr}</span>`;
+    text.innerHTML = `本日 <strong>${rem}通</strong> 送信可能（使用済み: ${used}/${cap}通）<br><span style="font-size:0.55rem;">${resetStr}</span>`;
   }
 }
 
@@ -3963,6 +3964,9 @@ async function sendMmEmail(target) {
       totalSentFree += batchFree;
       totalSentPaid += batchPaid;
       totalUnsub     = d.unsubscribed || totalUnsub;
+
+      // GmailAPIクォータ超過が検知されたらループ中断
+      if (d.quota_exceeded) { errMsg = 'Gmailの1日送信上限に達しました。明日以降に続きを送信してください。'; errored = true; break; }
 
       // このバッチで1通も送られなければ、未送信なし＝完了
       if (batchFree + batchPaid === 0) break;

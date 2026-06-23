@@ -1517,7 +1517,25 @@ function doPost(e) {
           logSheet.appendRow(['sent_at','campaign_id','type','email','subject','status']);
         }
 
-        var sentFree = 0, sentPaid = 0, unsubCount = 0, totalSent = 0;
+        // 今日すでに送った通数をmail_logsから取得（日次上限を複数リクエストにまたいで正確に守る）
+        var todayJST = (function() {
+          var n = new Date(); return new Date(n.getTime() + 9*60*60*1000).toISOString().slice(0,10);
+        })();
+        var todayAlreadySent = 0;
+        (function() {
+          var lr = logSheet.getDataRange().getValues();
+          var lh = lr[0].map(function(h){ return String(h).trim(); });
+          var saI = lh.indexOf('sent_at'), stI = lh.indexOf('status');
+          for (var i = 1; i < lr.length; i++) {
+            if (String(lr[i][saI]||'').slice(0,10) === todayJST && String(lr[i][stI]) === 'sent') todayAlreadySent++;
+          }
+        })();
+
+        var sentFree = 0, sentPaid = 0, unsubCount = 0;
+        var totalSent = todayAlreadySent; // 今日の累計からスタート（上限チェックを複数リクエストにまたいで正確にする）
+        var quotaExceeded = false; // GmailAPIクォータ超過フラグ
+
+        var gasBaseUrl = (function() { try { return ScriptApp.getService().getUrl(); } catch(e) { return ''; } })();
 
         function buildHtml(data, guestName, unsubUrl) {
           var bodyHtml = encodeEmojiForHtml(String(data.body || '')).replace(/\n/g, '<br>');
@@ -1527,6 +1545,9 @@ function doPost(e) {
             : '';
           var ctaRow2 = data.ctaUrl
             ? '<div style="text-align:center;margin-bottom:28px;"><a href="' + (data.ctaUrl2 || data.ctaUrl) + '" style="' + btnStyle + '">' + (data.ctaText2 || 'イベントに申し込む') + '</a></div>'
+            : '';
+          var unsubRow = unsubUrl
+            ? '<div style="margin-top:12px;">配信停止をご希望の方は<a href="' + unsubUrl + '" style="color:#666;font-size:0.55rem;">こちら</a>からお手続きください。</div>'
             : '';
           return '<html><head><meta charset="UTF-8"></head><body>'
             + '<div style="background:#080808;padding:32px 20px;font-family:sans-serif;color:#F5F0E8;max-width:480px;margin:0 auto;">'
@@ -1539,6 +1560,7 @@ function doPost(e) {
             + ctaRow2
             + '<div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:16px;font-size:0.55rem;color:#444;line-height:1.9;text-align:center;">'
             + 'このメールは LUXE PARTY TOKYO からお送りしています。'
+            + unsubRow
             + '</div></div>';
         }
 
@@ -1547,15 +1569,20 @@ function doPost(e) {
           var sentEmailsForType = type === 'free' ? sentEmailsFree : sentEmailsPaid;
           for (var i = 0; i < guests.length; i++) {
             if (totalSent >= dailyLimit) break;
+            if (quotaExceeded) break;
             var g = guests[i];
             var email = String(g.email || '');
             if (!email) continue;
             if (unsubEmails2[email.toLowerCase()]) { unsubCount++; continue; }
-            // typeごとに送信済みをスキップ（free送信済みはfreeのみスキップ）
             if (sentEmailsForType[email.toLowerCase()]) { continue; }
             try {
-              var html = buildHtml(data, g.name || '', '');
-              var opts = { htmlBody: html, name: 'LUXE PARTY TOKYO', charset: 'UTF-8' };
+              var unsubUrl = gasBaseUrl
+                ? gasBaseUrl + '?action=unsubscribe&email=' + encodeURIComponent(email) + '&name=' + encodeURIComponent(g.name || '')
+                : '';
+              var html = buildHtml(data, g.name || '', unsubUrl);
+              var opts = _buildMailOpts_(html, email, g.name || '');
+              opts.name = 'LUXE PARTY TOKYO';
+              opts.charset = 'UTF-8';
               if (replyTo) opts.replyTo = replyTo;
               GmailApp.sendEmail(email, sanitizeSubject(data.subject || ''), g.name + ' 様', opts);
               logSheet.appendRow([nowStr(), campaignId, type, email, data.subject || '', 'sent']);
@@ -1563,8 +1590,14 @@ function doPost(e) {
               totalSent++;
               Utilities.sleep(300);
             } catch(mailErr) {
-              console.error('mailmag送信失敗: ' + email + ' - ' + mailErr.message);
-              logSheet.appendRow([nowStr(), campaignId, type, email, data.subject || '', 'error: ' + mailErr.message]);
+              var errMsg = mailErr.message || '';
+              console.error('mailmag送信失敗: ' + email + ' - ' + errMsg);
+              logSheet.appendRow([nowStr(), campaignId, type, email, data.subject || '', 'error: ' + errMsg]);
+              // GmailAPIクォータ超過エラーの場合はループを即中断
+              if (errMsg.toLowerCase().indexOf('quota') >= 0 || errMsg.toLowerCase().indexOf('limit') >= 0) {
+                quotaExceeded = true;
+                break;
+              }
             }
           }
           return sent;
@@ -1579,7 +1612,7 @@ function doPost(e) {
           ? '本日の上限（' + dailyLimit + '通）に達しました。残り' + remaining + '名は明日以降に送信してください。'
           : '全員への送信が完了しました。';
 
-        return res({ ok: true, sent_free: sentFree, sent_paid: sentPaid, unsubscribed: unsubCount, message: msg });
+        return res({ ok: true, sent_free: sentFree, sent_paid: sentPaid, unsubscribed: unsubCount, quota_exceeded: quotaExceeded, message: msg });
       }
 
             
@@ -1690,9 +1723,10 @@ function doPost(e) {
             }
           }
 
-          // quotaが正常に取れた場合はそちらを優先、取れなければmail_logsから計算
-          var usedCount  = (quota < 100) ? (100 - quota) : todaySent;
-          var remaining  = Math.max(0, 100 - usedCount);
+          // Google Workspace有料版のMailApp上限は1500通。mail_logsの実績値を優先使用
+          var DAILY_CAP = 1500;
+          var usedCount  = (quota < 100) ? (DAILY_CAP - quota) : todaySent;
+          var remaining  = Math.max(0, DAILY_CAP - usedCount);
 
           // リセット時間計算（PDT夏時間: JST 16:00、冬時間: JST 17:00）
           var resetHourJST = 16;
@@ -1710,7 +1744,7 @@ function doPost(e) {
           return res({
             ok:                true,
             remaining:         remaining,
-            daily_limit:       100,
+            daily_limit:       DAILY_CAP,
             used:              usedCount,
             today_sent_logs:   todaySent,
             hours_until_reset: hoursUntilReset,
