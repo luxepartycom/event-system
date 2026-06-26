@@ -670,10 +670,11 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     <nav id="nav">
       <div class="nav-logo">ENTRANCE</div>
       <div class="nav-tabs" id="nav-tabs">
-        <button class="nav-tab" onclick="showTab('guests')"  id="tab-guests">ゲスト</button>
         <button class="nav-tab" onclick="showTab('scan')"    id="tab-scan">QRスキャン</button>
-        <button class="nav-tab" onclick="showTab('charge')"  id="tab-charge">単発決済</button>
+        <button class="nav-tab" onclick="showTab('guests')"  id="tab-guests">ゲスト</button>
         <button class="nav-tab" onclick="showTab('vip')"     id="tab-vip">VIP</button>
+        <button class="nav-tab" onclick="showTab('charge')"  id="tab-charge">単発決済</button>
+        <button class="nav-tab" onclick="showTab('event')"   id="tab-event">イベント</button>
       </div>
       <a href="https://luxepartycom.github.io/event-system/LUXE_Entrance_Guide_v2.html" target="_blank"
          style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:6px 12px;font-family:inherit;font-size:0.55rem;letter-spacing:0.15em;text-decoration:none;white-space:nowrap;">
@@ -1029,6 +1030,22 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   </div>
 
 
+  <!-- イベント -->
+  <div class="page" id="page-event">
+    <div class="page-eyebrow">Event URLs</div>
+    <h1 class="page-title">イベント <span>URL</span></h1>
+
+    <div style="margin-bottom:20px;">
+      <select class="modal-select" id="ev-url-sel" style="width:100%;max-width:400px;" onchange="onEvUrlEventChange()">
+        <option value="">イベントを選択...</option>
+      </select>
+    </div>
+
+    <div id="ev-url-content" style="display:none;">
+      <div id="ev-url-list"></div>
+    </div>
+  </div>
+
   <!-- メール配信 -->
   </div>
 
@@ -1043,6 +1060,7 @@ let allGuests      = [];
 let currentEventId = '';
 let codeReader     = null;
 let scanStream     = null;
+let evUrlEventId   = '';
 let scanTimer      = null;
 let checkinBusy    = false;
 let lastScanned    = '';
@@ -1112,6 +1130,7 @@ function showTab(id) {
   if (id === 'sales')     onSalesTabOpen();
   if (id === 'mailmag')   onMailmagTabOpen();
   if (id === 'vip')       onVipTabOpenE();
+  if (id === 'event')     onEventTabOpen();
 }
 
 // ── イベント ─────────────────────────────────────────
@@ -1135,7 +1154,7 @@ function populateEventSelectors() {
   const sorted = sortedEvents();
   const latest = sorted[0]; // 最新イベント
 
-  ['g-event-sel', 'scan-event-sel'].forEach(selId => {
+  ['g-event-sel', 'scan-event-sel', 'ev-url-sel'].forEach(selId => {
     const sel = document.getElementById(selId);
     if (!sel) return; // 存在しない場合はスキップ
     const cur = sel.value;
@@ -2969,6 +2988,78 @@ async function confirmVipTransferPaymentE(guestId, guestName) {
   }
 }
 
+// ── イベントURL タブ ─────────────────────────────────────
+function onEventTabOpen() {
+  const sel = document.getElementById('ev-url-sel');
+  if (!sel) return;
+  if (!evUrlEventId && sel.value) evUrlEventId = sel.value;
+  if (!evUrlEventId && allEvents.length) evUrlEventId = sortedEvents()[0].event_id;
+  if (evUrlEventId) sel.value = evUrlEventId;
+  renderEvUrls();
+}
+
+function onEvUrlEventChange() {
+  evUrlEventId = document.getElementById('ev-url-sel').value;
+  renderEvUrls();
+}
+
+function renderEvUrls() {
+  const content = document.getElementById('ev-url-content');
+  const list    = document.getElementById('ev-url-list');
+  if (!evUrlEventId) { content.style.display = 'none'; return; }
+
+  const ev = allEvents.find(e => e.event_id === evUrlEventId);
+  if (!ev) { content.style.display = 'none'; return; }
+
+  content.style.display = 'block';
+
+  const urls = [
+    { label: '無料', cls: 'free', url: BASE_URL + 'index.html?e=' + ev.event_id + '&type=free' },
+    { label: '有料', cls: 'paid', url: BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid' },
+  ];
+
+  // 料金指定プラン
+  (ev.plans || []).forEach(p => {
+    urls.push({
+      label: p.name + (p.price ? ' ¥' + Number(p.price).toLocaleString() : ''),
+      cls: 'plan',
+      url: BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid&plan=' + p.plan_id,
+    });
+  });
+
+  list.innerHTML = urls.map((u, i) => {
+    const clsColor = u.cls === 'free'
+      ? 'color:var(--free);border-color:rgba(155,142,196,0.5)'
+      : 'color:var(--gold);border-color:rgba(201,168,76,0.5)';
+    return `
+    <div style="background:var(--dark);border:1px solid rgba(255,255,255,0.07);padding:16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:0.44rem;letter-spacing:0.08em;padding:2px 8px;border:1px solid;flex-shrink:0;${clsColor}">${escH(u.label)}</span>
+        <span style="font-size:0.52rem;color:rgba(255,255,255,0.45);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escH(u.url)}</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="copy-btn" onclick="copyEvUrl('${u.url.replace(/'/g,"\\'")}')">コピー</button>
+        <button class="copy-btn" onclick="toggleEvQr('ev-qr-${i}','${u.url.replace(/'/g,"\\'")}')">QR表示</button>
+      </div>
+      <div id="ev-qr-${i}" style="display:none;margin-top:14px;text-align:center;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(u.url)}"
+             style="width:200px;height:200px;background:#fff;padding:8px;display:block;margin:0 auto 8px;">
+        <div style="font-size:0.48rem;color:var(--gray);word-break:break-all;">${escH(u.url)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function copyEvUrl(url) {
+  navigator.clipboard.writeText(url).then(() => toast('URLをコピーしました'));
+}
+
+function toggleEvQr(id, url) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
 // ── QRコード決済 ─────────────────────────────────────────
 let qrCurrentUrl = '';
 let qrCurrentDesc = '';
@@ -3083,3 +3174,4 @@ function confirmQrPayment(idx) {
 </script>
 </body>
 </html>
+
