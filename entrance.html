@@ -32,8 +32,9 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 #app{display:none;}
 #nav{position:sticky;top:0;z-index:100;background:rgba(8,8,8,0.99);border-bottom:1px solid rgba(201,168,76,0.18);height:56px;display:flex;align-items:center;padding:0 16px;justify-content:space-between;}
 .nav-logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:0.8rem;color:var(--gold);letter-spacing:0.3em;}
-.nav-tabs{display:flex;gap:0;height:56px;}
-.nav-tab{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;padding:0 20px;font-family:inherit;font-size:0.6rem;letter-spacing:0.18em;color:var(--gray);transition:all 0.2s;text-transform:uppercase;height:100%;}
+.nav-tabs{display:flex;gap:0;height:56px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.nav-tabs::-webkit-scrollbar{display:none;}
+.nav-tab{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;padding:0 16px;font-family:inherit;font-size:0.6rem;letter-spacing:0.15em;color:var(--gray);transition:all 0.2s;text-transform:uppercase;height:100%;flex-shrink:0;white-space:nowrap;}
 .nav-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
 .btn-logout{background:none;border:none;cursor:pointer;font-size:0.58rem;letter-spacing:0.15em;color:var(--gray);font-family:inherit;}
 .btn-logout:hover{color:var(--white);}
@@ -637,8 +638,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 
 @media(max-width:480px){
   .page{padding:16px 12px;}
-  #nav{padding:0 12px;}
-  .nav-tab{padding:0 8px;font-size:0.5rem;}
+  #nav{padding:0 10px;}
+  .nav-tab{padding:0 10px;font-size:0.5rem;letter-spacing:0.06em;}
   table{min-width:460px;}
   .page-title{font-size:1.4rem;}
   .charge-card{padding:20px 16px;}
@@ -672,6 +673,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <button class="nav-tab" onclick="showTab('guests')"  id="tab-guests">ゲスト</button>
         <button class="nav-tab" onclick="showTab('scan')"    id="tab-scan">QRスキャン</button>
         <button class="nav-tab" onclick="showTab('charge')"  id="tab-charge">単発決済</button>
+        <button class="nav-tab" onclick="showTab('vip')"     id="tab-vip">VIP</button>
       </div>
       <a href="https://luxepartycom.github.io/event-system/LUXE_Entrance_Guide_v2.html" target="_blank"
          style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);padding:6px 12px;font-family:inherit;font-size:0.55rem;letter-spacing:0.15em;text-decoration:none;white-space:nowrap;">
@@ -883,6 +885,43 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 </div>
 
 
+  <!-- VIP -->
+  <div class="page" id="page-vip">
+    <div class="page-eyebrow">VIP Management</div>
+    <h1 class="page-title">VIP <span>予約管理</span></h1>
+
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
+      <select class="modal-select" id="vip-event-sel-e" style="max-width:320px;flex:1;" onchange="onVipEventChangeE()">
+        <option value="">イベントを選択...</option>
+      </select>
+      <button class="copy-btn" onclick="loadVipDataE()" style="padding:8px 14px;font-size:0.58rem;">更新</button>
+    </div>
+
+    <div id="vip-content-e" style="display:none;">
+      <!-- 集計バー -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:20px;">
+        <div style="background:var(--dark);padding:14px 16px;">
+          <div class="stat-label">総予約数</div>
+          <div class="stat-value sv-gold" id="vip-e-total">0</div>
+        </div>
+        <div style="background:var(--dark);padding:14px 16px;">
+          <div class="stat-label">確定</div>
+          <div class="stat-value sv-green" id="vip-e-confirmed">0</div>
+        </div>
+        <div style="background:var(--dark);padding:14px 16px;">
+          <div class="stat-label">振込待ち</div>
+          <div class="stat-value" style="color:var(--gold-dim);" id="vip-e-pending">0</div>
+        </div>
+      </div>
+
+      <!-- 予約リスト -->
+      <div style="font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:10px;">予約一覧</div>
+      <div id="vip-reservation-list-e">
+        <div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">データを読み込んでいます...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- 単発決済 -->
 
 
@@ -1072,6 +1111,7 @@ function showTab(id) {
   if (id === 'report')    onReportTabOpen();
   if (id === 'sales')     onSalesTabOpen();
   if (id === 'mailmag')   onMailmagTabOpen();
+  if (id === 'vip')       onVipTabOpenE();
 }
 
 // ── イベント ─────────────────────────────────────────
@@ -2833,6 +2873,101 @@ async function sendMmTestEmail(type) {
   }
 }
 
+
+// ── VIP管理 ─────────────────────────────────────────────
+let vipEventIdE     = '';
+let vipTablesE      = [];
+let vipReservationsE = [];
+
+async function onVipTabOpenE() {
+  const sel = document.getElementById('vip-event-sel-e');
+  sel.innerHTML = '<option value="">イベントを選択...</option>';
+  const evs = (allEvents || []).slice().sort((a, b) => String(b.date||'').localeCompare(String(a.date||'')));
+  evs.forEach(ev => {
+    const o = document.createElement('option');
+    o.value = ev.event_id;
+    o.textContent = ev.name + ' — ' + String(ev.date||'').substring(0,10);
+    sel.appendChild(o);
+  });
+  if (evs.length > 0) {
+    if (!vipEventIdE) vipEventIdE = evs[0].event_id;
+    sel.value = vipEventIdE;
+    document.getElementById('vip-content-e').style.display = 'block';
+    await loadVipDataE();
+  }
+}
+
+async function onVipEventChangeE() {
+  const sel = document.getElementById('vip-event-sel-e');
+  vipEventIdE = sel ? sel.value : '';
+  const content = document.getElementById('vip-content-e');
+  if (!vipEventIdE) { if (content) content.style.display = 'none'; return; }
+  if (content) content.style.display = 'block';
+  await loadVipDataE();
+}
+
+async function loadVipDataE() {
+  try {
+    const [tRes, rRes] = await Promise.all([
+      apiGet({ action: 'getVipTables',       event_id: vipEventIdE }),
+      apiGet({ action: 'getVipReservations', event_id: vipEventIdE })
+    ]);
+    vipTablesE       = (tRes && tRes.tables)       ? tRes.tables       : [];
+    vipReservationsE = (rRes && rRes.reservations) ? rRes.reservations : [];
+  } catch(e) {
+    vipTablesE       = [];
+    vipReservationsE = [];
+  }
+  renderVipReservationsE();
+}
+
+function renderVipReservationsE() {
+  const total     = vipReservationsE.length;
+  const confirmed = vipReservationsE.filter(r => r.status === 'confirmed' || r.status === 'reserved').length;
+  const pending   = vipReservationsE.filter(r => r.status === 'pending_payment').length;
+  document.getElementById('vip-e-total').textContent     = total;
+  document.getElementById('vip-e-confirmed').textContent = confirmed;
+  document.getElementById('vip-e-pending').textContent   = pending;
+
+  const el = document.getElementById('vip-reservation-list-e');
+  if (total === 0) {
+    el.innerHTML = '<div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">予約データがありません</div>';
+    return;
+  }
+
+  const statusLabel = { confirmed:'確定', reserved:'確定', pending_payment:'振込待ち', stripe_pending:'決済待ち', expired:'期限切れ' };
+  const statusColor = { confirmed:'#4CAF82', reserved:'#4CAF82', pending_payment:'#C9A84C', stripe_pending:'#6AABFF', expired:'#CF4444' };
+
+  el.innerHTML = vipReservationsE.map(r => {
+    const st    = String(r.status || '');
+    const color = statusColor[st] || '#888';
+    const label = statusLabel[st] || st;
+    const isPendingTransfer = (st === 'pending_payment' && r.payment_method === 'transfer');
+    const promoterHtml = r.invited_by ? `<div style="font-size:0.48rem;color:var(--gray);margin-top:2px;">紹介: ${r.invited_by}</div>` : '';
+    return `<div style="padding:12px 14px;background:var(--dark2);margin-bottom:3px;border-left:2px solid ${color};">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div style="font-size:0.65rem;color:var(--gold);min-width:36px;font-weight:500;">${r.table_name||'—'}</div>
+        <div style="font-size:0.62rem;color:var(--white);font-size:0.7rem;flex:1;">${r.name||'—'}</div>
+        <div style="font-size:0.5rem;color:var(--gray);">${r.payment_method==='stripe'?'カード':'振込'}</div>
+        <div style="font-size:0.5rem;color:${color};border:1px solid ${color};padding:2px 8px;white-space:nowrap;">${label}</div>
+        ${isPendingTransfer ? `<button class="copy-btn" style="font-size:0.52rem;padding:5px 10px;background:rgba(76,175,130,0.12);border-color:rgba(76,175,130,0.4);color:#4CAF82;" onclick="confirmVipTransferPaymentE('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">入金確認</button>` : ''}
+      </div>
+      ${promoterHtml}
+      ${r.men_count ? `<div style="font-size:0.48rem;color:var(--gray);margin-top:2px;">${r.men_count}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function confirmVipTransferPaymentE(guestId, guestName) {
+  if (!confirm(guestName + ' 様の入金を確認しますか？\nQRコード招待状が送信されます。')) return;
+  const d = await apiPost({ action: 'confirmVipPayment', guest_id: guestId });
+  if (d.ok) {
+    toast('入金確認完了 — QR招待状を送信しました');
+    await loadVipDataE();
+  } else {
+    toast('エラー: ' + (d.message || '処理に失敗しました'));
+  }
+}
 
 // ── QRコード決済 ─────────────────────────────────────────
 let qrCurrentUrl = '';
