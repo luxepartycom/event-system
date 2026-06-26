@@ -3013,12 +3013,9 @@ function renderEvUrls() {
 
   content.style.display = 'block';
 
-  const urls = [
-    { label: '無料', cls: 'free', url: BASE_URL + 'index.html?e=' + ev.event_id + '&type=free' },
-    { label: '有料', cls: 'paid', url: BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid' },
-  ];
+  const urls = [];
 
-  // 料金指定プラン
+  // 料金指定プランを最上位に
   (ev.plans || []).forEach(p => {
     urls.push({
       label: p.name + (p.price ? ' ¥' + Number(p.price).toLocaleString() : ''),
@@ -3026,6 +3023,11 @@ function renderEvUrls() {
       url: BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid&plan=' + p.plan_id,
     });
   });
+
+  urls.push(
+    { label: '無料', cls: 'free', url: BASE_URL + 'index.html?e=' + ev.event_id + '&type=free' },
+    { label: '有料', cls: 'paid', url: BASE_URL + 'index.html?e=' + ev.event_id + '&type=paid' },
+  );
 
   list.innerHTML = urls.map((u, i) => {
     const clsColor = u.cls === 'free'
