@@ -938,23 +938,8 @@ async function submitForm() {
     }
 
     if (payMethod === 'stripe') {
-      const s = await fetch(VERCEL, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          event_id:   EVENT_ID,
-          event_name: 'LUXE PARTY TOKYO — ' + rankType,
-          name, email,
-          gender:     'male',
-          invited_by: promoter,
-          amount:     d.price || currentPlan.price,
-          plan_id:    '',
-          cancel_url: location.href
-        })
-      }).then(r => r.json());
-
-      if (s.ok && s.checkout_url) {
-        location.href = s.checkout_url;
+      if (d.checkout_url) {
+        location.href = d.checkout_url;
       } else {
         showErr('決済ページの準備に失敗しました。お時間をおいて再度お試しください。');
       }
