@@ -4784,15 +4784,23 @@ function renderVipReservations() {
     const st = String(r.status||'');
     const color = statusColor[st] || '#888';
     const label = statusLabel[st] || st;
-    const isTransfer = r.payment_method === 'transfer';
-    const isPending  = st === 'pending_payment';
+    const isTransfer  = r.payment_method === 'transfer';
+    const isPending   = st === 'pending_payment';
+    const isConfirmed = (st === 'confirmed' || st === 'reserved');
+    const tbl = vipTables.find(t => t.table_name === r.table_name) || {};
+    const checkedCount = Number(tbl.checked_count || 0);
+    const capacity     = Number(tbl.capacity || 0);
+    const countBadge   = isConfirmed && capacity > 0
+      ? `<span style="font-size:0.48rem;color:${checkedCount>=capacity?'#CF4444':'#4CAF82'};margin-left:4px;">${checkedCount}/${capacity}名</span>`
+      : '';
     return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--dark2);margin-bottom:4px;flex-wrap:wrap;">
-      <div style="font-size:0.7rem;color:var(--white);font-weight:500;min-width:60px;">${r.table_name||'—'}</div>
+      <div style="font-size:0.7rem;color:var(--white);font-weight:500;min-width:60px;">${r.table_name||'—'}${countBadge}</div>
       <div style="font-size:0.65rem;color:var(--white);flex:1;">${r.name||'—'}</div>
       <div style="font-size:0.55rem;color:${color};border:1px solid ${color};padding:2px 8px;">${label}</div>
       <div style="font-size:0.5rem;color:var(--gray);">${r.payment_method==='stripe'?'💳':'🏦'}</div>
       ${isPending && isTransfer ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}')">✅ 入金確認</button>` : ''}
       ${st==='stripe_pending' ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}')">✅ 確認</button>` : ''}
+      ${isConfirmed ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;background:rgba(76,175,130,0.08);border-color:rgba(76,175,130,0.5);color:#4CAF82;" onclick="manualVipCheckIn('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">来場✓</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -4841,6 +4849,22 @@ async function confirmVipTransferPayment(guestId, guestName) {
   }
 }
 
+async function manualVipCheckIn(guestId, guestName) {
+  if (!confirm(guestName + ' 様の来場を記録しますか？')) return;
+  const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: vipEventId });
+  if (d.ok && d.vip_info) {
+    const v = d.vip_info;
+    const over = v.is_over ? `⚠️ 定員超過 ${v.checked_count}/${v.capacity}名` : `${v.checked_count}/${v.capacity}名入場`;
+    toast('✅ 来場記録 — ' + d.name + ' / ' + v.table_name + ' ' + over);
+  } else if (d.ok) {
+    toast('✅ 来場記録 — ' + d.name);
+  } else {
+    toast('❌ ' + (d.message || 'エラー'));
+  }
+  await loadVipData();
+}
+
 </script>
 </body>
 </html>
+

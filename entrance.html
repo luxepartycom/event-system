@@ -1799,9 +1799,13 @@ async function processCheckIn(guestId) {
       if (d.status === 'not_found') {
         setScanMsg('❌ 登録されていません: ' + guestId, 'err');
         camHideAll();
-        // スキャン枠を戻す
         const frame = document.getElementById('scan-frame-overlay');
         if (frame) frame.style.display = 'flex';
+        checkinBusy = false; return;
+      }
+      if (d.status === 'not_confirmed') {
+        setScanMsg('⚠️ 入金未確認のVIPです — 管理者に確認してください', 'err');
+        camHideAll();
         checkinBusy = false; return;
       }
       if (d.status === 'duplicate') {
@@ -3095,17 +3099,24 @@ function renderVipReservationsE() {
     const color = statusColor[st] || '#888';
     const label = statusLabel[st] || st;
     const isPendingTransfer = (st === 'pending_payment' && r.payment_method === 'transfer');
+    const isConfirmed = (st === 'confirmed' || st === 'reserved');
+    const tbl = vipTablesE.find(t => t.table_name === r.table_name) || {};
+    const checkedCount = Number(tbl.checked_count || 0);
+    const capacity     = Number(tbl.capacity || 0);
+    const countBadge   = isConfirmed && capacity > 0
+      ? `<span style="font-size:0.48rem;color:${checkedCount>=capacity?'#CF4444':'#4CAF82'};margin-left:4px;">${checkedCount}/${capacity}名</span>`
+      : '';
     const promoterHtml = r.invited_by ? `<div style="font-size:0.48rem;color:var(--gray);margin-top:2px;">紹介: ${r.invited_by}</div>` : '';
     return `<div style="padding:12px 14px;background:var(--dark2);margin-bottom:3px;border-left:2px solid ${color};">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <div style="font-size:0.65rem;color:var(--gold);min-width:36px;font-weight:500;">${r.table_name||'—'}</div>
-        <div style="font-size:0.62rem;color:var(--white);font-size:0.7rem;flex:1;">${r.name||'—'}</div>
+        <div style="font-size:0.65rem;color:var(--gold);min-width:36px;font-weight:500;">${r.table_name||'—'}${countBadge}</div>
+        <div style="font-size:0.7rem;color:var(--white);flex:1;">${r.name||'—'}</div>
         <div style="font-size:0.5rem;color:var(--gray);">${r.payment_method==='stripe'?'カード':'振込'}</div>
         <div style="font-size:0.5rem;color:${color};border:1px solid ${color};padding:2px 8px;white-space:nowrap;">${label}</div>
         ${isPendingTransfer ? `<button class="copy-btn" style="font-size:0.52rem;padding:5px 10px;background:rgba(76,175,130,0.12);border-color:rgba(76,175,130,0.4);color:#4CAF82;" onclick="confirmVipTransferPaymentE('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">入金確認</button>` : ''}
+        ${isConfirmed ? `<button class="copy-btn" style="font-size:0.52rem;padding:5px 10px;background:rgba(76,175,130,0.08);border-color:rgba(76,175,130,0.5);color:#4CAF82;" onclick="manualVipCheckInE('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">来場✓</button>` : ''}
       </div>
       ${promoterHtml}
-      ${r.men_count ? `<div style="font-size:0.48rem;color:var(--gray);margin-top:2px;">${r.men_count}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -3119,6 +3130,21 @@ async function confirmVipTransferPaymentE(guestId, guestName) {
   } else {
     toast('エラー: ' + (d.message || '処理に失敗しました'));
   }
+}
+
+async function manualVipCheckInE(guestId, guestName) {
+  if (!confirm(guestName + ' 様の来場を記録しますか？')) return;
+  const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: vipEventIdE });
+  if (d.ok && d.vip_info) {
+    const v = d.vip_info;
+    const over = v.is_over ? `⚠️ 定員超過 ${v.checked_count}/${v.capacity}名` : `${v.checked_count}/${v.capacity}名入場`;
+    toast('✅ 来場記録 — ' + d.name + ' / ' + v.table_name + ' ' + over);
+  } else if (d.ok) {
+    toast('✅ 来場記録 — ' + d.name);
+  } else {
+    toast('❌ ' + (d.message || 'エラー'));
+  }
+  await loadVipDataE();
 }
 
 // ── イベントURL タブ ─────────────────────────────────────
