@@ -4801,6 +4801,7 @@ function renderVipReservations() {
       ${isPending && isTransfer ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}')">✅ 入金確認</button>` : ''}
       ${st==='stripe_pending' ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}')">✅ 確認</button>` : ''}
       ${isConfirmed ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;background:rgba(76,175,130,0.08);border-color:rgba(76,175,130,0.5);color:#4CAF82;" onclick="manualVipCheckIn('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">来場✓</button>` : ''}
+      ${isConfirmed ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;background:rgba(106,171,255,0.08);border-color:rgba(106,171,255,0.4);color:#6AABFF;" onclick="resendVipQr('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">📨 QR再送</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -4844,6 +4845,16 @@ async function confirmVipTransferPayment(guestId, guestName) {
   if (d.ok) {
     toast('✅ 入金確認完了 — QR招待状を送信しました');
     await loadVipData();
+  } else {
+    toast('❌ ' + (d.message || 'エラーが発生しました'));
+  }
+}
+
+async function resendVipQr(guestId, guestName) {
+  if (!confirm(guestName + ' 様にQRコード招待状を再送しますか？')) return;
+  const d = await apiPost({ action: 'resendVipQr', guest_id: guestId });
+  if (d.ok) {
+    toast('✅ QR招待状を再送しました — ' + (d.email || ''));
   } else {
     toast('❌ ' + (d.message || 'エラーが発生しました'));
   }
