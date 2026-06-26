@@ -1129,6 +1129,7 @@ function showTab(id) {
   if (id === 'report')    onReportTabOpen();
   if (id === 'sales')     onSalesTabOpen();
   if (id === 'mailmag')   onMailmagTabOpen();
+  if (id === 'guests')    loadGuests(false);
   if (id === 'vip')       onVipTabOpenE();
   if (id === 'event')     onEventTabOpen();
 }
@@ -2989,11 +2990,11 @@ async function confirmVipTransferPaymentE(guestId, guestName) {
 }
 
 // ── イベントURL タブ ─────────────────────────────────────
-function onEventTabOpen() {
+async function onEventTabOpen() {
+  await loadEvents(); // GASから最新イベントデータを取得・セレクタを更新
   const sel = document.getElementById('ev-url-sel');
   if (!sel) return;
-  if (!evUrlEventId && sel.value) evUrlEventId = sel.value;
-  if (!evUrlEventId && allEvents.length) evUrlEventId = sortedEvents()[0].event_id;
+  evUrlEventId = sel.value || (allEvents.length ? sortedEvents()[0].event_id : '');
   if (evUrlEventId) sel.value = evUrlEventId;
   renderEvUrls();
 }
