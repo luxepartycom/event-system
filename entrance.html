@@ -105,6 +105,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .badge{display:inline-block;padding:3px 8px;font-size:0.48rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;}
 .badge-arrived{background:rgba(76,175,130,0.1);color:var(--arrived);border:1px solid rgba(76,175,130,0.3);}
 .badge-pending{background:rgba(255,255,255,0.04);color:var(--gray);border:1px solid rgba(255,255,255,0.1);}
+.btn-list-arrive{margin-left:6px;background:none;border:1px solid rgba(76,175,130,0.45);color:var(--arrived);padding:2px 8px;cursor:pointer;font-family:inherit;font-size:0.5rem;letter-spacing:0.08em;border-radius:2px;transition:all 0.15s;}
+.btn-list-arrive:hover{background:rgba(76,175,130,0.15);}
 .badge-paid{background:rgba(201,168,76,0.1);color:var(--gold);border:1px solid rgba(201,168,76,0.3);}
 .badge-free{background:rgba(155,142,196,0.1);color:var(--free);border:1px solid rgba(155,142,196,0.3);}
 .badge-confirmed{background:rgba(106,171,255,0.1);color:var(--cash);border:1px solid rgba(106,171,255,0.3);}
@@ -1514,7 +1516,7 @@ function renderGuestTable() {
       <td><span class="badge ${g.pay_type === 'free' ? 'badge-free' : 'badge-paid'}">${g.pay_type === 'free' ? '無料' : '有料'}</span></td>
       <td class="muted" style="font-size:0.62rem;color:${methodColor}">${g.pay_type === 'paid' ? (methodLabel || (conf ? '確認済' : '—')) : '—'}</td>
       <td class="muted">${g.pay_type === 'paid' ? '¥' + Number(g.amount || 0).toLocaleString() : '—'}</td>
-      <td>${arr ? '<span class="badge badge-arrived">来場済</span>' : '<span class="badge badge-pending">未来場</span>'}</td>`;
+      <td>${arr ? '<span class="badge badge-arrived">来場済</span>' : '<span class="badge badge-pending">未来場</span> <button class="btn-list-arrive" onclick="manualCheckInFromList(\'' + g.guest_id + '\')">来場にする</button>'}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1738,6 +1740,47 @@ function submitManualId() {
   if (!val) { toast('ゲストIDを入力してください'); return; }
   document.getElementById('manual-guest-id').value = '';
   processCheckIn(val);
+}
+
+// ── ゲスト一覧から手動で来場済みにする（QR忘れ対応） ──────────
+async function manualCheckInFromList(guestId) {
+  const g = allGuests.find(x => String(x.guest_id) === String(guestId));
+  if (!g) { toast('ゲストが見つかりません'); return; }
+  if (String(g.arrived).toUpperCase() === 'TRUE') { toast('既に来場済みです'); return; }
+  const needPay = (g.pay_type === 'paid') && String(g.pay_confirmed).toUpperCase() !== 'TRUE';
+  if (needPay) {
+    if (!confirm((g.name || guestId) + ' 様は有料・未決済です。\n決済方法の選択が必要なため、チェックイン画面へ移動します。')) return;
+    const gSel = document.getElementById('g-event-sel');
+    const sSel = document.getElementById('scan-event-sel');
+    if (gSel && sSel && gSel.value) {
+      sSel.value = gSel.value;
+      if (typeof onScanEventChange === 'function') onScanEventChange();
+    }
+    showTab('scan');
+    processCheckIn(guestId);
+    return;
+  }
+  if (!confirm((g.name || guestId) + ' 様を来場済みにします。よろしいですか？')) return;
+  try {
+    const res = await apiPost({ action: 'checkIn', guest_id: guestId });
+    if (res.ok && res.status === 'checked_in') {
+      const idx = allGuests.findIndex(x => String(x.guest_id) === String(guestId));
+      if (idx >= 0) allGuests[idx].arrived = 'TRUE';
+      updateGuestStats();
+      renderGuestTable();
+      toast('✓ ' + (res.name || g.name || '') + ' 様を来場済みにしました');
+    } else if (res.status === 'duplicate') {
+      const idx = allGuests.findIndex(x => String(x.guest_id) === String(guestId));
+      if (idx >= 0) allGuests[idx].arrived = 'TRUE';
+      updateGuestStats();
+      renderGuestTable();
+      toast('既に来場済みです');
+    } else {
+      toast('失敗: ' + (res.message || res.status || '不明なエラー'));
+    }
+  } catch (e) {
+    toast('通信エラー: ' + (e && e.message ? e.message : e));
+  }
 }
 
 // ── スキャン停止 ──────────────────────────────────────

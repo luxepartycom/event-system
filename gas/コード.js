@@ -383,6 +383,147 @@ function buildDayOfHtml(g, ev, evDateStr, payLabel, qrPageUrl, descRow, isTest) 
     + '</div>';
 }
 
+// ── 前日リマインドメール（前日18:00トリガー） ───────────────
+function tomorrowStr() {
+  var d = new Date();
+  d.setDate(d.getDate() + 1);
+  return Utilities.formatDate(d, 'Asia/Tokyo', 'yyyy-MM-dd');
+}
+
+function sendDayBeforeEmails() {
+  const tomorrow = tomorrowStr();
+  const events = sheetToObjects(sheet('events')).filter(ev => {
+    var d = ev.date;
+    var dStr = (d instanceof Date)
+      ? Utilities.formatDate(d, 'Asia/Tokyo', 'yyyy-MM-dd')
+      : String(d).substring(0, 10);
+    return dStr === tomorrow && String(ev.status) !== 'closed';
+  });
+  if (events.length === 0) return;
+
+  const gs      = sheet('guests');
+  const gsRows  = gs.getDataRange().getValues();
+  const headers = gsRows[0].map(h => String(h).trim());
+  let flagCol = headers.indexOf('reminder_day_before_sent');
+  if (flagCol < 0) {
+    gs.getRange(1, headers.length + 1).setValue('reminder_day_before_sent');
+    headers.push('reminder_day_before_sent');
+    flagCol = headers.length - 1;
+    if (gsRows.length > 1) gs.getRange(2, flagCol+1, gsRows.length-1, 1).setValue('FALSE');
+    SpreadsheetApp.flush();
+  }
+
+  let sentCount = 0;
+  events.forEach(ev => {
+    const guests    = sheetToObjects(gs).filter(g => String(g.event_id) === String(ev.event_id));
+    const evDateStr = (ev.date instanceof Date)
+      ? Utilities.formatDate(ev.date, 'Asia/Tokyo', 'yyyy年M月d日')
+      : String(ev.date).substring(0, 10);
+    const descForEmail = removeEmoji(ev.description);
+    const descRow = descForEmail
+      ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);font-size:0.72rem;color:#aaa;line-height:1.9;white-space:pre-wrap;">' + linkifyText(descForEmail) + '</div>'
+      : '';
+    guests.forEach(g => {
+      if (String(g.reminder_day_before_sent).toUpperCase() === 'TRUE') return;
+      if (!g.email) return;
+      if (String(g.arrived).toUpperCase() === 'TRUE') return;
+      try {
+        const payLabel  = g.pay_type === 'free' ? '無料招待' : '有料招待 ¥' + Number(g.amount||0).toLocaleString();
+        const qrPageUrl = 'https://luxepartycom.github.io/event-system/qr.html?id=' + encodeURIComponent(g.guest_id);
+        const subject   = '「LUXE PARTY TOKYO」明日開催のご案内 — ' + ev.name;
+        const html = buildDayBeforeHtml(g, ev, evDateStr, payLabel, qrPageUrl, descRow, false);
+        GmailApp.sendEmail(g.email, subject,
+          g.name + '様、明日は「' + ev.name + '」を開催いたします。QR: ' + qrPageUrl,
+          _buildMailOpts_(html, g.email, g.name));
+        const refreshed = gs.getDataRange().getValues();
+        const gcol = refreshed[0].map(h => String(h).trim()).indexOf('guest_id');
+        for (let i=1; i<refreshed.length; i++) {
+          if (String(refreshed[i][gcol]) === String(g.guest_id)) {
+            gs.getRange(i+1, flagCol+1).setValue('TRUE'); break;
+          }
+        }
+        sentCount++;
+        Utilities.sleep(300);
+      } catch(mailErr) {
+        console.error('前日メール失敗: ' + g.guest_id + ' - ' + mailErr.message);
+      }
+    });
+  });
+  SpreadsheetApp.flush();
+  console.log('前日メール完了: ' + sentCount + '件');
+}
+
+function buildDayBeforeHtml(g, ev, evDateStr, payLabel, qrPageUrl, descRow, isTest) {
+  var testBanner = isTest
+    ? '<div style="background:#CF4444;padding:8px;font-size:0.7rem;color:#fff;text-align:center;margin-bottom:20px;">⚠️ テスト送信 / TEST MAIL</div>'
+    : '';
+  return '<div style="background:#080808;padding:40px 20px;font-family:sans-serif;color:#F5F0E8;max-width:480px;margin:0 auto;">'
+    + testBanner
+    + '<div style="font-size:1.4rem;color:#C9A84C;letter-spacing:0.3em;margin-bottom:4px;">LUXE PARTY TOKYO</div>'
+    + '<div style="font-size:0.7rem;color:#888;letter-spacing:0.2em;margin-bottom:32px;">TOMORROW\'S EVENT</div>'
+    + '<p style="margin-bottom:8px;font-size:0.9rem;">' + g.name + ' 様</p>'
+    + '<p style="color:#aaa;font-size:0.8rem;line-height:1.8;margin-bottom:24px;">'
+    +   'この度はお申し込みいただきありがとうございます。<br>'
+    +   'いよいよ明日、イベントを開催いたします。ご参加を心よりお待ちしております。<br>'
+    +   '当日は下記ボタンから入場用QRコードをご提示ください。'
+    + '</p>'
+    + '<div style="background:#111;border:1px solid rgba(201,168,76,0.2);padding:20px 24px;text-align:center;margin-bottom:20px;">'
+    +   '<div style="font-size:0.5rem;letter-spacing:0.3em;color:#888;text-transform:uppercase;margin-bottom:10px;">GUEST ID</div>'
+    +   '<div style="font-size:1.3rem;color:#C9A84C;letter-spacing:0.15em;font-family:monospace;margin-bottom:20px;">' + g.guest_id + '</div>'
+    +   '<a href="' + qrPageUrl + '" style="display:inline-block;background:#C9A84C;color:#000;text-decoration:none;padding:14px 32px;font-size:0.7rem;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;">&#9654; QRコードを表示する</a>'
+    +   '<div style="font-size:0.55rem;color:#666;margin-top:10px;">タップするとQRコードが表示されます</div>'
+    + '</div>'
+    + '<div style="background:#111;border:1px solid rgba(255,255,255,0.06);padding:14px 20px;margin-bottom:24px;font-size:0.75rem;color:#aaa;">'
+    +   '<div style="margin-bottom:6px;">イベント: <strong style="color:#F5F0E8;">' + ev.name + '</strong></div>'
+    +   '<div style="margin-bottom:6px;">開催日: <strong style="color:#F5F0E8;">' + evDateStr + '</strong></div>'
+    +   '<div>種別: <strong style="color:#F5F0E8;">' + payLabel + '</strong></div>'
+    +   descRow
+    + '</div>'
+    + '<p style="font-size:0.6rem;color:#444;line-height:1.8;">'
+    +   (isTest ? '※ テスト送信です。' : '※ このメールはシステムから自動送信されています。<br>※ ご不明な点はお申し込みのプロモーターまでお問い合わせください。')
+    + '</p>'
+    + '</div>';
+}
+
+function sendDayBeforeEmailsTest() {
+  const gs        = sheet('guests');
+  const allGuests = sheetToObjects(gs);
+  const allEvents = sheetToObjects(sheet('events'));
+  const targets   = allGuests.filter(g => String(g.name).includes('テスト') && g.email);
+  if (!targets.length) { console.log('対象なし'); return; }
+  let sent = 0;
+  targets.forEach(g => {
+    const ev = allEvents.find(e => String(e.event_id) === String(g.event_id));
+    if (!ev) return;
+    try {
+      const payLabel  = g.pay_type === 'free' ? '無料招待' : '有料招待 ¥' + Number(g.amount||0).toLocaleString();
+      const qrPageUrl = 'https://luxepartycom.github.io/event-system/qr.html?id=' + encodeURIComponent(g.guest_id);
+      const evDateStr = (ev.date instanceof Date)
+        ? Utilities.formatDate(ev.date, 'Asia/Tokyo', 'yyyy年M月d日')
+        : String(ev.date).substring(0, 10);
+      const descForEmail = removeEmoji(ev.description);
+      const descRow = descForEmail
+        ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.1);font-size:0.72rem;color:#aaa;line-height:1.9;white-space:pre-wrap;">' + linkifyText(descForEmail) + '</div>'
+        : '';
+      const subject = '[テスト][LUXE PARTY TOKYO]前日メール — ' + ev.name;
+      GmailApp.sendEmail(g.email, subject, '[テスト]' + g.name + '様 QR: ' + qrPageUrl,
+        _buildMailOpts_(buildDayBeforeHtml(g, ev, evDateStr, payLabel, qrPageUrl, descRow, true), g.email, g.name));
+      sent++;
+      Utilities.sleep(300);
+    } catch(e) { console.log('送信エラー: ' + e.message); }
+  });
+  console.log('=== 完了: ' + sent + '件 ===');
+}
+
+// 前日リマインドの日次トリガーを設定（GASエディタで1回実行）
+function setupDayBeforeTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'sendDayBeforeEmails') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('sendDayBeforeEmails').timeBased().atHour(18).everyDays(1).create();
+  console.log('前日リマインドトリガーを設定しました（毎日18:00 JSTにsendDayBeforeEmailsを実行）');
+}
+
 function sendDayOfEmailsTest() {
   const gs        = sheet('guests');
   const allGuests = sheetToObjects(gs);
