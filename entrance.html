@@ -3111,15 +3111,9 @@ function renderVipReservationsE() {
         <div style="font-size:0.5rem;color:var(--gray);">${r.payment_method==='stripe'?'カード':'振込'}</div>
         <div style="font-size:0.5rem;color:${color};border:1px solid ${color};padding:2px 8px;white-space:nowrap;">${label}</div>
         ${isPendingTransfer ? `<button class="copy-btn" style="font-size:0.52rem;padding:5px 10px;background:rgba(76,175,130,0.12);border-color:rgba(76,175,130,0.4);color:#4CAF82;" onclick="confirmVipTransferPaymentE('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">入金確認</button>` : ''}
-        ${isConfirmed ? `<button class="copy-btn" style="font-size:0.52rem;padding:5px 10px;background:rgba(201,168,76,0.08);border-color:rgba(201,168,76,0.4);color:var(--gold);" onclick="toggleVipQrE('${r.guest_id}')">QR</button>` : ''}
         ${isConfirmed ? `<button class="copy-btn" style="font-size:0.52rem;padding:5px 10px;background:rgba(76,175,130,0.08);border-color:rgba(76,175,130,0.5);color:#4CAF82;" onclick="manualVipCheckInE('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">来場✓</button>` : ''}
       </div>
       ${promoterHtml}
-      <div id="vip-qr-e-${r.guest_id}" style="display:none;margin-top:10px;text-align:center;">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent('https://luxepartycom.github.io/event-system/vip-ticket.html?id=' + r.guest_id)}"
-             style="width:180px;height:180px;background:#fff;padding:6px;display:block;margin:0 auto 6px;">
-        <div style="font-size:0.44rem;color:var(--gray);">${r.guest_id}</div>
-      </div>
     </div>`;
   }).join('');
 }
@@ -3133,12 +3127,6 @@ async function confirmVipTransferPaymentE(guestId, guestName) {
   } else {
     toast('エラー: ' + (d.message || '処理に失敗しました'));
   }
-}
-
-function toggleVipQrE(guestId) {
-  const el = document.getElementById('vip-qr-e-' + guestId);
-  if (!el) return;
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 async function manualVipCheckInE(guestId, guestName) {
@@ -3158,7 +3146,7 @@ async function manualVipCheckInE(guestId, guestName) {
 
 // ── イベントURL タブ ─────────────────────────────────────
 async function onEventTabOpen() {
-  await loadEvents();
+  if (!allEvents.length) await loadEvents();
   const sorted = sortedEvents();
   if (!sorted.length) return;
   evUrlEventId = sorted[0].event_id;
