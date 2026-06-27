@@ -3159,10 +3159,11 @@ async function manualVipCheckInE(guestId, guestName) {
 // ── イベントURL タブ ─────────────────────────────────────
 async function onEventTabOpen() {
   await loadEvents();
+  const sorted = sortedEvents();
+  if (!sorted.length) return;
+  evUrlEventId = sorted[0].event_id;
   const sel = document.getElementById('ev-url-sel');
-  if (!sel) return;
-  // populateEventSelectors() が sel.value を最新イベントに設定済みなので直接読む
-  evUrlEventId = sel.value;
+  if (sel) sel.value = evUrlEventId;
   renderEvUrls();
 }
 
@@ -3174,9 +3175,13 @@ function onEvUrlEventChange() {
 function renderEvUrls() {
   const content = document.getElementById('ev-url-content');
   const list    = document.getElementById('ev-url-list');
+  if (!evUrlEventId) {
+    const sorted = sortedEvents();
+    if (sorted.length) evUrlEventId = sorted[0].event_id;
+  }
   if (!evUrlEventId) { content.style.display = 'none'; return; }
 
-  const ev = allEvents.find(e => e.event_id === evUrlEventId);
+  const ev = allEvents.find(e => String(e.event_id) === String(evUrlEventId));
   if (!ev) { content.style.display = 'none'; return; }
 
   content.style.display = 'block';
