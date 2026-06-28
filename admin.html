@@ -4798,8 +4798,16 @@ function renderVipMap() {
         h += `<text x="${cx}" y="${ry+rh/2+5}" text-anchor="middle" fill="#B8860B" font-size="9" font-family="sans-serif">${guestName}</text>`;
       }
       h += `<text x="${cx}" y="${ry+rh-7}" text-anchor="middle" fill="#B8860B" font-size="8" font-family="sans-serif">振込待ち</text>`;
+    } else {
+      // available: 静的SVGテキストをオーバーレイで上書きし、SSのmen_label・priceを動的表示
+      const menLabel = String(tRow.men_label || '');
+      const price    = Number(tRow.price || 0);
+      const infoLine = [menLabel, price > 0 ? '¥' + price.toLocaleString() : ''].filter(Boolean).join(' ');
+      h += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="${rr}" fill="#050d1a" opacity="0.94" stroke="#2244aa" stroke-width="1.5"/>`;
+      h += `<text x="${cx}" y="${ry+13}" text-anchor="middle" fill="#445" font-size="8" font-family="sans-serif">${tName}</text>`;
+      if (infoLine) h += `<text x="${cx}" y="${ry+rh/2+5}" text-anchor="middle" fill="#6090cc" font-size="9" font-family="sans-serif">${infoLine}</text>`;
     }
-    if (h) pushHtml(svgEl, h);
+    pushHtml(svgEl, h);
   });
   Object.keys(buf).forEach(id => { const g = document.getElementById(id); if (g) g.innerHTML = buf[id]; });
 }
