@@ -709,11 +709,12 @@ function renderPlans(tables) {
         const stockCls = isAvailable ? 'stock-available' : 'stock-out';
         const stockLbl = isAvailable ? '' : '満席';
         const priceDisp = '¥' + (g.price / 10000) + '万';
-        const benefitsList = g.benefits_str ? g.benefits_str.split(',') : [];
-        const benefitsHtml = benefitsList.map(b => `<span class="plan-benefit-tag">${b.trim()}</span>`).join('');
+        const benefitsList = g.benefits_str ? g.benefits_str.split(/[,\n]+/).map(b => b.trim()).filter(Boolean) : [];
+        const benefitsHtml = benefitsList.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
         const cardCls = isAvailable ? '' : ' sold-out';
+        const benefitsForModal = benefitsList.join(',').replace(/'/g, "\\'");
         const onclick = isAvailable
-          ? `onclick="openModal('${rankKey}','${rankName}','','${g.men_label.replace(/'/g, "\\'")}',${g.price},'${g.benefits_str.replace(/'/g, "\\'")}')"`
+          ? `onclick="openModal('${rankKey}','${rankName}','','${g.men_label.replace(/'/g, "\\'")}',${g.price},'${benefitsForModal}')"`
           : '';
 
         cardsHtml += `
