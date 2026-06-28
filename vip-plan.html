@@ -609,6 +609,10 @@ body {
       </div>
       <div id="form-error"></div>
       <button class="submit-btn" id="submit-btn" onclick="submitForm()" disabled></button>
+      <div id="submit-both" style="display:none;gap:10px;flex-direction:column;">
+        <button class="submit-btn" id="submit-btn-stripe"   onclick="submitForm('stripe')"   disabled style="background:#1e3a7a;color:#fff;">カード決済で申し込む</button>
+        <button class="submit-btn" id="submit-btn-transfer" onclick="submitForm('transfer')" disabled style="background:#7a5800;color:#fff;">銀行振込で申し込む</button>
+      </div>
     </div>
 
     <!-- Result -->
@@ -796,13 +800,10 @@ let vipTermsAgreed = false;
 function toggleVipAgree() {
   vipTermsAgreed = !vipTermsAgreed;
   const cb = document.getElementById('vip-terms-checkbox');
-  if (vipTermsAgreed) {
-    cb.classList.add('checked');
-    document.getElementById('submit-btn').disabled = false;
-  } else {
-    cb.classList.remove('checked');
-    document.getElementById('submit-btn').disabled = true;
-  }
+  cb.classList.toggle('checked', vipTermsAgreed);
+  document.getElementById('submit-btn').disabled = !vipTermsAgreed;
+  document.getElementById('submit-btn-stripe').disabled   = !vipTermsAgreed;
+  document.getElementById('submit-btn-transfer').disabled = !vipTermsAgreed;
 }
 
 function openModal(rankKey, rankLabel, location, men, price, benefitsStr) {
@@ -821,7 +822,7 @@ function openModal(rankKey, rankLabel, location, men, price, benefitsStr) {
   if (location) titleParts.unshift(location);
   document.getElementById('m-title').textContent = titleParts.join(' — ');
   document.getElementById('m-sub').textContent =
-    PAY_FIXED === 'transfer' ? '銀行振込' : PAY_FIXED === 'stripe' ? 'カード決済' : '銀行振込';
+    PAY_FIXED === 'transfer' ? '銀行振込' : PAY_FIXED === 'stripe' ? 'カード決済' : 'カード決済 / 銀行振込';
 
   // price
   document.getElementById('m-price').textContent = '¥' + price.toLocaleString();
@@ -836,11 +837,19 @@ function openModal(rankKey, rankLabel, location, men, price, benefitsStr) {
     bEl.appendChild(s);
   });
 
-  // submit btn
+  // submit btn — PAY_FIXED なしなら2ボタン表示
   const btn = document.getElementById('submit-btn');
-  btn.style.background = style.btnBg;
-  btn.style.color = style.btnTc;
-  btn.textContent = PAY_FIXED === 'stripe' ? 'カード決済で申し込む' : '銀行振込で申し込む';
+  const bothEl = document.getElementById('submit-both');
+  if (!PAY_FIXED) {
+    btn.style.display = 'none';
+    bothEl.style.display = 'flex';
+  } else {
+    btn.style.display = '';
+    bothEl.style.display = 'none';
+    btn.style.background = style.btnBg;
+    btn.style.color = style.btnTc;
+    btn.textContent = PAY_FIXED === 'stripe' ? 'カード決済で申し込む' : '銀行振込で申し込む';
+  }
 
   // reset
   ['inp-name','inp-email','inp-phone','inp-promoter'].forEach(id => {
@@ -877,7 +886,7 @@ function closeModalOutside(e) {
   if (e.target === document.getElementById('modal-overlay')) closeModal();
 }
 
-async function submitForm() {
+async function submitForm(payOverride) {
   const name     = document.getElementById('inp-name').value.trim();
   const email    = document.getElementById('inp-email').value.trim();
   const phone    = document.getElementById('inp-phone').value.trim();
@@ -890,7 +899,7 @@ async function submitForm() {
   if (!vipTermsAgreed) { showErr('利用規約に同意してください'); return; }
   errEl.style.display = 'none';
 
-  const payMethod = PAY_FIXED || 'transfer';
+  const payMethod = payOverride || PAY_FIXED || 'transfer';
   const rankType  = RANK_TYPE_MAP[currentPlan.rankKey];
 
   document.getElementById('loading').classList.add('show');
