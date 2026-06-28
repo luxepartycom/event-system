@@ -1839,7 +1839,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <input class="form-input" id="ecp-redirect" placeholder="https://..." style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.65rem;outline:none;">
     </div>
     <div class="modal-actions">
-      <button class="btn-cancel" onclick="document.getElementById('modal-edit-capacity').classList.remove('open')">キャンセル</button>
+      <button class="btn-cancel" onclick="document.getElementById('modal-edit-capacity').classList.remove('active')">キャンセル</button>
       <button class="btn-confirm" onclick="saveEditCapacity()">保存</button>
     </div>
   </div>
@@ -4500,7 +4500,7 @@ function openEditCapacityModal(planId, planName, currentCap, currentRedirect, cu
   const pm = currentPayMethods || '';
   document.getElementById('ecp-pay-card').checked   = pm === '' || pm.includes('card');
   document.getElementById('ecp-pay-walkin').checked  = pm === '' || pm.includes('walkin');
-  document.getElementById('modal-edit-capacity').classList.add('open');
+  document.getElementById('modal-edit-capacity').classList.add('active');
 }
 
 async function saveEditCapacity() {
@@ -4519,7 +4519,7 @@ async function saveEditCapacity() {
     display_text: displayText,
     payment_methods: payMethods
   });
-  document.getElementById('modal-edit-capacity').classList.remove('open');
+  document.getElementById('modal-edit-capacity').classList.remove('active');
   if (d.ok) { toast('✅ 設定を更新しました'); await loadEvents(); }
   else toast('❌ ' + (d.message || '更新に失敗しました'));
 }
