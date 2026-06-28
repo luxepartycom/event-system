@@ -650,23 +650,7 @@ const RANK_STYLE = {
   vvip:   { bg:'#3355CC', tc:'#aec6ff', btnBg:'#3355CC', btnTc:'#fff' },
 };
 
-// 特典・定員の定義（ランク+価格で決まる表示設定）
-const RANK_CONFIG = {
-  'Diamond VIP': {
-    7: { key:'diamond', men:'6〜7名', benefits:['ドンペリ x1','クリスタル x1','アルマンドマグナム x1','フード','ミネラルウォーター x10','Red Bull x10'] },
-    5: { key:'diamond', men:'4〜5名', benefits:['ドンペリ x1','クリスタル x1','アルマンドマグナム x1','フード','ミネラルウォーター x10','Red Bull x10'] }
-  },
-  'GOLD VIP':    { 1000000: { key:'gold',    men:'4〜5名', benefits:['ドンペリ x1','アルマンド x1','フード','ミネラルウォーター x5','Red Bull x5'] } },
-  'Secret VIP':  {
-     500000: { key:'secret', men:'5名', benefits:['ドンペリ x1','アルマンド x1','フード','ミネラルウォーター x5','Red Bull x5'] },
-     300000: { key:'secret', men:'4名', benefits:['クリスタル x1'] }
-  },
-  'VVIP':        {
-    300000: { key:'vvip', men:'3〜5名', benefits:['ドンペリ x1'] },
-    200000: { key:'vvip', men:'2名',    benefits:['ドンペリ x1'] },
-    100:    { key:'vvip', men:'2名',    benefits:['ドンペリ x1'] }
-  }
-};
+// 特典・人数はSSの vip_tables.men_label / vip_tables.benefits から取得
 
 // テーブル種別の表示順
 const RANK_TYPE_ORDER = ['Diamond VIP', 'GOLD VIP', 'Secret VIP', 'VVIP'];
@@ -698,7 +682,7 @@ function renderPlans(tables) {
     // Diamond VIP は同価格帯で定員が異なるため定員をキーにする
     const disc = t.table_type === 'Diamond VIP' ? Number(t.capacity) : Number(t.price);
     const key = floor + '|' + t.table_type + '|' + disc;
-    if (!groupMap[key]) groupMap[key] = { floor, table_type: t.table_type, price: Number(t.price), capacity: Number(t.capacity), disc, available: 0 };
+    if (!groupMap[key]) groupMap[key] = { floor, table_type: t.table_type, price: Number(t.price), capacity: Number(t.capacity), disc, available: 0, men_label: String(t.men_label || ''), benefits_str: String(t.benefits || '') };
     if (String(t.status) === 'available') groupMap[key].available++;
   });
 
@@ -718,18 +702,19 @@ function renderPlans(tables) {
       let cardsHtml = '';
 
       rankGroups.forEach(g => {
-        const cfgKey = rankName === 'Diamond VIP' ? g.capacity : g.price;
-        const cfg = (RANK_CONFIG[rankName] || {})[cfgKey];
-        if (!cfg) return;
+        if (!g.men_label) return;
 
+        const rankKey = RANK_KEYS[rankName] || 'vvip';
         const isAvailable = g.available > 0;
         const stockCls = isAvailable ? 'stock-available' : 'stock-out';
         const stockLbl = isAvailable ? '' : '満席';
         const priceDisp = '¥' + (g.price / 10000) + '万';
-        const benefitsHtml = cfg.benefits.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
+        const benefitsList = g.benefits_str ? g.benefits_str.split(/[,\n]+/).map(b => b.trim()).filter(Boolean) : [];
+        const benefitsHtml = benefitsList.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
         const cardCls = isAvailable ? '' : ' sold-out';
+        const benefitsForModal = benefitsList.join(',').replace(/'/g, "\\'");
         const onclick = isAvailable
-          ? `onclick="openModal('${cfg.key}','${rankName}','','${cfg.men}',${g.price},'${cfg.benefits.join(',')}')"`
+          ? `onclick="openModal('${rankKey}','${rankName}','','${g.men_label.replace(/'/g, "\\'")}',${g.price},'${benefitsForModal}')"`
           : '';
 
         cardsHtml += `
@@ -737,7 +722,7 @@ function renderPlans(tables) {
             <div class="plan-card-inner">
               <div>
                 ${isAvailable ? '' : `<div class="plan-stock ${stockCls}"><span class="plan-stock-dot"></span>${stockLbl}</div>`}
-                <div class="plan-men">${cfg.men}</div>
+                <div class="plan-men">${g.men_label}</div>
                 <div class="plan-benefits">${benefitsHtml}</div>
               </div>
               <div class="plan-right">
