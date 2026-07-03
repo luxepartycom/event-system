@@ -105,6 +105,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 .badge-arrived{background:rgba(76,175,130,0.1);color:var(--arrived);border:1px solid rgba(76,175,130,0.3);}
 .badge-pending{background:rgba(255,255,255,0.04);color:var(--gray);border:1px solid rgba(255,255,255,0.1);}
 .btn-list-arrive{margin-left:6px;background:none;border:1px solid rgba(76,175,130,0.45);color:var(--arrived);padding:2px 8px;cursor:pointer;font-family:inherit;font-size:0.5rem;letter-spacing:0.08em;border-radius:2px;transition:all 0.15s;}
+.btn-list-edit{margin-left:6px;background:none;border:1px solid rgba(201,168,76,0.45);color:var(--gold);padding:2px 8px;cursor:pointer;font-family:inherit;font-size:0.5rem;letter-spacing:0.08em;border-radius:2px;transition:all 0.15s;}
+.btn-list-edit:hover{background:rgba(201,168,76,0.12);}
 .btn-list-arrive:hover{background:rgba(76,175,130,0.15);}
 .badge-paid{background:rgba(201,168,76,0.1);color:var(--gold);border:1px solid rgba(201,168,76,0.3);}
 .badge-free{background:rgba(155,142,196,0.1);color:var(--free);border:1px solid rgba(155,142,196,0.3);}
@@ -1750,6 +1752,39 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   </div>
 </div>
 
+<!-- モーダル: 登録内容（支払まわり）の修正 -->
+<div class="modal-overlay" id="modal-edit-guest">
+  <div class="modal">
+    <div class="modal-title">登録内容の修正</div>
+    <div class="modal-note" id="eg-guest-label" style="margin-bottom:14px;color:var(--gold);"></div>
+    <div class="modal-group">
+      <label class="form-label">区分</label>
+      <select class="modal-select" id="eg-pay-type" style="width:100%;" onchange="onEgTypeChange()">
+        <option value="paid">有料</option>
+        <option value="free">無料</option>
+      </select>
+    </div>
+    <div class="modal-group" id="eg-method-group">
+      <label class="form-label">支払方法</label>
+      <select class="modal-select" id="eg-payment-method" style="width:100%;">
+        <option value="cash">💵 現金</option>
+        <option value="card">💳 カード</option>
+        <option value="paypay">📱 PayPay</option>
+        <option value="stripe">✅ 事前決済済み</option>
+      </select>
+    </div>
+    <div class="modal-group" id="eg-amount-group">
+      <label class="form-label">金額 (¥)</label>
+      <input class="form-input" id="eg-amount" type="number" placeholder="5000">
+    </div>
+    <div class="modal-note">「無料」に変更すると支払方法・金額は自動でクリアされ、売上（現金/カード/PayPay）集計から外れます。</div>
+    <div class="modal-actions">
+      <button class="btn-cancel"  onclick="closeModal('modal-edit-guest')">キャンセル</button>
+      <button class="btn-confirm" onclick="saveGuestEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- モーダル: イベント詳細編集 -->
 <div class="modal-overlay" id="modal-edit-desc">
   <div class="modal">
@@ -2390,9 +2425,77 @@ function renderGuestTable() {
       <td><span class="badge ${g.pay_type === 'free' ? 'badge-free' : 'badge-paid'}">${g.pay_type === 'free' ? '無料' : '有料'}</span></td>
       <td class="muted" style="font-size:0.62rem;color:${methodColor}">${g.pay_type === 'paid' ? (methodLabel || (conf ? '確認済' : '—')) : '—'}</td>
       <td class="muted">${g.pay_type === 'paid' ? '¥' + Number(g.amount || 0).toLocaleString() : '—'}</td>
-      <td>${arr ? '<span class="badge badge-arrived">来場済</span>' : '<span class="badge badge-pending">未来場</span> <button class="btn-list-arrive" onclick="manualCheckInFromList(\'' + g.guest_id + '\')">来場にする</button>'}</td>`;
+      <td>${arr ? '<span class="badge badge-arrived">来場済</span>' : '<span class="badge badge-pending">未来場</span> <button class="btn-list-arrive" onclick="manualCheckInFromList(\'' + g.guest_id + '\')">来場にする</button>'} <button class="btn-list-edit" onclick="openEditGuest(\'' + g.guest_id + '\')">編集</button></td>`;
     tbody.appendChild(tr);
   });
+}
+
+// ── 登録内容（支払まわり）の修正 ─────────────────────
+let egCurrentGuestId = null;
+function openEditGuest(guestId) {
+  const g = allGuests.find(x => String(x.guest_id) === String(guestId));
+  if (!g) { toast('ゲストが見つかりません'); return; }
+  egCurrentGuestId = guestId;
+  document.getElementById('eg-guest-label').textContent =
+    (g.name || guestId) + '（' + (g.gender === 'female' ? '女' : '男') + '）';
+  document.getElementById('eg-pay-type').value = g.pay_type === 'free' ? 'free' : 'paid';
+  const method = (g.payment_method || '').toLowerCase();
+  document.getElementById('eg-payment-method').value =
+    ['cash','card','paypay','stripe'].includes(method) ? method : 'cash';
+  document.getElementById('eg-amount').value = Number(g.amount || 0);
+  onEgTypeChange();
+  document.getElementById('modal-edit-guest').classList.add('active');
+}
+
+function onEgTypeChange() {
+  const isFree = document.getElementById('eg-pay-type').value === 'free';
+  document.getElementById('eg-method-group').style.display = isFree ? 'none' : 'block';
+  document.getElementById('eg-amount-group').style.display = isFree ? 'none' : 'block';
+}
+
+async function saveGuestEdit() {
+  if (!egCurrentGuestId) return;
+  const g = allGuests.find(x => String(x.guest_id) === String(egCurrentGuestId));
+  if (!g) { toast('ゲストが見つかりません'); return; }
+  const payType = document.getElementById('eg-pay-type').value;
+  let payment_method, amount;
+  if (payType === 'free') {
+    payment_method = '';   // 支払方法クリア
+    amount = 0;            // 金額クリア
+  } else {
+    payment_method = document.getElementById('eg-payment-method').value;
+    amount = Number(document.getElementById('eg-amount').value || 0);
+  }
+  const btn = event && event.target;
+  if (btn) btn.disabled = true;
+  const res = await apiPost({
+    action: 'updateGuestPayment',
+    guest_id: egCurrentGuestId,
+    event_id: g.event_id || '',
+    pay_type: payType,
+    payment_method: payment_method,
+    amount: amount,
+    pay_confirmed: 'TRUE',   // 区分・支払方法を確定＝確認済み扱い
+    editor: 'admin'
+  });
+  if (btn) btn.disabled = false;
+  if (res.ok) {
+    const idx = allGuests.findIndex(x => String(x.guest_id) === String(egCurrentGuestId));
+    if (idx >= 0) {
+      allGuests[idx].pay_type       = payType;
+      allGuests[idx].payment_method = payment_method;
+      allGuests[idx].amount         = amount;
+      allGuests[idx].pay_confirmed  = 'TRUE';
+    }
+    // レポート用キャッシュを無効化（次回開いた時に最新へ）
+    if (g.event_id) invalidateGuestCache(g.event_id);
+    updateGuestStats();
+    renderGuestTable();
+    closeModal('modal-edit-guest');
+    toast('✓ 登録内容を修正しました' + (res.changed && res.changed.length ? '（' + res.changed.length + '項目）' : '（変更なし）'));
+  } else {
+    toast('修正失敗: ' + (res.message || '不明なエラー'));
+  }
 }
 
 // ── 招待者別集計 ─────────────────────────────────────
@@ -3346,7 +3449,7 @@ function renderReportTable() {
       <td class="r">${rate}%</td>
       <td class="r" style="color:var(--gold);">${r.paidMArrived||0}</td>
       <td class="r" style="color:var(--gold);">${r.paidFArrived||0}</td>
-      <td class="r" style="color:var(--free);">${r.freeMTotal||0}</td>
+      <td class="r" style="color:var(--free);">${r.freeMArrived||0}</td>
       <td class="r" style="color:var(--free);">${r.freeFArrived||0}</td>
       <td class="r">${r.cash}</td><td class="r">${r.card}</td><td class="r">${r.paypay}</td>`;
     tbody.appendChild(tr);
