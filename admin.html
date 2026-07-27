@@ -1547,7 +1547,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         </div>
         <div class="mm-field">
           <label class="mm-label">CTAリンクURL</label>
-          <input class="mm-input" id="mm-free-cta-url" placeholder="https://luxepartycom.github.io/event-system/index.html?e=...">
+          <input class="mm-input" id="mm-free-cta-url" placeholder="https://entry.luxepartytokyo.com/index.html?e=...">
         </div>
       </div>
 
@@ -1581,7 +1581,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         </div>
         <div class="mm-field">
           <label class="mm-label">CTAリンクURL</label>
-          <input class="mm-input" id="mm-paid-cta-url" placeholder="https://luxepartycom.github.io/event-system/index.html?e=...">
+          <input class="mm-input" id="mm-paid-cta-url" placeholder="https://entry.luxepartytokyo.com/index.html?e=...">
         </div>
       </div>
     </div>
@@ -1922,7 +1922,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     </div>
     <div class="modal-group">
       <label style="font-size:0.52rem;letter-spacing:0.15em;color:var(--gray);display:block;margin-bottom:8px;">上限到達時の誘導先URL（任意）</label>
-      <input class="form-input" id="plan-redirect" placeholder="https://luxepartycom.github.io/event-system/index.html?e=EV-XXX&type=paid" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.65rem;outline:none;">
+      <input class="form-input" id="plan-redirect" placeholder="https://entry.luxepartytokyo.com/index.html?e=EV-XXX&type=paid" style="width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);padding:10px 0;color:var(--white);font-family:inherit;font-size:0.65rem;outline:none;">
       <div style="font-size:0.52rem;color:var(--gray);margin-top:6px;">上限到達時に誘導したいURLを直接入力（プランあり・なし・外部URL問わず）</div>
     </div>
     <div class="modal-group">
@@ -1951,7 +1951,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 const _PROD_API = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
 const _STG_API  = 'https://script.google.com/macros/s/AKfycbwYH2RFU4G2RYF6XyYn9-kv5CPSoNREKj52N5-WnKLn7kIAE3KFaEK0Ubn0OQQdvlDJ/exec';
 const API       = /localhost|\.vercel\.app/.test(location.hostname) ? _STG_API : _PROD_API;
-const BASE_URL = 'https://luxepartycom.github.io/event-system/';
+const BASE_URL = 'https://entry.luxepartytokyo.com/';
 
 let allEvents      = [];
 let allGuests      = [];
