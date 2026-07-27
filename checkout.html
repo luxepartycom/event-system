@@ -74,19 +74,22 @@ window.addEventListener('load', async () => {
     return;
   }
   try {
-    // localStorageからplan_idとgenderを取得（index.htmlで保存済み）
-    const pendingPlanId = localStorage.getItem('lpt_pending_plan')   || '';
-    const pendingGender = localStorage.getItem('lpt_pending_gender') || '';
+    // localStorageからplan_id・gender・初参加を取得（index.htmlで保存済み）
+    const pendingPlanId   = localStorage.getItem('lpt_pending_plan')      || '';
+    const pendingGender   = localStorage.getItem('lpt_pending_gender')    || '';
+    const pendingFirstTime = localStorage.getItem('lpt_pending_firsttime') || '';
     localStorage.removeItem('lpt_pending_plan');
     localStorage.removeItem('lpt_pending_gender');
     localStorage.removeItem('lpt_pending_promoter');
     localStorage.removeItem('lpt_pending_event');
+    localStorage.removeItem('lpt_pending_firsttime');
 
     const d = await apiPost({
       action:     'completeStripePayment',
       session_id: session_id,
       plan_id:    pendingPlanId,
-      gender:     pendingGender
+      gender:     pendingGender,
+      first_time: pendingFirstTime
     });
     document.getElementById('loading').style.display = 'none';
     if (!d.ok) {

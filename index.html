@@ -169,6 +169,13 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
       <button class="gender-btn" id="g-female" onclick="selectGender('female')">女性</button>
     </div>
   </div>
+  <div class="form-section">
+    <label class="form-label">LUXE PARTYは初めてですか？</label>
+    <div class="gender-row">
+      <button class="gender-btn" id="ft-first"  onclick="selectFirstTime('yes')">初めて</button>
+      <button class="gender-btn" id="ft-repeat" onclick="selectFirstTime('no')">2回目以降</button>
+    </div>
+  </div>
   <div class="form-section" id="f-invited-by-section">
     <label class="form-label">招待者名（プロモーター名）</label>
     <input class="form-input" id="f-invited-by" placeholder="紹介してくれた方のお名前">
@@ -276,8 +283,8 @@ body{background:var(--black);color:var(--white);font-family:-apple-system,'Hirag
 const _PROD_API = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
 const _STG_API  = 'https://script.google.com/macros/s/AKfycbwYH2RFU4G2RYF6XyYn9-kv5CPSoNREKj52N5-WnKLn7kIAE3KFaEK0Ubn0OQQdvlDJ/exec';
 const API       = /localhost|\.vercel\.app/.test(location.hostname) ? _STG_API : _PROD_API;
-const BASE_URL = 'https://luxepartycom.github.io/event-system/';
-let currentEvent=null,currentPayType='paid',selectedGender='',termsAgreed=false,hiddenPromoter='',currentPlanId='',currentPlanName='';
+const BASE_URL = 'https://entry.luxepartytokyo.com/';
+let currentEvent=null,currentPayType='paid',selectedGender='',selectedFirstTime='',termsAgreed=false,hiddenPromoter='',currentPlanId='',currentPlanName='';
 function _sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 // 読み取り系API用：コールドスタート対策の自動リトライ＋タイムアウト
 async function _fetchJsonRetry(url, opts, tries=3, delay=1500){
@@ -432,6 +439,12 @@ function selectGender(g){
   updatePlanBadgeByGender(g);
 }
 
+function selectFirstTime(v){
+  selectedFirstTime=v;
+  document.getElementById('ft-first').classList.toggle('active',v==='yes');
+  document.getElementById('ft-repeat').classList.toggle('active',v==='no');
+}
+
 function updatePlanBadgeByGender(gender) {
   if (!currentPlanId || !window._planData) return;
   const p = window._planData;
@@ -498,11 +511,11 @@ function getFormData(){
   const email=document.getElementById('f-email').value.trim();
   const invitedBy=hiddenPromoter||document.getElementById('f-invited-by').value.trim();
   const errEl=document.getElementById('form-error');
-  if(!name||!email||!selectedGender||(!hiddenPromoter&&!invitedBy)){errEl.textContent='すべての項目を入力してください';errEl.style.display='block';return null;}
+  if(!name||!email||!selectedGender||!selectedFirstTime||(!hiddenPromoter&&!invitedBy)){errEl.textContent='すべての項目を入力してください';errEl.style.display='block';return null;}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='メールアドレスの形式が正しくありません';errEl.style.display='block';return null;}
   if(!termsAgreed){errEl.textContent='利用規約に同意してください';errEl.style.display='block';return null;}
   errEl.style.display='none';
-  return {name,email,invitedBy};
+  return {name,email,invitedBy,firstTime:selectedFirstTime};
 }
 
 async function stripeCheckout(){
@@ -530,7 +543,7 @@ async function stripeCheckout(){
         body:JSON.stringify({action:'registerGuest',event_id:currentEvent.event_id,
           name:fd0.name,email:fd0.email,gender:selectedGender,
           invited_by:fd0.invitedBy,pay_type:'free',amount:0,
-          payment_method:'free_female',plan_id:currentPlanId||''})});
+          payment_method:'free_female',plan_id:currentPlanId||'',first_time:selectedFirstTime})});
       const res0=await d0.json();
       btn0.disabled=false;
       btn0.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む';
@@ -559,10 +572,11 @@ async function stripeCheckout(){
   try {
     // Vercel経由でStripe Checkout Session作成（GASより高速）
     // Stripe遷移前にplan_id・gender・promoterを保存（checkout.htmlで使用）
-    localStorage.setItem('lpt_pending_plan',     currentPlanId || '');
-    localStorage.setItem('lpt_pending_gender',   selectedGender || '');
-    localStorage.setItem('lpt_pending_promoter', invitedBy || '');
-    localStorage.setItem('lpt_pending_event',    currentEvent.event_id || '');
+    localStorage.setItem('lpt_pending_plan',      currentPlanId || '');
+    localStorage.setItem('lpt_pending_gender',    selectedGender || '');
+    localStorage.setItem('lpt_pending_promoter',  invitedBy || '');
+    localStorage.setItem('lpt_pending_event',     currentEvent.event_id || '');
+    localStorage.setItem('lpt_pending_firsttime', selectedFirstTime || '');
 
     const stripeRes=await fetch('https://event-system-kappa.vercel.app/api/checkout',{
       method:'POST',
@@ -625,7 +639,7 @@ async function submitForm(){
         return;
       }
     }
-    const data=await apiPost({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType,plan_id:currentPlanId||''});
+    const data=await apiPost({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType,plan_id:currentPlanId||'',first_time:selectedFirstTime});
     if(!data.ok){document.getElementById('form-error').textContent=data.message||'エラーが発生しました';document.getElementById('form-error').style.display='block';btn.disabled=false;return;}
     showResult(data,name,email,invitedBy);
     apiPost({action:'sendQREmail',guest_id:data.guest_id,email,name,pay_type:data.pay_type,amount:data.amount,event_name:currentEvent.name,description:currentEvent.description||''}).catch(()=>{});

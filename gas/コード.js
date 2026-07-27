@@ -211,6 +211,40 @@ function todayStr() {
   return Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
 }
 
+// 指定シートに列(ヘッダー名)が無ければ末尾に追加し、0基点の列indexを返す
+function ensureCol_(sh, name) {
+  var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+  var idx = hdr.indexOf(name);
+  if (idx < 0) {
+    idx = hdr.length;
+    sh.getRange(1, idx + 1).setValue(name);
+    SpreadsheetApp.flush();
+  }
+  return idx;
+}
+
+// first_time 入力(yes/no)を正規化。未選択は空文字。
+function normFirstTime_(v) {
+  var s = String(v == null ? '' : v).trim().toLowerCase();
+  if (s === 'yes' || s === 'first' || s === '初めて') return 'yes';
+  if (s === 'no' || s === 'repeat' || s === '2回目以降') return 'no';
+  return '';
+}
+
+// guests シートの該当 guest_id 行に first_time を書き込む(ヘッダー無ければ追加)
+function setGuestFirstTime_(id, ftVal) {
+  var gs = sheet('guests');
+  if (!gs) return;
+  var idx = ensureCol_(gs, 'first_time');
+  var col1 = gs.getRange(1, 1, gs.getLastRow(), 1).getValues();
+  for (var r = col1.length - 1; r >= 1; r--) {   // 新規は末尾濃厚なので末尾から探索
+    if (String(col1[r][0]) === String(id)) {
+      gs.getRange(r + 1, idx + 1).setValue(ftVal);
+      return;
+    }
+  }
+}
+
 function removeEmoji(str) {
   if (!str) return '';
   var s = String(str);
@@ -327,7 +361,7 @@ function sendDayOfEmails() {
       if (String(g.arrived).toUpperCase() === 'TRUE') return;
       try {
         const payLabel  = g.pay_type === 'free' ? '\u7121\u6599\u62db\u5f85' : '\u6709\u6599\u62db\u5f85 \u00a5' + Number(g.amount||0).toLocaleString();
-        const qrPageUrl = 'https://luxepartycom.github.io/event-system/qr.html?id=' + encodeURIComponent(g.guest_id);
+        const qrPageUrl = 'https://entry.luxepartytokyo.com/qr.html?id=' + encodeURIComponent(g.guest_id);
         const subject   = '\u300cLUXE PARTY TOKYO\u300d\u672c\u65e5\u958b\u50ac\u306e\u3054\u6848\u5185 \u2014 ' + ev.name;
         const html = buildDayOfHtml(g, ev, evDateStr, payLabel, qrPageUrl, descRow, false);
         GmailApp.sendEmail(g.email, subject,
@@ -429,7 +463,7 @@ function sendDayBeforeEmails() {
       if (String(g.arrived).toUpperCase() === 'TRUE') return;
       try {
         const payLabel  = g.pay_type === 'free' ? '無料招待' : '有料招待 ¥' + Number(g.amount||0).toLocaleString();
-        const qrPageUrl = 'https://luxepartycom.github.io/event-system/qr.html?id=' + encodeURIComponent(g.guest_id);
+        const qrPageUrl = 'https://entry.luxepartytokyo.com/qr.html?id=' + encodeURIComponent(g.guest_id);
         const subject   = '「LUXE PARTY TOKYO」明日開催のご案内 — ' + ev.name;
         const html = buildDayBeforeHtml(g, ev, evDateStr, payLabel, qrPageUrl, descRow, false);
         GmailApp.sendEmail(g.email, subject,
@@ -497,7 +531,7 @@ function sendDayBeforeEmailsTest() {
     if (!ev) return;
     try {
       const payLabel  = g.pay_type === 'free' ? '無料招待' : '有料招待 ¥' + Number(g.amount||0).toLocaleString();
-      const qrPageUrl = 'https://luxepartycom.github.io/event-system/qr.html?id=' + encodeURIComponent(g.guest_id);
+      const qrPageUrl = 'https://entry.luxepartytokyo.com/qr.html?id=' + encodeURIComponent(g.guest_id);
       const evDateStr = (ev.date instanceof Date)
         ? Utilities.formatDate(ev.date, 'Asia/Tokyo', 'yyyy年M月d日')
         : String(ev.date).substring(0, 10);
@@ -536,7 +570,7 @@ function sendDayOfEmailsTest() {
     if (!ev) return;
     try {
       const payLabel  = g.pay_type === 'free' ? '\u7121\u6599\u62db\u5f85' : '\u6709\u6599\u62db\u5f85 \u00a5' + Number(g.amount||0).toLocaleString();
-      const qrPageUrl = 'https://luxepartycom.github.io/event-system/qr.html?id=' + encodeURIComponent(g.guest_id);
+      const qrPageUrl = 'https://entry.luxepartytokyo.com/qr.html?id=' + encodeURIComponent(g.guest_id);
       const evDateStr = (ev.date instanceof Date)
         ? Utilities.formatDate(ev.date, 'Asia/Tokyo', 'yyyy\u5e74M\u6708d\u65e5')
         : String(ev.date).substring(0, 10);
@@ -599,7 +633,7 @@ function doGet(e) {
         // 返却する列を必要最小限に絞る（速度改善）
         var NEEDED = ['guest_id','event_id','name','email','gender',
                       'invited_by','pay_type','amount','pay_confirmed',
-                      'arrived','payment_method'];
+                      'arrived','payment_method','first_time'];
 
         function fetchFromSheetLite(sheetName) {
           var s = sheet(sheetName);
@@ -850,6 +884,8 @@ function doPost(e) {
           payType, amount, 'FALSE', 'FALSE', '', nowStr(), '', 'FALSE', '', planId
         ]);
         SpreadsheetApp.flush();
+        // 初参加か否か（初めて=yes / 2回目以降=no）をヘッダー安全に記録
+        setGuestFirstTime_(id, normFirstTime_(body.first_time));
         // プラン申込数を+1（男女別）
         if (planId) {
           var ps8 = sheet('event_plans');
@@ -1133,7 +1169,7 @@ function doPost(e) {
         var descForEmail = removeEmoji(description);
         var payLabel     = pay_type === 'free' ? '\u7121\u6599\u62db\u5f85' : '\u6709\u6599 \u00a5' + Number(amount).toLocaleString();
         var subject      = '\u300cLUXE PARTY TOKYO\u300d\u3054\u767b\u9332\u5b8c\u4e86 \u2014 \u5165\u5834QR\u30b3\u30fc\u30c9';
-        var qrPageUrl    = 'https://luxepartycom.github.io/event-system/qr.html?id=' + encodeURIComponent(guest_id);
+        var qrPageUrl    = 'https://entry.luxepartytokyo.com/qr.html?id=' + encodeURIComponent(guest_id);
         var eventRow = event_name
           ? '<div style="margin-bottom:6px;">\u30a4\u30d9\u30f3\u30c8: <strong style="color:#F5F0E8;">' + event_name + '</strong></div>'
           : '';
@@ -1375,8 +1411,8 @@ function doPost(e) {
         var s_amount     = Number(body.amount || 0);
         var s_event_name = body.event_name || '';
         if (!s_event_id || !s_name || !s_email || s_amount <= 0) return res({ ok: false, message: '\u30d1\u30e9\u30e1\u30fc\u30bf\u4e0d\u8db3' });
-        var successUrl = 'https://luxepartycom.github.io/event-system/checkout.html?session_id={CHECKOUT_SESSION_ID}';
-        var cancelUrl  = 'https://luxepartycom.github.io/event-system/index.html?e=' + s_event_id + '&type=paid';
+        var successUrl = 'https://entry.luxepartytokyo.com/checkout.html?session_id={CHECKOUT_SESSION_ID}';
+        var cancelUrl  = 'https://entry.luxepartytokyo.com/index.html?e=' + s_event_id + '&type=paid';
         var payload = 'mode=payment'
           + '&payment_method_types[]=card'
           + '&line_items[0][price_data][currency]=jpy'
@@ -1468,6 +1504,10 @@ function doPost(e) {
           if (hMap2['payment_method'] !== undefined) newRow2[hMap2['payment_method']] = 'stripe';
           if (hMap2['reminder_sent']  !== undefined) newRow2[hMap2['reminder_sent']]  = 'FALSE';
           newRow2[sColIdx] = session_id;
+          // 初参加か否か（checkout.html が localStorage から引き継いだ値）
+          var ftColIdx2 = ensureCol_(gSheet2, 'first_time');
+          while (newRow2.length <= ftColIdx2) newRow2.push('');
+          newRow2[ftColIdx2] = normFirstTime_(body.first_time);
           gSheet2.appendRow(newRow2);
           SpreadsheetApp.flush();
           // イベント情報取得してQRメール送信
@@ -1519,7 +1559,7 @@ function doPost(e) {
             console.log('QRメール送信開始: to=' + g2_email + ' guest=' + new_gid);
             if (!g2_email) throw new Error('メールアドレスが空です');
             var d2Email   = removeEmoji(ev2_desc);
-            var qrUrl2    = 'https://luxepartycom.github.io/event-system/qr.html?id=' + encodeURIComponent(new_gid);
+            var qrUrl2    = 'https://entry.luxepartytokyo.com/qr.html?id=' + encodeURIComponent(new_gid);
             var subj2     = '\u300cLUXE PARTY TOKYO\u300d\u3054\u767b\u9332\u5b8c\u4e86 \u2014 \u5165\u5834QR\u30b3\u30fc\u30c9';
             var evRow2    = ev2_name ? '<div style="margin-bottom:6px;">\u30a4\u30d9\u30f3\u30c8: <strong style="color:#F5F0E8;">' + ev2_name + '</strong></div>' : '';
             var descRow2  = d2Email  ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);font-size:0.72rem;color:#aaa;line-height:1.9;white-space:pre-wrap;">' + linkifyText(d2Email) + '</div>' : '';
@@ -2496,8 +2536,8 @@ function doPost(e) {
               var skR2 = PropertiesService.getScriptProperties().getProperty('STRIPE_SECRET_KEY')||'';
               if (skR2) {
                 var sProdNameR = (evNameVR||'LUXE PARTY TOKYO')+' — '+tTypeR;
-                var sSuccessR = 'https://luxepartycom.github.io/event-system/vip-checkout.html?session_id={CHECKOUT_SESSION_ID}';
-                var sCancelR  = 'https://luxepartycom.github.io/event-system/vip-plan.html?e='+evIdR2;
+                var sSuccessR = 'https://entry.luxepartytokyo.com/vip-checkout.html?session_id={CHECKOUT_SESSION_ID}';
+                var sCancelR  = 'https://entry.luxepartytokyo.com/vip-plan.html?e='+evIdR2;
                 var sPayloadR = 'mode=payment'
                   +'&payment_method_types[0]=card'
                   +'&line_items[0][price_data][currency]=jpy'
@@ -2558,7 +2598,7 @@ function doPost(e) {
             for(var ei3=1;ei3<evR3.length;ei3++){if(String(evR3[ei3][evH3.indexOf('event_id')])===evId3){evName3=String(evR3[ei3][evH3.indexOf('name')]||'');break;}}}
           try {
             var rTo3=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
-            var qrUrl3='https://luxepartycom.github.io/event-system/vip-ticket.html?id='+guestId3;
+            var qrUrl3='https://entry.luxepartytokyo.com/vip-ticket.html?id='+guestId3;
             GmailApp.sendEmail(toEmail3,'【LUXE PARTY TOKYO】VIPご招待状 / QRコード',
               toName3+'様\n\nお振込を確認いたしました。誠にありがとうございます。\nご予約が確定いたしました。\n\n■当日のご案内\n受付にて以下のQRコードをご提示ください。\nQRコードURL: '+qrUrl3+'\n\n本QRコードはご来場予定の各位にご共有いただけます。受付にて各自ご提示ください。\nご入場は購入席数を上限とさせていただきます。上限を超えるご入場をご希望の場合は、男性お一人につき5万円の追加料金が発生いたします。\n\n■ご注意\n・本予約はキャンセル・返金不可となります。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nLUXE PARTY TOKYO\n'+rTo3,
               {name:'LUXE PARTY TOKYO',replyTo:rTo3});
@@ -2599,7 +2639,7 @@ function doPost(e) {
           if(!skL) return res({ok:false,message:'Stripe設定がありません'});
           var evNameL='',evSL=sheet('events');
           if(evSL){var evRL=evSL.getDataRange().getValues(),evHL=evRL[0].map(function(c){return String(c).trim();});for(var ei=1;ei<evRL.length;ei++){if(String(evRL[ei][evHL.indexOf('event_id')])===evIdL){evNameL=String(evRL[ei][evHL.indexOf('name')]||'');break;}}}
-          var pL='mode=payment&payment_method_types[0]=card&line_items[0][price_data][currency]=jpy&line_items[0][price_data][unit_amount]='+tPriceL+'&line_items[0][price_data][product_data][name]='+encodeURIComponent(evNameL+' VIP '+tNameL+' 飲食代')+'&line_items[0][quantity]=1&success_url='+encodeURIComponent('https://luxepartycom.github.io/event-system/vip-checkout.html?session_id={CHECKOUT_SESSION_ID}')+'&cancel_url='+encodeURIComponent('https://luxepartycom.github.io/event-system/')+'&customer_email='+encodeURIComponent(guestEmail)+'&metadata[event_id]='+evIdL+'&metadata[table_id]='+tableIdL+'&metadata[table_name]='+tNameL+'&metadata[guest_id]='+vGidL+'&metadata[name]='+encodeURIComponent(guestName)+'&metadata[amount]='+tPriceL;
+          var pL='mode=payment&payment_method_types[0]=card&line_items[0][price_data][currency]=jpy&line_items[0][price_data][unit_amount]='+tPriceL+'&line_items[0][price_data][product_data][name]='+encodeURIComponent(evNameL+' VIP '+tNameL+' 飲食代')+'&line_items[0][quantity]=1&success_url='+encodeURIComponent('https://entry.luxepartytokyo.com/vip-checkout.html?session_id={CHECKOUT_SESSION_ID}')+'&cancel_url='+encodeURIComponent('https://entry.luxepartytokyo.com/')+'&customer_email='+encodeURIComponent(guestEmail)+'&metadata[event_id]='+evIdL+'&metadata[table_id]='+tableIdL+'&metadata[table_name]='+tNameL+'&metadata[guest_id]='+vGidL+'&metadata[name]='+encodeURIComponent(guestName)+'&metadata[amount]='+tPriceL;
           var authL=Utilities.base64Encode(skL+':'),strResL=UrlFetchApp.fetch('https://api.stripe.com/v1/checkout/sessions',{method:'post',headers:{'Authorization':'Basic '+authL,'Content-Type':'application/x-www-form-urlencoded'},payload:pL,muteHttpExceptions:true}),strDataL=JSON.parse(strResL.getContentText());
           if(strDataL.error) return res({ok:false,message:'Stripe: '+strDataL.error.message});
           vtsL.getRange(tRowL+1,vtLH.indexOf('status')+1).setValue('stripe_pending');
@@ -2650,7 +2690,7 @@ function doPost(e) {
           var evNameCV='',evSCV=sheet('events');if(evSCV){var evRCV=evSCV.getDataRange().getValues(),evHCV=evRCV[0].map(function(c){return String(c).trim();});for(var ei=1;ei<evRCV.length;ei++){if(String(evRCV[ei][evHCV.indexOf('event_id')])===evIdCV){evNameCV=String(evRCV[ei][evHCV.indexOf('name')]||'');break;}}}
           try{
             var rtCV=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
-            var qrCV='https://luxepartycom.github.io/event-system/vip-ticket.html?id='+guestIdCV;
+            var qrCV='https://entry.luxepartytokyo.com/vip-ticket.html?id='+guestIdCV;
             var bodyCV=gNameCV+'様\n\nカード決済が完了しました。VIPテーブルのご予約が確定いたしました。\n\n'
               +'■ご予約内容\n'
               +'イベント: '+(evNameCV||'LUXE PARTY TOKYO')+'\n'
@@ -3067,8 +3107,8 @@ function vipCreateStripeSessionForReminder_(evId, evName, tableName, tableType, 
     +'&line_items[0][price_data][unit_amount]='+price
     +'&line_items[0][price_data][product_data][name]='+encodeURIComponent(evName+' VIP '+tableName+' 飲食代')
     +'&line_items[0][quantity]=1'
-    +'&success_url='+encodeURIComponent('https://luxepartycom.github.io/event-system/vip-checkout.html?session_id={CHECKOUT_SESSION_ID}')
-    +'&cancel_url='+encodeURIComponent('https://luxepartycom.github.io/event-system/')
+    +'&success_url='+encodeURIComponent('https://entry.luxepartytokyo.com/vip-checkout.html?session_id={CHECKOUT_SESSION_ID}')
+    +'&cancel_url='+encodeURIComponent('https://entry.luxepartytokyo.com/')
     +'&customer_email='+encodeURIComponent(guestEmail)
     +'&metadata[event_id]='+evId
     +'&metadata[table_name]='+tableName
