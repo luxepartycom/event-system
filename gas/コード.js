@@ -211,6 +211,40 @@ function todayStr() {
   return Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
 }
 
+// 指定シートに列(ヘッダー名)が無ければ末尾に追加し、0基点の列indexを返す
+function ensureCol_(sh, name) {
+  var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+  var idx = hdr.indexOf(name);
+  if (idx < 0) {
+    idx = hdr.length;
+    sh.getRange(1, idx + 1).setValue(name);
+    SpreadsheetApp.flush();
+  }
+  return idx;
+}
+
+// first_time 入力(yes/no)を正規化。未選択は空文字。
+function normFirstTime_(v) {
+  var s = String(v == null ? '' : v).trim().toLowerCase();
+  if (s === 'yes' || s === 'first' || s === '初めて') return 'yes';
+  if (s === 'no' || s === 'repeat' || s === '2回目以降') return 'no';
+  return '';
+}
+
+// guests シートの該当 guest_id 行に first_time を書き込む(ヘッダー無ければ追加)
+function setGuestFirstTime_(id, ftVal) {
+  var gs = sheet('guests');
+  if (!gs) return;
+  var idx = ensureCol_(gs, 'first_time');
+  var col1 = gs.getRange(1, 1, gs.getLastRow(), 1).getValues();
+  for (var r = col1.length - 1; r >= 1; r--) {   // 新規は末尾濃厚なので末尾から探索
+    if (String(col1[r][0]) === String(id)) {
+      gs.getRange(r + 1, idx + 1).setValue(ftVal);
+      return;
+    }
+  }
+}
+
 function removeEmoji(str) {
   if (!str) return '';
   var s = String(str);
@@ -599,7 +633,7 @@ function doGet(e) {
         // 返却する列を必要最小限に絞る（速度改善）
         var NEEDED = ['guest_id','event_id','name','email','gender',
                       'invited_by','pay_type','amount','pay_confirmed',
-                      'arrived','payment_method'];
+                      'arrived','payment_method','first_time'];
 
         function fetchFromSheetLite(sheetName) {
           var s = sheet(sheetName);
@@ -850,6 +884,8 @@ function doPost(e) {
           payType, amount, 'FALSE', 'FALSE', '', nowStr(), '', 'FALSE', '', planId
         ]);
         SpreadsheetApp.flush();
+        // 初参加か否か（初めて=yes / 2回目以降=no）をヘッダー安全に記録
+        setGuestFirstTime_(id, normFirstTime_(body.first_time));
         // プラン申込数を+1（男女別）
         if (planId) {
           var ps8 = sheet('event_plans');
@@ -1040,6 +1076,85 @@ function doPost(e) {
           payment_method: payMethod || gPayMeth,
           vip_info: vipInfo
         });
+      }
+
+      // ── 来場後の登録内容修正（支払まわり：区分/支払方法/金額）──
+      // 当日「有料現金で通したが実際は無料」等の運用ミスを事後訂正する。
+      // 変更は guest_edit_log に監査記録し、売上レポートへ即反映される。
+      case 'updateGuestPayment': {
+        if (!body.guest_id) return res({ ok: false, message: 'guest_id がありません' });
+
+        // guests → guests_archive の順で対象行を検索
+        function findGuestRowU(sheetName) {
+          var s = sheet(sheetName);
+          if (!s) return null;
+          var lastRow = s.getLastRow(), lastCol = s.getLastColumn();
+          if (lastRow < 2) return null;
+          var rows = s.getRange(1, 1, lastRow, lastCol).getValues();
+          var headers = rows[0].map(function(h){ return String(h).trim(); });
+          function ci(h){ return headers.indexOf(h); }
+          var gCol = ci('guest_id');
+          for (var i = 1; i < rows.length; i++) {
+            if (String(rows[i][gCol]) === String(body.guest_id)) {
+              return { sheet: s, rows: rows, headers: headers, rowNum: i+1, row: rows[i], ci: ci };
+            }
+          }
+          return null;
+        }
+
+        var uf = findGuestRowU('guests') || findGuestRowU('guests_archive');
+        if (!uf) return res({ ok: false, message: '登録が見つかりません' });
+
+        var uCi = uf.ci, uS = uf.sheet, uRow = uf.rowNum, uR = uf.row;
+
+        // 変更前の値（監査ログ用）
+        var before = {
+          pay_type:       uCi('pay_type')       >= 0 ? String(uR[uCi('pay_type')]       || '') : '',
+          payment_method: uCi('payment_method') >= 0 ? String(uR[uCi('payment_method')] || '') : '',
+          amount:         uCi('amount')         >= 0 ? Number(uR[uCi('amount')]         || 0) : 0,
+          pay_confirmed:  uCi('pay_confirmed')  >= 0 ? String(uR[uCi('pay_confirmed')]  || '') : ''
+        };
+
+        // 指定されたフィールドのみ更新（undefinedはスキップ）
+        var changed = [];
+        function applyField(key, colName, newVal) {
+          if (newVal === undefined || newVal === null) return;
+          var col = uCi(colName);
+          if (col < 0) return;
+          uS.getRange(uRow, col+1).setValue(newVal);
+          if (String(before[key]) !== String(newVal)) {
+            changed.push(colName + ': ' + before[key] + ' → ' + newVal);
+          }
+        }
+
+        applyField('pay_type',       'pay_type',       body.pay_type);
+        applyField('payment_method', 'payment_method', body.payment_method);
+        applyField('amount',         'amount',         body.amount !== undefined ? (Number(body.amount) || 0) : undefined);
+        applyField('pay_confirmed',  'pay_confirmed',  body.pay_confirmed !== undefined ? String(body.pay_confirmed).toUpperCase() : undefined);
+        SpreadsheetApp.flush();
+
+        // 監査ログ（会計整合性の証跡）
+        var logSheet = sheet('guest_edit_log');
+        if (!logSheet) {
+          logSheet = SS.insertSheet('guest_edit_log');
+          logSheet.appendRow(['edited_at','guest_id','event_id','editor','changes',
+                              'before_pay_type','before_payment_method','before_amount',
+                              'after_pay_type','after_payment_method','after_amount']);
+        }
+        logSheet.appendRow([
+          nowStr(),
+          body.guest_id,
+          body.event_id || (uCi('event_id') >= 0 ? String(uR[uCi('event_id')] || '') : ''),
+          body.editor || 'admin',
+          changed.join(' / '),
+          before.pay_type, before.payment_method, before.amount,
+          body.pay_type       !== undefined ? body.pay_type       : before.pay_type,
+          body.payment_method !== undefined ? body.payment_method : before.payment_method,
+          body.amount         !== undefined ? (Number(body.amount) || 0) : before.amount
+        ]);
+        SpreadsheetApp.flush();
+
+        return res({ ok: true, changed: changed });
       }
 
       case 'sendQREmail': {
@@ -1389,6 +1504,10 @@ function doPost(e) {
           if (hMap2['payment_method'] !== undefined) newRow2[hMap2['payment_method']] = 'stripe';
           if (hMap2['reminder_sent']  !== undefined) newRow2[hMap2['reminder_sent']]  = 'FALSE';
           newRow2[sColIdx] = session_id;
+          // 初参加か否か（checkout.html が localStorage から引き継いだ値）
+          var ftColIdx2 = ensureCol_(gSheet2, 'first_time');
+          while (newRow2.length <= ftColIdx2) newRow2.push('');
+          newRow2[ftColIdx2] = normFirstTime_(body.first_time);
           gSheet2.appendRow(newRow2);
           SpreadsheetApp.flush();
           // イベント情報取得してQRメール送信
