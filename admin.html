@@ -2002,7 +2002,7 @@ function logout() {
 
 // ── 初期化 ───────────────────────────────────────────
 async function init() {
-  fetch(API + '?action=ping').catch(() => {});
+  // ping はログイン前(window load)で暖機済みのため、ここでの重複pingは削除
   // event_plansシートのマイグレーション（初回のみ自動実行）
   if (!sessionStorage.getItem('lpt_migrated')) {
     apiGet({ action: 'migrateEventPlans' }).then(function(d) {
@@ -2036,18 +2036,14 @@ async function init() {
 // バックグラウンド先読み関数
 async function prefetchGuests(eventId) {
   if (!eventId) return;
-  if (guestCache[eventId]) return; // 既にキャッシュあり
-  try {
-    const d = await apiGet({ action: 'getGuests', event_id: eventId });
-    const guests = d.guests || [];
-    guestCache[eventId] = { data: guests, ts: Date.now() };
-    // ゲストタブが既に開かれていれば即時反映
-    if (currentEventId === eventId) {
-      allGuests = guests;
-      updateGuestStats();
-      renderGuestTable();
-    }
-  } catch(e) {}
+  // 単一経路（取得中ガード付き）で1回だけ取得。重複getGuestsを防止。
+  const guests = await fetchGuestsOnce(eventId);
+  // ゲストタブが既に開かれていれば即時反映
+  if (currentEventId === eventId) {
+    allGuests = guests;
+    updateGuestStats();
+    renderGuestTable();
+  }
 }
 
 // ── タブ切替 ─────────────────────────────────────────
@@ -2342,15 +2338,39 @@ async function onGuestEventChange() {
   await loadGuests(false);
 }
 
-const guestCache = {}; // イベント別キャッシュ
+const guestCache = {};    // イベント別キャッシュ
+const guestFetching = {}; // 取得中フラグ（同一イベントの同時取得を1回に相乗り）
+
+// ゲスト取得の単一経路：キャッシュ有→即返す / 取得中→相乗り / それ以外→1回だけ取得。
+// これで先読み(prefetch)とloadGuestsが同時に走っても getGuests は1回しか飛ばない。
+function fetchGuestsOnce(eventId) {
+  if (!eventId) return Promise.resolve([]);
+  const cached = guestCache[eventId];
+  if (cached && (Date.now() - cached.ts) < 5 * 60 * 1000) return Promise.resolve(cached.data);
+  if (guestFetching[eventId]) return guestFetching[eventId]; // 取得中 → 同じPromiseへ相乗り
+  const p = apiGet({ action: 'getGuests', event_id: eventId })
+    .then(function(d) {
+      const guests = d.guests || [];
+      guestCache[eventId] = { data: guests, ts: Date.now() };
+      return guests;
+    })
+    .catch(function() {
+      return (guestCache[eventId] && guestCache[eventId].data) || [];
+    })
+    .then(function(guests) {
+      delete guestFetching[eventId];   // 取得完了→フラグ解除
+      return guests;
+    });
+  guestFetching[eventId] = p;
+  return p;
+}
 
 async function loadGuests(force = false) {
   if (!currentEventId) return;
   const cached = guestCache[currentEventId];
-  const now    = Date.now();
 
   // キャッシュヒット → 即時表示
-  if (!force && cached && (now - cached.ts) < 5 * 60 * 1000) {
+  if (!force && cached && (Date.now() - cached.ts) < 5 * 60 * 1000) {
     allGuests = cached.data;
     updateGuestStats();
     renderGuestTable();
@@ -2364,10 +2384,11 @@ async function loadGuests(force = false) {
     renderGuestTable();
   }
 
-  // バックグラウンドで最新データ取得
-  const d = await apiGet({ action: 'getGuests', event_id: currentEventId });
-  allGuests = d.guests || [];
-  guestCache[currentEventId] = { data: allGuests, ts: now };
+  // 更新指定時はキャッシュ・取得中を破棄して最新を取り直す
+  if (force) { delete guestCache[currentEventId]; delete guestFetching[currentEventId]; }
+
+  // 単一経路で取得（先読みと重複しない）
+  allGuests = await fetchGuestsOnce(currentEventId);
   updateGuestStats();
   renderGuestTable();
 }
