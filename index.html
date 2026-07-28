@@ -306,6 +306,8 @@ async function apiGet(p){return _fetchJsonRetry(API+'?'+new URLSearchParams(p),{
 async function apiPostRead(b){return _fetchJsonRetry(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});}
 // 書き込み系（非冪等）：リトライなし（二重登録防止）
 async function apiPost(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});return r.json();}
+// 送信ごとの冪等キー。1回の送信が二重実行されてもサーバ側で1行にまとめられる。
+function genSubId(){return 'S-'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);}
 
 window.addEventListener('load', async () => {
   const params=new URLSearchParams(location.search);
@@ -535,6 +537,7 @@ async function stripeCheckout(){
   // 金額が0円（女性無料など）の場合はStripeをスキップして直接登録
   if(amount<=0){
     const fd0=getFormData();if(!fd0)return;
+    const _subId0=genSubId();
     const btn0=document.getElementById('btn-stripe');
     btn0.disabled=true;
     btn0.querySelector('.btn-stripe-title').textContent='登録中…';
@@ -543,7 +546,7 @@ async function stripeCheckout(){
         body:JSON.stringify({action:'registerGuest',event_id:currentEvent.event_id,
           name:fd0.name,email:fd0.email,gender:selectedGender,
           invited_by:fd0.invitedBy,pay_type:'free',amount:0,
-          payment_method:'free_female',plan_id:currentPlanId||'',first_time:selectedFirstTime})});
+          payment_method:'free_female',plan_id:currentPlanId||'',first_time:selectedFirstTime,submission_id:_subId0})});
       const res0=await d0.json();
       btn0.disabled=false;
       btn0.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む';
@@ -601,6 +604,7 @@ async function stripeCheckout(){
 async function submitForm(){
   const fd=getFormData();if(!fd)return;
   const {name,email,invitedBy}=fd;
+  const _subId=genSubId();   // この送信の冪等キー（二重実行を1行にまとめる）
   const btn=currentPayType==='paid'?document.getElementById('btn-walkin'):document.getElementById('btn-submit');
   btn.disabled=true;
   try {
@@ -639,7 +643,7 @@ async function submitForm(){
         return;
       }
     }
-    const data=await apiPost({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType,plan_id:currentPlanId||'',first_time:selectedFirstTime});
+    const data=await apiPost({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType,plan_id:currentPlanId||'',first_time:selectedFirstTime,submission_id:_subId});
     if(!data.ok){document.getElementById('form-error').textContent=data.message||'エラーが発生しました';document.getElementById('form-error').style.display='block';btn.disabled=false;return;}
     showResult(data,name,email,invitedBy);
     apiPost({action:'sendQREmail',guest_id:data.guest_id,email,name,pay_type:data.pay_type,amount:data.amount,event_name:currentEvent.name,description:currentEvent.description||''}).catch(()=>{});

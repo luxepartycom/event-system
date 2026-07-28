@@ -231,18 +231,41 @@ function normFirstTime_(v) {
   return '';
 }
 
-// guests シートの該当 guest_id 行に first_time を書き込む(ヘッダー無ければ追加)
-function setGuestFirstTime_(id, ftVal) {
-  var gs = sheet('guests');
-  if (!gs) return;
-  var idx = ensureCol_(gs, 'first_time');
-  var col1 = gs.getRange(1, 1, gs.getLastRow(), 1).getValues();
+// 指定シートの1列目(id)が一致する行に、header列の値を書き込む(ヘッダー無ければ追加)
+function setRowField_(sh, id, header, value) {
+  if (!sh) return;
+  var idx = ensureCol_(sh, header);
+  var col1 = sh.getRange(1, 1, sh.getLastRow(), 1).getValues();
   for (var r = col1.length - 1; r >= 1; r--) {   // 新規は末尾濃厚なので末尾から探索
     if (String(col1[r][0]) === String(id)) {
-      gs.getRange(r + 1, idx + 1).setValue(ftVal);
+      sh.getRange(r + 1, idx + 1).setValue(value);
       return;
     }
   }
+}
+
+// guests シートの該当 guest_id 行に first_time を書き込む
+function setGuestFirstTime_(id, ftVal) {
+  setRowField_(sheet('guests'), id, 'first_time', ftVal);
+}
+
+// submission_id（送信ごとの冪等キー）で既存行のIDを探す。無ければ null。
+function findIdBySubmission_(sh, submissionId, idHeader) {
+  if (!sh || !submissionId) return null;
+  var lastRow = sh.getLastRow();
+  if (lastRow < 2) return null;
+  var lastCol = sh.getLastColumn();
+  var hdr = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h){ return String(h).trim(); });
+  var subIdx = hdr.indexOf('submission_id');
+  if (subIdx < 0) return null;                 // 列がまだ無い＝過去データのみ＝重複なし
+  var idIdx = hdr.indexOf(idHeader);
+  var data = sh.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  for (var r = data.length - 1; r >= 0; r--) { // 新しい行から探索
+    if (String(data[r][subIdx]) !== '' && String(data[r][subIdx]) === String(submissionId)) {
+      return idIdx >= 0 ? String(data[r][idIdx]) : '';
+    }
+  }
+  return null;
 }
 
 function removeEmoji(str) {
@@ -849,6 +872,17 @@ function doPost(e) {
       }
 
       case 'registerGuest': {
+        // 冪等化：1送信の二重実行を1行にまとめる（同一人物の再申込は別submission_idなので許容）
+        var subId = body.submission_id || '';
+        var regLock = LockService.getScriptLock();
+        try { regLock.tryLock(10000); } catch (eLk) {}
+        try {
+        if (subId) {
+          var dupGid = findIdBySubmission_(sheet('guests'), subId, 'guest_id');
+          if (dupGid) {
+            return res({ ok: true, guest_id: dupGid, duplicate_prevented: true });
+          }
+        }
         var id      = 'G-' + Date.now().toString(36).toUpperCase();
         var payType = body.pay_type === 'free' ? 'free' : 'paid';
         var planId  = body.plan_id || '';
@@ -886,6 +920,8 @@ function doPost(e) {
         SpreadsheetApp.flush();
         // 初参加か否か（初めて=yes / 2回目以降=no）をヘッダー安全に記録
         setGuestFirstTime_(id, normFirstTime_(body.first_time));
+        // 冪等キー（送信ID）を記録：同一送信の二重実行時にこの行が再ヒットする
+        if (subId) setRowField_(sheet('guests'), id, 'submission_id', subId);
         // プラン申込数を+1（男女別）
         if (planId) {
           var ps8 = sheet('event_plans');
@@ -927,6 +963,7 @@ function doPost(e) {
           }
         }
         return res({ ok: true, guest_id: id, pay_type: payType, amount: amount, plan_id: planId });
+        } finally { try { regLock.releaseLock(); } catch (eUl) {} }
       }
 
       case 'checkIn': {
@@ -2375,6 +2412,14 @@ function doPost(e) {
         }
 
         case 'reserveVipTable': {
+          var subIdVT = body.submission_id || '';
+          var vtLock = LockService.getScriptLock();
+          try { vtLock.tryLock(10000); } catch (eVtL) {}
+          try {
+          if (subIdVT) {
+            var dupVT = findIdBySubmission_(sheet('vip_reservations'), subIdVT, 'guest_id');
+            if (dupVT) return res({ ok: true, guest_id: dupVT, duplicate_prevented: true });
+          }
           var vts2 = addVipTableIfNeeded();
           var vt2Rows = vts2.getRange(1,1,vts2.getLastRow(),vts2.getLastColumn()).getValues();
           var vt2H = vt2Rows[0].map(function(c){ return String(c).trim(); });
@@ -2409,11 +2454,13 @@ function doPost(e) {
           var tType2 = String(vt2Rows[tRow2][vt2H.indexOf('table_type')]||'');
           var tPrice2 = Number(vt2Rows[tRow2][vt2H.indexOf('price')]||0);
           var evId2 = String(vt2Rows[tRow2][vt2H.indexOf('event_id')]||'');
-          vrs.appendRow(['RES-'+Date.now().toString(36).toUpperCase(),tableId2,evId2,tName2,tType2,
+          var resId2 = 'RES-'+Date.now().toString(36).toUpperCase();
+          vrs.appendRow([resId2,tableId2,evId2,tName2,tType2,
             body.name||'',body.email||'',body.phone||'',payMethod,newSt2,
             payMethod==='transfer'?Utilities.formatDate(deadline,'Asia/Tokyo','yyyy-MM-dd'):'',
             '',vGid,nowStr(),body.notes||'']);
           SpreadsheetApp.flush();
+          if (subIdVT) setRowField_(vrs, resId2, 'submission_id', subIdVT);
 
           if (payMethod === 'transfer') {
             try {
@@ -2431,10 +2478,19 @@ function doPost(e) {
           }
           return res({ ok:true, guest_id:vGid, table_name:tName2, payment_method:payMethod,
             transfer_deadline: payMethod==='transfer'?Utilities.formatDate(deadline,'Asia/Tokyo','yyyy年MM月dd日'):'', price:tPrice2 });
+          } finally { try { vtLock.releaseLock(); } catch (eVtU) {} }
         }
 
         case 'reserveVipByRank': {
           // ランク名から空きテーブルを自動割り当てして予約
+          var subIdVR = body.submission_id || '';
+          var vrLock = LockService.getScriptLock();
+          try { vrLock.tryLock(10000); } catch (eVrL) {}
+          try {
+          if (subIdVR) {
+            var dupVR = findIdBySubmission_(sheet('vip_reservations'), subIdVR, 'guest_id');
+            if (dupVR) return res({ ok: true, guest_id: dupVR, duplicate_prevented: true });
+          }
           var rankType = body.rank_type || '';
           var evIdR = body.event_id || '';
           var invitedByR = body.invited_by || '';
@@ -2505,11 +2561,13 @@ function doPost(e) {
               'name','email','phone','payment_method','status',
               'transfer_deadline','confirmed_at','guest_id','reserved_at','notes','invited_by']);
           }
-          vrsR.appendRow(['RES-'+Date.now().toString(36).toUpperCase(),tableIdR,evIdR2,tNameR,tTypeR,
+          var resIdR = 'RES-'+Date.now().toString(36).toUpperCase();
+          vrsR.appendRow([resIdR,tableIdR,evIdR2,tNameR,tTypeR,
             body.name||'',body.email||'',body.phone||'',payMethodR,newStR,
             payMethodR==='transfer'?Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy-MM-dd'):'',
             '',vGidR,nowStr(),body.notes||'',invitedByR]);
           SpreadsheetApp.flush();
+          if (subIdVR) setRowField_(vrsR, resIdR, 'submission_id', subIdVR);
 
           var evNameVR=''; var evSVR=sheet('events');
           if(evSVR){var evRVR=evSVR.getDataRange().getValues();var evHVR=evRVR[0].map(function(c){return String(c).trim();});
@@ -2571,6 +2629,7 @@ function doPost(e) {
             checkout_url: checkoutUrlR,
             transfer_deadline: payMethodR==='transfer'?Utilities.formatDate(deadlineR,'Asia/Tokyo','yyyy年MM月dd日'):'',
             price:tPriceR });
+          } finally { try { vrLock.releaseLock(); } catch (eVrU) {} }
         }
 
         case 'confirmVipPayment': {
