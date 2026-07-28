@@ -16,12 +16,12 @@ export default async function handler(req, res) {
   }
   const isQuickCharge = String(event_id).startsWith('CHARGE-');
   const successUrl = isQuickCharge
-    ? 'https://luxepartycom.github.io/event-system/admin.html?charge=success'
-    : 'https://luxepartycom.github.io/event-system/checkout.html?session_id={CHECKOUT_SESSION_ID}';
+    ? 'https://entry.luxepartytokyo.com/admin.html?charge=success'
+    : 'https://entry.luxepartytokyo.com/checkout.html?session_id={CHECKOUT_SESSION_ID}';
   // cancelUrlは渡された値を優先（プロモーター・プラン情報を保持）
   const cancelUrl = isQuickCharge
-    ? 'https://luxepartycom.github.io/event-system/admin.html?charge=cancel'
-    : (cancel_url || 'https://luxepartycom.github.io/event-system/index.html?e=' + event_id + '&type=paid');
+    ? 'https://entry.luxepartytokyo.com/admin.html?charge=cancel'
+    : (cancel_url || 'https://entry.luxepartytokyo.com/index.html?e=' + event_id + '&type=paid');
   const params = new URLSearchParams();
   params.append('mode', 'payment');
   params.append('payment_method_types[0]', 'card');
