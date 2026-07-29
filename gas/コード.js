@@ -835,13 +835,28 @@ function doPost(e) {
     switch(action) {
 
       case 'addEvent': {
+        // 冪等化：1送信の二重実行を1行にまとめる（registerGuestと同じパターン）
+        var addEvSubId = body.submission_id || '';
+        var addEvLock = LockService.getScriptLock();
+        try { addEvLock.tryLock(10000); } catch (eAeLk) {}
+        try {
+        if (addEvSubId) {
+          var dupEvId = findIdBySubmission_(sheet('events'), addEvSubId, 'event_id');
+          if (dupEvId) {
+            return res({ ok: true, event_id: dupEvId, duplicate_prevented: true });
+          }
+        }
         var id = 'EV-' + Date.now().toString(36).toUpperCase();
         // payment_methods: 'card,walkin'=両方 / 'card'=カードのみ / 'walkin'=当日のみ
         var payMethods = body.payment_methods || 'card,walkin';
         sheet('events').appendRow([id, body.name, body.date, 'active',
           Number(body.price_male||0), Number(body.price_female||0),
           body.description||'', payMethods]);
+        SpreadsheetApp.flush();
+        // 冪等キー（送信ID）を記録：同一送信の二重実行時にこの行が再ヒットする
+        if (addEvSubId) setRowField_(sheet('events'), id, 'submission_id', addEvSubId);
         return res({ ok: true, event_id: id });
+        } finally { try { addEvLock.releaseLock(); } catch (eAeUl) {} }
       }
 
       case 'updateEventDescription': {
@@ -971,6 +986,9 @@ function doPost(e) {
 
         // VIP専用フロー（guest_idが「VIP-」始まりの場合はvip_tablesを参照）
         if (String(body.guest_id).indexOf('VIP-') === 0) {
+          var vipLock = LockService.getScriptLock();
+          try { vipLock.tryLock(10000); } catch (eVipLk) {}
+          try {
           var vtsChk = sheet('vip_tables');
           if (!vtsChk) return res({ ok: false, status: 'not_found', message: '登録が見つかりません' });
           var vtChkRows = vtsChk.getRange(1,1,vtsChk.getLastRow(),vtsChk.getLastColumn()).getValues();
@@ -983,6 +1001,14 @@ function doPost(e) {
             cntChkIdx = vtChkH.length - 1;
             vtChkRows = vtsChk.getRange(1,1,vtsChk.getLastRow(),vtsChk.getLastColumn()).getValues();
           }
+          // arrived列がなければ追加（二重チェックイン防止フラグ）
+          var arrChkIdx = vtChkH.indexOf('arrived');
+          if (arrChkIdx < 0) {
+            vtsChk.getRange(1, vtChkH.length + 1).setValue('arrived');
+            vtChkH.push('arrived');
+            arrChkIdx = vtChkH.length - 1;
+            vtChkRows = vtsChk.getRange(1,1,vtsChk.getLastRow(),vtsChk.getLastColumn()).getValues();
+          }
           var vipChkRow = -1;
           for (var vi=1; vi<vtChkRows.length; vi++) {
             if (String(vtChkRows[vi][vtChkH.indexOf('guest_id')]) === String(body.guest_id)) { vipChkRow = vi; break; }
@@ -992,8 +1018,12 @@ function doPost(e) {
           var vipSt = String(vipChkR[vtChkH.indexOf('status')] || '');
           if (vipSt !== 'confirmed') return res({ ok: false, status: 'not_confirmed', message: 'ご予約がまだ確定していません' });
           var capChk = Number(vipChkR[vtChkH.indexOf('capacity')] || 0);
+          // VIPは1テーブル=1QRを同席者で共有し、受付が各人をスキャンして頭数(checked_count)を積む運用。
+          // よってスキャン毎に必ず+1する（arrivedで加算を止めない）。LockServiceで並行スキャンの数え落としのみ防止。
+          // ボタンの多重タップはフロントのrunBusyで防止済み。
           var cntChk = Number(vipChkR[cntChkIdx] || 0) + 1;
           vtsChk.getRange(vipChkRow+1, cntChkIdx+1).setValue(cntChk);
+          vtsChk.getRange(vipChkRow+1, arrChkIdx+1).setValue('TRUE');  // 1名以上来場の情報フラグ（加算条件には使わない）
           SpreadsheetApp.flush();
           return res({
             ok: true, status: 'checked_in',
@@ -1011,6 +1041,7 @@ function doPost(e) {
               is_over:       capChk > 0 && cntChk > capChk
             }
           });
+          } finally { try { vipLock.releaseLock(); } catch (eVipUl) {} }
         }
 
         // 通常ゲスト: guests + guests_archive 両方を検索
@@ -1278,15 +1309,79 @@ function doPost(e) {
         return res({ ok: true });
       }
 
+      case 'savePromoUrls': {
+        // \u8907\u6570\u30ea\u30f3\u30af\u4e00\u62ec\u4fdd\u5b58\u3002savePromoUrl\uff08\u5358\u6570\uff09\u3068\u540c\u3058\u91cd\u8907\u30eb\u30fc\u30eb\uff08event_id+promoter+type+plan_id\u306e4\u30ad\u30fc\uff09\u3067links\u914d\u5217\u3092\u51e6\u7406\u3059\u308b\u3002
+        var puM = sheet('promoter_urls');
+        if (!puM) {
+          puM = SS.insertSheet('promoter_urls');
+          puM.appendRow(['event_id','promoter','type','plan_id','created_at']);
+        } else {
+          // plan_id\u5217\u304c\u306a\u3051\u308c\u3070\u8ffd\u52a0
+          var puMH0 = puM.getRange(1,1,1,puM.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+          if (puMH0.indexOf('plan_id') < 0) {
+            puM.getRange(1, puM.getLastColumn()+1).setValue('plan_id');
+            SpreadsheetApp.flush();
+          }
+        }
+        var puMLock = LockService.getScriptLock();
+        try { puMLock.tryLock(10000); } catch (ePmLk) {}
+        try {
+        var puMRows = puM.getRange(1,1,puM.getLastRow(),puM.getLastColumn()).getValues();
+        var puMH    = puMRows[0].map(function(h){ return String(h).trim(); });
+        var puMEvIdx = puMH.indexOf('event_id');
+        var puMPrIdx = puMH.indexOf('promoter');
+        var puMTyIdx = puMH.indexOf('type');
+        var puMPlIdx = puMH.indexOf('plan_id');
+        var puMCrIdx = puMH.indexOf('created_at');
+        var links = (body.links && body.links.length) ? body.links : [];
+        var created = [];
+        var skipped = [];
+        links.forEach(function(link) {
+          var lType = (link && link.type)    ? String(link.type)    : '';
+          var lPlan = (link && link.plan_id) ? String(link.plan_id) : '';
+          // \u91cd\u8907\u30c1\u30a7\u30c3\u30af\uff08event_id+promoter+type+plan_id\u306e4\u30ad\u30fc\u4e00\u81f4\u306a\u3089skip\uff09
+          var exists = false;
+          for (var i=1; i<puMRows.length; i++) {
+            if (String(puMRows[i][puMEvIdx]) === String(body.event_id) &&
+                String(puMRows[i][puMPrIdx]) === String(body.promoter) &&
+                String(puMRows[i][puMTyIdx]) === lType &&
+                String(puMRows[i][puMPlIdx] || '') === lPlan) {
+              exists = true; break;
+            }
+          }
+          if (exists) { skipped.push({ type: lType, plan_id: lPlan }); return; }
+          var newRow = [];
+          for (var ci=0; ci<puMH.length; ci++) newRow.push('');
+          if (puMEvIdx >= 0) newRow[puMEvIdx] = body.event_id;
+          if (puMPrIdx >= 0) newRow[puMPrIdx] = body.promoter;
+          if (puMTyIdx >= 0) newRow[puMTyIdx] = lType;
+          if (puMPlIdx >= 0) newRow[puMPlIdx] = lPlan;
+          newRow[puMCrIdx >= 0 ? puMCrIdx : puMH.length-1] = nowStr();
+          puM.appendRow(newRow);
+          // \u540c\u4e00payload\u5185\u306e\u91cd\u8907\u3082\u691c\u77e5\u3067\u304d\u308b\u3088\u3046\u30e1\u30e2\u30ea\u5074\u306b\u3082\u53cd\u6620
+          puMRows.push(newRow);
+          created.push({ type: lType, plan_id: lPlan });
+        });
+        SpreadsheetApp.flush();
+        return res({ ok: true, created: created, skipped: skipped });
+        } finally { try { puMLock.releaseLock(); } catch (ePmUl) {} }
+      }
+
       case 'deletePromoUrl': {
         var pu2 = sheet('promoter_urls');
         if (!pu2) return res({ ok: true });
         var pu2Rows = pu2.getDataRange().getValues();
         var pu2H    = pu2Rows[0].map(function(h){ return String(h).trim(); });
+        var planIdx = pu2H.indexOf('plan_id');
+        // plan_id\u304c\u6e21\u3055\u308c\u305f\u5834\u5408\u306f4\u30ad\u30fc(event_id+promoter+type+plan_id)\u4e00\u81f4\u3067\u524a\u9664\uff08\u5225\u30d7\u30e9\u30f3\u306e\u8aa4\u524a\u9664\u3092\u9632\u3050\uff09\u3002
+        // \u65e7\u30d5\u30ed\u30f3\u30c8\uff08plan_id\u672a\u6307\u5b9a\uff1dundefined/null\uff09\u306f\u5f93\u6765\u3069\u304a\u308atype\u307e\u3067\u306e3\u30ad\u30fc\u4e00\u81f4\u3002
+        var matchPlan = (body.plan_id !== undefined && body.plan_id !== null);
+        var bpId = String(body.plan_id || '');
         for (var i=pu2Rows.length-1; i>=1; i--) {
           if (String(pu2Rows[i][pu2H.indexOf('event_id')]) === String(body.event_id) &&
               String(pu2Rows[i][pu2H.indexOf('promoter')]) === String(body.promoter) &&
-              String(pu2Rows[i][pu2H.indexOf('type')])     === String(body.type)) {
+              String(pu2Rows[i][pu2H.indexOf('type')])     === String(body.type) &&
+              (!matchPlan || String(planIdx >= 0 ? (pu2Rows[i][planIdx] || '') : '') === bpId)) {
             pu2.deleteRow(i+1); SpreadsheetApp.flush(); return res({ ok: true });
           }
         }
@@ -2133,6 +2228,17 @@ function doPost(e) {
           });
           SpreadsheetApp.flush();
         }
+        // 冪等化：1送信の二重実行を1行にまとめる（registerGuestと同じパターン）
+        var addPlanSubId = body.submission_id || '';
+        var addPlanLock = LockService.getScriptLock();
+        try { addPlanLock.tryLock(10000); } catch (eApLk) {}
+        try {
+        if (addPlanSubId) {
+          var dupPlanId = findIdBySubmission_(sheet('event_plans'), addPlanSubId, 'plan_id');
+          if (dupPlanId) {
+            return res({ ok: true, plan_id: dupPlanId, duplicate_prevented: true });
+          }
+        }
         var planId = 'PLAN-' + Date.now().toString(36).toUpperCase();
         var capacity    = Number(body.capacity    || 0);
         var capMale     = Number(body.capacity_male   || 0);
@@ -2155,7 +2261,10 @@ function doPost(e) {
           body.display_text || ''        // 空=実際の残り人数を表示
         ]);
         SpreadsheetApp.flush();
+        // 冪等キー（送信ID）を記録：同一送信の二重実行時にこの行が再ヒットする
+        if (addPlanSubId) setRowField_(sheet('event_plans'), planId, 'submission_id', addPlanSubId);
         return res({ ok: true, plan_id: planId });
+        } finally { try { addPlanLock.releaseLock(); } catch (eApUl) {} }
       }
 
       case 'updatePlanStatus': {
@@ -2633,6 +2742,9 @@ function doPost(e) {
         }
 
         case 'confirmVipPayment': {
+          var cvpLock = LockService.getScriptLock();
+          try { cvpLock.tryLock(10000); } catch (eCvpLk) {}
+          try {
           var vts3 = addVipTableIfNeeded();
           var vt3Rows = vts3.getRange(1,1,vts3.getLastRow(),vts3.getLastColumn()).getValues();
           var vt3H = vt3Rows[0].map(function(c){ return String(c).trim(); });
@@ -2640,6 +2752,10 @@ function doPost(e) {
           var tRow3 = -1;
           for (var i=1;i<vt3Rows.length;i++) { if(String(vt3Rows[i][vt3H.indexOf('guest_id')])===guestId3){tRow3=i;break;} }
           if (tRow3 < 0) return res({ ok:false, message:'予約が見つかりません' });
+          // 既に確定済みなら再確定・QRメール再送をしない（二重の確定メール送信を防ぐ）
+          if (String(vt3Rows[tRow3][vt3H.indexOf('status')] || '') === 'confirmed') {
+            return res({ ok:true, already_confirmed:true });
+          }
           vts3.getRange(tRow3+1,vt3H.indexOf('status')+1).setValue('confirmed');
           vts3.getRange(tRow3+1,vt3H.indexOf('confirmed_at')+1).setValue(nowStr());
           var vrs3=sheet('vip_reservations');
@@ -2663,6 +2779,7 @@ function doPost(e) {
               {name:'LUXE PARTY TOKYO',replyTo:rTo3});
           } catch(e){ console.log('VIP確定メールエラー:',e); }
           return res({ ok:true, guest_id:guestId3, table_name:tName3, email:toEmail3 });
+          } finally { try { cvpLock.releaseLock(); } catch (eCvpUl) {} }
         }
 
         case 'updateVipTableStatus': {
