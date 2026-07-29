@@ -906,6 +906,7 @@ async function submitForm(payOverride) {
   document.getElementById('submit-btn').disabled = true;
 
   try {
+    const _subId = 'S-'+Date.now().toString(36)+Math.random().toString(36).slice(2,10); // 冪等キー（二重予約防止）
     const payload = {
       action:         'reserveVipByRank',
       rank_type:      rankType,
@@ -914,7 +915,8 @@ async function submitForm(payOverride) {
       price_hint:     currentPlan.price,
       name, email, phone,
       invited_by:     promoter,
-      payment_method: payMethod
+      payment_method: payMethod,
+      submission_id:  _subId
     };
 
     const d = await fetch(API, {

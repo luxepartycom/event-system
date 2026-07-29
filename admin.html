@@ -1495,8 +1495,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <select class="mm-select" id="mm-template-sel" onchange="loadMmTemplate()">
           <option value="">新規作成</option>
         </select>
-        <button class="mm-btn-sm" onclick="saveMmTemplate()">💾 保存</button>
-        <button class="mm-btn-sm mm-btn-del" onclick="deleteMmTemplate()">🗑 削除</button>
+        <button class="mm-btn-sm" onclick="saveMmTemplate(this)">💾 保存</button>
+        <button class="mm-btn-sm mm-btn-del" onclick="deleteMmTemplate(this)">🗑 削除</button>
       </div>
       <div class="mm-field" style="margin-top:14px;">
         <label class="mm-label">キャンペーンID <span style="color:var(--gold);font-size:0.55rem;">（同じIDで送信すると前回の続きから再開）</span></label>
@@ -1598,8 +1598,8 @@ td.muted{color:var(--gray);font-size:0.62rem;}
             type="email">
         </div>
         <div class="mm-test-btns">
-          <button class="mm-btn-test" onclick="sendMmTestEmail('free')">📧 無料向けをテスト送信</button>
-          <button class="mm-btn-test" onclick="sendMmTestEmail('paid')">📧 有料向けをテスト送信</button>
+          <button class="mm-btn-test" onclick="sendMmTestEmail('free',this)">📧 無料向けをテスト送信</button>
+          <button class="mm-btn-test" onclick="sendMmTestEmail('paid',this)">📧 有料向けをテスト送信</button>
         </div>
       </div>
 
@@ -1657,7 +1657,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       </select>
       <button class="report-btn" id="r-btn-ai" onclick="runAIGrouping()" disabled>✦ AIでグルーピング</button>
       <button class="report-btn" id="r-btn-save" onclick="saveGroups()" disabled>💾 グループを保存</button>
-      <button class="report-btn-primary" id="r-btn-export" onclick="exportToSheet()" disabled>📊 スプレッドシートに出力</button>
+      <button class="report-btn-primary" id="r-btn-export" onclick="exportToSheet(this)" disabled>📊 スプレッドシートに出力</button>
     </div>
     <div class="ai-panel" id="r-ai-panel" style="display:none;">
       <div class="section-eyebrow">AI グルーピング候補</div>
@@ -1701,7 +1701,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       </div>
       <div class="export-bar">
         <div class="export-note">※ スプレッドシートの「report_イベント名」シートに書き出されます（既存は上書き）</div>
-        <button class="report-btn-primary" onclick="exportToSheet()">📊 スプレッドシートに出力</button>
+        <button class="report-btn-primary" onclick="exportToSheet(this)">📊 スプレッドシートに出力</button>
       </div>
     </div>
     <div id="r-loading" class="loading" style="display:none;">読み込み中…</div>
@@ -1749,7 +1749,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     </div>
     <div class="modal-actions">
       <button class="btn-cancel"  onclick="closeModal('modal-event')">キャンセル</button>
-      <button class="btn-confirm" onclick="addEvent()">追加</button>
+      <button class="btn-confirm" onclick="addEvent(this)">追加</button>
     </div>
   </div>
 </div>
@@ -1801,7 +1801,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     </div>
     <div class="modal-actions">
       <button class="btn-cancel"  onclick="closeModal('modal-edit-desc')">キャンセル</button>
-      <button class="btn-confirm" onclick="saveEventDescription()">保存</button>
+      <button class="btn-confirm" onclick="saveEventDescription(this)">保存</button>
     </div>
   </div>
 </div>
@@ -1822,22 +1822,20 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <div class="modal-note">ゲストには表示されません。スプレッドシートの「invited_by」列に自動記録されます。</div>
     </div>
     <div class="modal-group">
-      <label class="form-label">種別・プランを選択</label>
+      <label class="form-label">種別・プランを選択（複数選択可）</label>
       <div id="cu-plan-list" style="margin-top:8px;">
         <div style="font-size:0.62rem;color:var(--gray);">先にイベントを選択してください</div>
       </div>
     </div>
     <div class="modal-group" id="cu-url-result" style="display:none;">
       <label class="form-label">生成されたURL</label>
-      <div class="ev-url-row" style="margin-top:8px;">
-        <div class="ev-url-text" id="cu-url-text" style="font-size:0.55rem;word-break:break-all;white-space:normal;"></div>
-        <button class="copy-btn" onclick="copyCustomUrl()">📋</button>
-      </div>
+      <div id="cu-url-list" style="margin-top:8px;"></div>
+      <button class="btn-confirm" id="cu-copy-all" onclick="copyAllCustomUrls(this)" style="margin-top:10px;font-size:0.62rem;padding:8px 12px;">📋 すべてコピー</button>
       <div class="modal-note" style="margin-top:8px;">このURLを開いたゲストは、招待者名を入力する欄が表示されません。<br>管理画面・スプレッドシートでのみ確認できます。</div>
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-custom-url')">閉じる</button>
-      <button class="btn-confirm" onclick="generateCustomUrl()">URLを生成</button>
+      <button class="btn-confirm" onclick="generateCustomUrl(this)">URLを生成</button>
     </div>
   </div>
 </div>
@@ -1877,7 +1875,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="document.getElementById('modal-edit-capacity').classList.remove('active')">キャンセル</button>
-      <button class="btn-confirm" onclick="saveEditCapacity()">保存</button>
+      <button class="btn-confirm" onclick="saveEditCapacity(this)">保存</button>
     </div>
   </div>
 </div>
@@ -1941,7 +1939,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modal-add-plan')">キャンセル</button>
-      <button class="btn-confirm" onclick="addPlan()">追加</button>
+      <button class="btn-confirm" onclick="addPlan(this)">追加</button>
     </div>
   </div>
 </div>
@@ -1982,6 +1980,21 @@ function toast(msg) {
   toastT = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ── 多重タップ防止の汎用ラッパ ─────────────────────────────
+// 実行中はボタンを無効化＋処理中表示にし、完了/失敗で必ず復帰させる。
+// btn.disabled による再入ガードが多重タップ防止の核。
+// btn が無い場合でも task 自体は実行する（アクションを握り潰さない）。
+async function runBusy(btn, busyLabel, task) {
+  if (btn && btn.disabled) return;      // 再入ガード＝多重タップ防止の核
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = busyLabel; }
+  try { return await task(); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = orig; } }
+}
+
+// 指定URL一括生成の結果保持（複数URL）
+let cuGeneratedUrls = [];
+
 // ── ログイン ─────────────────────────────────────────
 async function doLogin() {
   const pw = document.getElementById('login-pw').value.trim();
@@ -2002,7 +2015,7 @@ function logout() {
 
 // ── 初期化 ───────────────────────────────────────────
 async function init() {
-  fetch(API + '?action=ping').catch(() => {});
+  // ping はログイン前(window load)で暖機済みのため、ここでの重複pingは削除
   // event_plansシートのマイグレーション（初回のみ自動実行）
   if (!sessionStorage.getItem('lpt_migrated')) {
     apiGet({ action: 'migrateEventPlans' }).then(function(d) {
@@ -2036,18 +2049,14 @@ async function init() {
 // バックグラウンド先読み関数
 async function prefetchGuests(eventId) {
   if (!eventId) return;
-  if (guestCache[eventId]) return; // 既にキャッシュあり
-  try {
-    const d = await apiGet({ action: 'getGuests', event_id: eventId });
-    const guests = d.guests || [];
-    guestCache[eventId] = { data: guests, ts: Date.now() };
-    // ゲストタブが既に開かれていれば即時反映
-    if (currentEventId === eventId) {
-      allGuests = guests;
-      updateGuestStats();
-      renderGuestTable();
-    }
-  } catch(e) {}
+  // 単一経路（取得中ガード付き）で1回だけ取得。重複getGuestsを防止。
+  const guests = await fetchGuestsOnce(eventId);
+  // ゲストタブが既に開かれていれば即時反映
+  if (currentEventId === eventId) {
+    allGuests = guests;
+    updateGuestStats();
+    renderGuestTable();
+  }
 }
 
 // ── タブ切替 ─────────────────────────────────────────
@@ -2161,13 +2170,18 @@ function getPromoUrls(eventId) {
   return allPromoUrls.filter(u => String(u.event_id) === String(eventId));
 }
 
-async function deletePromoUrl(eventId, promoter, type) {
-  await apiPost({ action: 'deletePromoUrl', event_id: eventId, promoter, type });
-  allPromoUrls = allPromoUrls.filter(u =>
-    !(String(u.event_id) === String(eventId) && u.promoter === promoter && u.type === type)
-  );
-  renderEventGrid();
-  toast('✦ 削除しました');
+async function deletePromoUrl(eventId, promoter, type, planId, btn) {
+  planId = planId || '';
+  await runBusy(btn, '削除中…', async () => {
+    // event+promoter+type+plan_id の4キーで正確に削除
+    await apiPost({ action: 'deletePromoUrl', event_id: eventId, promoter, type, plan_id: planId });
+    allPromoUrls = allPromoUrls.filter(u =>
+      !(String(u.event_id) === String(eventId) && u.promoter === promoter &&
+        u.type === type && String(u.plan_id || '') === String(planId))
+    );
+    renderEventGrid();
+    toast('✦ 削除しました');
+  });
 }
 
 function renderEventGrid() {
@@ -2234,8 +2248,8 @@ function renderEventGrid() {
       </div>
       <div class="ev-actions">
         ${ev.status === 'active'
-          ? `<button class="btn-close-ev" onclick="closeEvent('${ev.event_id}')">受付終了にする</button>`
-          : `<button class="btn-close-ev" onclick="reopenEvent('${ev.event_id}')">再開する</button>
+          ? `<button class="btn-close-ev" onclick="closeEvent('${ev.event_id}',this)">受付終了にする</button>`
+          : `<button class="btn-close-ev" onclick="reopenEvent('${ev.event_id}',this)">再開する</button>
              <button class="btn-archive-ev" data-id="${ev.event_id}" onclick="archiveEvent('${ev.event_id}')">📦 アーカイブ</button>`}
       </div>`;
     grid.appendChild(card);
@@ -2254,23 +2268,26 @@ function copyPromoUrl(eventId, promoter, type, planId, btn) {
   });
 }
 
-async function addEvent() {
+async function addEvent(btn) {
   const name = document.getElementById('me-name').value.trim();
   const date = document.getElementById('me-date').value;
   const pm   = document.getElementById('me-price-male').value   || 0;
   const pf   = document.getElementById('me-price-female').value || 0;
   const desc = document.getElementById('me-description').value.trim();
   if (!name || !date) { toast('イベント名と日付を入力してください'); return; }
-  const d = await apiPost({ action: 'addEvent', name, date, price_male: pm, price_female: pf, description: desc,
-    payment_methods: [document.getElementById('me-pay-card')?.checked?'card':'', document.getElementById('me-pay-walkin')?.checked?'walkin':''].filter(Boolean).join(',') || 'card,walkin' });
-  if (d.ok) {
-    document.getElementById('me-name').value = '';
-    document.getElementById('me-date').value = '';
-    document.getElementById('me-description').value = '';
-    closeModal('modal-event');
-    await loadEvents();
-    toast('✦ イベントを追加しました');
-  } else toast('エラー: ' + d.message);
+  const submissionId = 'S-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  await runBusy(btn, '作成中…', async () => {
+    const d = await apiPost({ action: 'addEvent', submission_id: submissionId, name, date, price_male: pm, price_female: pf, description: desc,
+      payment_methods: [document.getElementById('me-pay-card')?.checked?'card':'', document.getElementById('me-pay-walkin')?.checked?'walkin':''].filter(Boolean).join(',') || 'card,walkin' });
+    if (d.ok) {
+      document.getElementById('me-name').value = '';
+      document.getElementById('me-date').value = '';
+      document.getElementById('me-description').value = '';
+      closeModal('modal-event');
+      await loadEvents();
+      toast('✦ イベントを追加しました');
+    } else toast('エラー: ' + d.message);
+  });
 }
 
 let editDescEventId = null;
@@ -2282,22 +2299,24 @@ function openEditDesc(eventId) {
   document.getElementById('edit-desc-text').value = ev.description || '';
   document.getElementById('modal-edit-desc').classList.add('active');
 }
-async function saveEventDescription() {
+async function saveEventDescription(btn) {
   if (!editDescEventId) return;
   const desc = document.getElementById('edit-desc-text').value.trim();
-  const d = await apiPost({ action: 'updateEventDescription', event_id: editDescEventId, description: desc });
-  if (d.ok) {
-    const ev = allEvents.find(e => e.event_id === editDescEventId);
-    if (ev) ev.description = desc;
-    closeModal('modal-edit-desc');
-    renderEventGrid();
-    toast('✦ イベント詳細を保存しました');
-  } else toast('エラー: ' + d.message);
-  editDescEventId = null;
+  await runBusy(btn, '保存中…', async () => {
+    const d = await apiPost({ action: 'updateEventDescription', event_id: editDescEventId, description: desc });
+    if (d.ok) {
+      const ev = allEvents.find(e => e.event_id === editDescEventId);
+      if (ev) ev.description = desc;
+      closeModal('modal-edit-desc');
+      renderEventGrid();
+      toast('✦ イベント詳細を保存しました');
+    } else toast('エラー: ' + d.message);
+    editDescEventId = null;
+  });
 }
 
-async function closeEvent(id)  { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'closed' }); await loadEvents(); toast('受付を終了しました'); }
-async function reopenEvent(id) { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'active' }); await loadEvents(); toast('受付を再開しました'); }
+async function closeEvent(id, btn)  { await runBusy(btn, '処理中…', async () => { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'closed' }); await loadEvents(); toast('受付を終了しました'); }); }
+async function reopenEvent(id, btn) { await runBusy(btn, '処理中…', async () => { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'active' }); await loadEvents(); toast('受付を再開しました'); }); }
 
 async function archiveEvent(eventId) {
   const ev = allEvents.find(e => e.event_id === eventId);
@@ -2342,15 +2361,39 @@ async function onGuestEventChange() {
   await loadGuests(false);
 }
 
-const guestCache = {}; // イベント別キャッシュ
+const guestCache = {};    // イベント別キャッシュ
+const guestFetching = {}; // 取得中フラグ（同一イベントの同時取得を1回に相乗り）
+
+// ゲスト取得の単一経路：キャッシュ有→即返す / 取得中→相乗り / それ以外→1回だけ取得。
+// これで先読み(prefetch)とloadGuestsが同時に走っても getGuests は1回しか飛ばない。
+function fetchGuestsOnce(eventId) {
+  if (!eventId) return Promise.resolve([]);
+  const cached = guestCache[eventId];
+  if (cached && (Date.now() - cached.ts) < 5 * 60 * 1000) return Promise.resolve(cached.data);
+  if (guestFetching[eventId]) return guestFetching[eventId]; // 取得中 → 同じPromiseへ相乗り
+  const p = apiGet({ action: 'getGuests', event_id: eventId })
+    .then(function(d) {
+      const guests = d.guests || [];
+      guestCache[eventId] = { data: guests, ts: Date.now() };
+      return guests;
+    })
+    .catch(function() {
+      return (guestCache[eventId] && guestCache[eventId].data) || [];
+    })
+    .then(function(guests) {
+      delete guestFetching[eventId];   // 取得完了→フラグ解除
+      return guests;
+    });
+  guestFetching[eventId] = p;
+  return p;
+}
 
 async function loadGuests(force = false) {
   if (!currentEventId) return;
   const cached = guestCache[currentEventId];
-  const now    = Date.now();
 
   // キャッシュヒット → 即時表示
-  if (!force && cached && (now - cached.ts) < 5 * 60 * 1000) {
+  if (!force && cached && (Date.now() - cached.ts) < 5 * 60 * 1000) {
     allGuests = cached.data;
     updateGuestStats();
     renderGuestTable();
@@ -2364,10 +2407,11 @@ async function loadGuests(force = false) {
     renderGuestTable();
   }
 
-  // バックグラウンドで最新データ取得
-  const d = await apiGet({ action: 'getGuests', event_id: currentEventId });
-  allGuests = d.guests || [];
-  guestCache[currentEventId] = { data: allGuests, ts: now };
+  // 更新指定時はキャッシュ・取得中を破棄して最新を取り直す
+  if (force) { delete guestCache[currentEventId]; delete guestFetching[currentEventId]; }
+
+  // 単一経路で取得（先読みと重複しない）
+  allGuests = await fetchGuestsOnce(currentEventId);
   updateGuestStats();
   renderGuestTable();
 }
@@ -2431,7 +2475,7 @@ function renderGuestTable() {
       <td><span class="badge ${g.pay_type === 'free' ? 'badge-free' : 'badge-paid'}">${g.pay_type === 'free' ? '無料' : '有料'}</span></td>
       <td class="muted" style="font-size:0.62rem;color:${methodColor}">${g.pay_type === 'paid' ? (methodLabel || (conf ? '確認済' : '—')) : '—'}</td>
       <td class="muted">${g.pay_type === 'paid' ? '¥' + Number(g.amount || 0).toLocaleString() : '—'}</td>
-      <td>${arr ? '<span class="badge badge-arrived">来場済</span>' : '<span class="badge badge-pending">未来場</span> <button class="btn-list-arrive" onclick="manualCheckInFromList(\'' + g.guest_id + '\')">来場にする</button>'} <button class="btn-list-edit" onclick="openEditGuest(\'' + g.guest_id + '\')">編集</button></td>`;
+      <td>${arr ? '<span class="badge badge-arrived">来場済</span>' : '<span class="badge badge-pending">未来場</span> <button class="btn-list-arrive" onclick="manualCheckInFromList(\'' + g.guest_id + '\',this)">来場にする</button>'} <button class="btn-list-edit" onclick="openEditGuest(\'' + g.guest_id + '\')">編集</button></td>`;
     tbody.appendChild(tr);
   });
 }
@@ -2725,7 +2769,7 @@ function submitManualId() {
 }
 
 // ── ゲスト一覧から手動で来場済みにする（QR忘れ対応） ──────────
-async function manualCheckInFromList(guestId) {
+async function manualCheckInFromList(guestId, btn) {
   const g = allGuests.find(x => String(x.guest_id) === String(guestId));
   if (!g) { toast('ゲストが見つかりません'); return; }
   if (String(g.arrived).toUpperCase() === 'TRUE') { toast('既に来場済みです'); return; }
@@ -2743,26 +2787,28 @@ async function manualCheckInFromList(guestId) {
     return;
   }
   if (!confirm((g.name || guestId) + ' 様を来場済みにします。よろしいですか？')) return;
-  try {
-    const res = await apiPost({ action: 'checkIn', guest_id: guestId });
-    if (res.ok && res.status === 'checked_in') {
-      const idx = allGuests.findIndex(x => String(x.guest_id) === String(guestId));
-      if (idx >= 0) allGuests[idx].arrived = 'TRUE';
-      updateGuestStats();
-      renderGuestTable();
-      toast('✓ ' + (res.name || g.name || '') + ' 様を来場済みにしました');
-    } else if (res.status === 'duplicate') {
-      const idx = allGuests.findIndex(x => String(x.guest_id) === String(guestId));
-      if (idx >= 0) allGuests[idx].arrived = 'TRUE';
-      updateGuestStats();
-      renderGuestTable();
-      toast('既に来場済みです');
-    } else {
-      toast('失敗: ' + (res.message || res.status || '不明なエラー'));
+  await runBusy(btn, '処理中…', async () => {
+    try {
+      const res = await apiPost({ action: 'checkIn', guest_id: guestId });
+      if (res.ok && res.status === 'checked_in') {
+        const idx = allGuests.findIndex(x => String(x.guest_id) === String(guestId));
+        if (idx >= 0) allGuests[idx].arrived = 'TRUE';
+        updateGuestStats();
+        renderGuestTable();
+        toast('✓ ' + (res.name || g.name || '') + ' 様を来場済みにしました');
+      } else if (res.status === 'duplicate') {
+        const idx = allGuests.findIndex(x => String(x.guest_id) === String(guestId));
+        if (idx >= 0) allGuests[idx].arrived = 'TRUE';
+        updateGuestStats();
+        renderGuestTable();
+        toast('既に来場済みです');
+      } else {
+        toast('失敗: ' + (res.message || res.status || '不明なエラー'));
+      }
+    } catch (e) {
+      toast('通信エラー: ' + (e && e.message ? e.message : e));
     }
-  } catch (e) {
-    toast('通信エラー: ' + (e && e.message ? e.message : e));
-  }
+  });
 }
 
 // ── スキャン停止 ──────────────────────────────────────
@@ -3077,14 +3123,10 @@ function buildPromoItem(eventId, u) {
     <span class="promo-url-type ${cls}">${label}</span>
     <span class="promo-url-spacer"></span>
     <button class="promo-url-copy" onclick="copyPromoUrl('${eventId}','${esc}','${u.type}','${u.plan_id||''}',this)">📋 コピー</button>
-    <button class="promo-url-del"  onclick="deletePromoUrl('${eventId}','${esc}','${u.type}')" title="削除">✕</button>
+    <button class="promo-url-del"  onclick="deletePromoUrl('${eventId}','${esc}','${u.type}','${u.plan_id||''}',this)" title="削除">✕</button>
   </div>`;
 }
 
-function copyCustomUrl() {
-  const url = document.getElementById('cu-url-text').textContent;
-  navigator.clipboard.writeText(url).then(() => toast('✦ URLをコピーしました'));
-}
 function closeModal(id)      { document.getElementById(id).classList.remove('active'); }
 document.querySelectorAll('.modal-overlay').forEach(o =>
   o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); })
@@ -3497,9 +3539,13 @@ async function saveGroups() {
   toast(d.ok ? '✦ グループを保存しました' : '保存エラー: ' + d.message);
 }
 
-async function exportToSheet() {
+async function exportToSheet(btn) {
   if (!reportEventId) { toast('イベントを選択してください'); return; }
   const ev = allEvents.find(e => e.event_id === reportEventId);
+  return runBusy(btn, '出力中…', () => exportToSheetCore(ev));
+}
+
+async function exportToSheetCore(ev) {
   document.getElementById('r-btn-export').disabled = true;
   toast('スプレッドシートに出力中…');
 
@@ -3961,16 +4007,18 @@ function switchMmContent(type) {
 }
 
 // テンプレート保存（GASスプレッドシート）
-async function saveMmTemplate() {
+async function saveMmTemplate(btn) {
   const name = prompt('テンプレート名を入力してください:');
   if (!name) return;
   const tpl = getMmFormData();
-  const d = await apiPost({ action: 'saveMailTemplate', name, data: tpl });
-  if (!d.ok) { toast('❌ 保存に失敗しました'); return; }
-  mmTemplates[name] = tpl;
-  renderMmTemplateList();
-  document.getElementById('mm-template-sel').value = name;
-  toast('✅ テンプレートを保存しました: ' + name);
+  await runBusy(btn, '保存中…', async () => {
+    const d = await apiPost({ action: 'saveMailTemplate', name, data: tpl });
+    if (!d.ok) { toast('❌ 保存に失敗しました'); return; }
+    mmTemplates[name] = tpl;
+    renderMmTemplateList();
+    document.getElementById('mm-template-sel').value = name;
+    toast('✅ テンプレートを保存しました: ' + name);
+  });
 }
 
 async function loadMmTemplatesFromGas() {
@@ -4016,15 +4064,17 @@ function loadMmTemplate() {
   setMmFormData(mmTemplates[name]);
 }
 
-async function deleteMmTemplate() {
+async function deleteMmTemplate(btn) {
   const name = document.getElementById('mm-template-sel').value;
   if (!name) { toast('削除するテンプレートを選択してください'); return; }
   if (!confirm('「' + name + '」を削除しますか？')) return;
-  const d = await apiPost({ action: 'deleteMailTemplate', name });
-  if (!d.ok) { toast('❌ 削除に失敗しました'); return; }
-  delete mmTemplates[name];
-  renderMmTemplateList();
-  toast('🗑 テンプレートを削除しました');
+  await runBusy(btn, '削除中…', async () => {
+    const d = await apiPost({ action: 'deleteMailTemplate', name });
+    if (!d.ok) { toast('❌ 削除に失敗しました'); return; }
+    delete mmTemplates[name];
+    renderMmTemplateList();
+    toast('🗑 テンプレートを削除しました');
+  });
 }
 
 function getMmFormData() {
@@ -4312,7 +4362,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── テスト送信 ──────────────────────────────────────────
-async function sendMmTestEmail(type) {
+async function sendMmTestEmail(type, btn) {
   const email = document.getElementById('mm-test-email').value.trim();
   if (!email) { toast('❌ テスト送信先のメールアドレスを入力してください'); return; }
   if (!email.includes('@')) { toast('❌ 正しいメールアドレスを入力してください'); return; }
@@ -4326,19 +4376,21 @@ async function sendMmTestEmail(type) {
   const typeLabel = type === 'free' ? '無料参加者向け' : '有料参加者向け';
   toast('⏳ ' + typeLabel + 'のテストメールを送信中...');
 
-  const d = await apiPost({
-    action:     'sendMailMagTest',
-    email:      email,
-    type:       type,
-    data_free:  getMmFormData().free,
-    data_paid:  getMmFormData().paid,
-  });
+  await runBusy(btn, '送信中…', async () => {
+    const d = await apiPost({
+      action:     'sendMailMagTest',
+      email:      email,
+      type:       type,
+      data_free:  getMmFormData().free,
+      data_paid:  getMmFormData().paid,
+    });
 
-  if (d.ok) {
-    toast('✅ テストメールを送信しました → ' + email);
-  } else {
-    toast('❌ 送信失敗: ' + (d.message || '不明なエラー'));
-  }
+    if (d.ok) {
+      toast('✅ テストメールを送信しました → ' + email);
+    } else {
+      toast('❌ 送信失敗: ' + (d.message || '不明なエラー'));
+    }
+  });
 }
 
 
@@ -4528,11 +4580,11 @@ function renderPlanListHtml(eventId, plans) {
       </div>
       <div class="plan-actions">
         ${isActive
-          ? `<button class="btn-plan-sm btn-plan-close" onclick="closePlan('${p.plan_id}','${eventId}')">受付終了にする</button>`
-          : `<button class="btn-plan-sm" onclick="reopenPlan('${p.plan_id}','${eventId}')">再開する</button>`
+          ? `<button class="btn-plan-sm btn-plan-close" onclick="closePlan('${p.plan_id}','${eventId}',this)">受付終了にする</button>`
+          : `<button class="btn-plan-sm" onclick="reopenPlan('${p.plan_id}','${eventId}',this)">再開する</button>`
         }
         <button class="btn-plan-sm" onclick="openEditCapacityModal('${p.plan_id}','${p.plan_name}',${cap},'${p.redirect_url||''}','${p.display_text||''}','${p.payment_methods||''}')">上限・決済設定</button>
-        <button class="btn-plan-sm" style="color:#CF4444;border-color:rgba(207,68,68,0.25);" onclick="deletePlan('${p.plan_id}','${eventId}')">削除</button>
+        <button class="btn-plan-sm" style="color:#CF4444;border-color:rgba(207,68,68,0.25);" onclick="deletePlan('${p.plan_id}','${eventId}',this)">削除</button>
       </div>
     </div>`;
   }).join('');
@@ -4555,7 +4607,7 @@ function openAddPlanModal(eventId) {
   document.getElementById('modal-add-plan').classList.add('active');
 }
 
-async function addPlan() {
+async function addPlan(btn) {
   const eventId   = document.getElementById('plan-event-id').value;
   const planName  = document.getElementById('plan-name').value.trim();
   const priceMale = Number(document.getElementById('plan-price-male').value || 0);
@@ -4565,39 +4617,48 @@ async function addPlan() {
   const capFemale = Number(document.getElementById('plan-capacity-female')?.value || 0);
   const redirect  = document.getElementById('plan-redirect').value.trim();
   if (!planName) { toast('❌ プラン名を入力してください'); return; }
-  const d = await apiPost({
-    action: 'addPlan', event_id: eventId, plan_name: planName,
-    price_male: priceMale, price_female: priceFem,
-    capacity: capacity, capacity_male: capMale, capacity_female: capFemale,
-    redirect_url: redirect,
-    payment_methods: [document.getElementById('plan-pay-card')?.checked?'card':'', document.getElementById('plan-pay-walkin')?.checked?'walkin':''].filter(Boolean).join(','),
-    display_text: document.getElementById('plan-display-text')?.value.trim() || ''
+  const submissionId = 'S-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  await runBusy(btn, '追加中…', async () => {
+    const d = await apiPost({
+      action: 'addPlan', submission_id: submissionId, event_id: eventId, plan_name: planName,
+      price_male: priceMale, price_female: priceFem,
+      capacity: capacity, capacity_male: capMale, capacity_female: capFemale,
+      redirect_url: redirect,
+      payment_methods: [document.getElementById('plan-pay-card')?.checked?'card':'', document.getElementById('plan-pay-walkin')?.checked?'walkin':''].filter(Boolean).join(','),
+      display_text: document.getElementById('plan-display-text')?.value.trim() || ''
+    });
+    if (d.ok) {
+      closeModal('modal-add-plan');
+      toast('✅ プランを追加しました（ID: ' + d.plan_id + '）');
+      await loadEvents();
+    } else toast('❌ ' + (d.message || 'エラー'));
   });
-  if (d.ok) {
-    closeModal('modal-add-plan');
-    toast('✅ プランを追加しました（ID: ' + d.plan_id + '）');
-    await loadEvents();
-  } else toast('❌ ' + (d.message || 'エラー'));
 }
 
-async function closePlan(planId, eventId) {
+async function closePlan(planId, eventId, btn) {
   if (!confirm('このプランの受付を終了しますか？')) return;
-  const d = await apiPost({ action: 'updatePlanStatus', plan_id: planId, status: 'closed' });
-  if (d.ok) { toast('✅ 受付を終了しました'); await loadEvents(); }
-  else toast('❌ ' + d.message);
+  await runBusy(btn, '処理中…', async () => {
+    const d = await apiPost({ action: 'updatePlanStatus', plan_id: planId, status: 'closed' });
+    if (d.ok) { toast('✅ 受付を終了しました'); await loadEvents(); }
+    else toast('❌ ' + d.message);
+  });
 }
 
-async function reopenPlan(planId, eventId) {
-  const d = await apiPost({ action: 'updatePlanStatus', plan_id: planId, status: 'active' });
-  if (d.ok) { toast('✅ 受付を再開しました'); await loadEvents(); }
-  else toast('❌ ' + d.message);
+async function reopenPlan(planId, eventId, btn) {
+  await runBusy(btn, '処理中…', async () => {
+    const d = await apiPost({ action: 'updatePlanStatus', plan_id: planId, status: 'active' });
+    if (d.ok) { toast('✅ 受付を再開しました'); await loadEvents(); }
+    else toast('❌ ' + d.message);
+  });
 }
 
-async function deletePlan(planId, eventId) {
+async function deletePlan(planId, eventId, btn) {
   if (!confirm('このプランを削除しますか？')) return;
-  const d = await apiPost({ action: 'deletePlan', plan_id: planId });
-  if (d.ok) { toast('✅ プランを削除しました'); await loadEvents(); }
-  else toast('❌ ' + d.message);
+  await runBusy(btn, '削除中…', async () => {
+    const d = await apiPost({ action: 'deletePlan', plan_id: planId });
+    if (d.ok) { toast('✅ プランを削除しました'); await loadEvents(); }
+    else toast('❌ ' + d.message);
+  });
 }
 
 function openEditCapacityModal(planId, planName, currentCap, currentRedirect, currentDisplayText, currentPayMethods) {
@@ -4612,7 +4673,7 @@ function openEditCapacityModal(planId, planName, currentCap, currentRedirect, cu
   document.getElementById('modal-edit-capacity').classList.add('active');
 }
 
-async function saveEditCapacity() {
+async function saveEditCapacity(btn) {
   const planId      = document.getElementById('ecp-plan-id').value;
   const capacity    = Number(document.getElementById('ecp-capacity').value || 0);
   const redirect    = document.getElementById('ecp-redirect').value.trim();
@@ -4620,17 +4681,19 @@ async function saveEditCapacity() {
   const hasCard     = document.getElementById('ecp-pay-card').checked;
   const hasWalkin   = document.getElementById('ecp-pay-walkin').checked;
   const payMethods  = [hasCard?'card':'', hasWalkin?'walkin':''].filter(Boolean).join(',');
-  const d = await apiPost({
-    action: 'updatePlanCapacity',
-    plan_id: planId,
-    capacity,
-    redirect_url: redirect,
-    display_text: displayText,
-    payment_methods: payMethods
+  await runBusy(btn, '保存中…', async () => {
+    const d = await apiPost({
+      action: 'updatePlanCapacity',
+      plan_id: planId,
+      capacity,
+      redirect_url: redirect,
+      display_text: displayText,
+      payment_methods: payMethods
+    });
+    document.getElementById('modal-edit-capacity').classList.remove('active');
+    if (d.ok) { toast('✅ 設定を更新しました'); await loadEvents(); }
+    else toast('❌ ' + (d.message || '更新に失敗しました'));
   });
-  document.getElementById('modal-edit-capacity').classList.remove('active');
-  if (d.ok) { toast('✅ 設定を更新しました'); await loadEvents(); }
-  else toast('❌ ' + (d.message || '更新に失敗しました'));
 }
 
 function onCuTypeChange() {
@@ -4687,6 +4750,7 @@ function openCustomUrlModal() {
   document.getElementById('cu-plan-list').innerHTML =
     '<div style="font-size:0.62rem;color:var(--gray);">先にイベントを選択してください</div>';
   document.getElementById('cu-url-result').style.display = 'none';
+  cuGeneratedUrls = [];
   document.getElementById('modal-custom-url').classList.add('active');
 }
 
@@ -4721,7 +4785,7 @@ async function onCuEventChange() {
   // 無料プラン（常に表示）
   rows.push(`
     <label class="cu-plan-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,0.08);margin-bottom:6px;cursor:pointer;">
-      <input type="radio" name="cu-plan-radio" value="free" style="accent-color:var(--gold);">
+      <input type="checkbox" name="cu-plan-radio" value="free" style="accent-color:var(--gold);">
       <div>
         <div style="font-size:0.75rem;color:var(--white);font-weight:600;">無料招待</div>
         <div style="font-size:0.55rem;color:var(--gray);">男女とも無料</div>
@@ -4732,7 +4796,7 @@ async function onCuEventChange() {
   if (evPriceM > 0 || evPriceF > 0) {
     rows.push(`
       <label class="cu-plan-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(201,168,76,0.15);margin-bottom:6px;cursor:pointer;">
-        <input type="radio" name="cu-plan-radio" value="paid_default" style="accent-color:var(--gold);">
+        <input type="checkbox" name="cu-plan-radio" value="paid_default" style="accent-color:var(--gold);">
         <div style="flex:1;">
           <div style="font-size:0.75rem;color:var(--white);font-weight:600;">有料招待（通常）</div>
           <div style="font-size:0.55rem;color:var(--gray);">男¥${evPriceM.toLocaleString()} / 女¥${evPriceF.toLocaleString()}</div>
@@ -4750,7 +4814,7 @@ async function onCuEventChange() {
     const capInfo = capM > 0 ? `男性残り${Math.max(0,capM-cntM)}名` : '';
     rows.push(`
       <label class="cu-plan-row" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(201,168,76,0.2);margin-bottom:6px;cursor:pointer;">
-        <input type="radio" name="cu-plan-radio" value="paid:${p.plan_id}" style="accent-color:var(--gold);">
+        <input type="checkbox" name="cu-plan-radio" value="paid:${p.plan_id}" style="accent-color:var(--gold);">
         <div style="flex:1;">
           <div style="font-size:0.75rem;color:var(--white);font-weight:600;">${p.plan_name}${status}</div>
           <div style="font-size:0.55rem;color:var(--gray);">男¥${pm} / 女¥${pf}${capInfo ? ' | '+capInfo : ''}</div>
@@ -4765,50 +4829,91 @@ async function onCuEventChange() {
   listEl.innerHTML = rows.join('');
 }
 
-async function generateCustomUrl() {
+async function generateCustomUrl(btn) {
   const eventId  = document.getElementById('cu-event-sel').value;
   const promoter = document.getElementById('cu-promoter').value.trim();
-  const selected = document.querySelector('input[name="cu-plan-radio"]:checked');
+  const checked  = document.querySelectorAll('input[name="cu-plan-radio"]:checked');
 
   if (!eventId)  { toast('イベントを選択してください'); return; }
   if (!promoter) { toast('招待者名を入力してください'); return; }
-  if (!selected) { toast('種別・プランを選択してください'); return; }
+  if (!checked.length) { toast('種別・プランを1つ以上選択してください'); return; }
 
-  const val = selected.value; // 'free' または 'paid:PLAN-XXXX'
-  let url, type, planId = '';
+  await runBusy(btn, '生成中…', async () => {
+    // 選択された全チェックから {type, plan_id} と表示URLを組み立てる
+    const links = [];
+    cuGeneratedUrls = [];
+    checked.forEach(cb => {
+      const val = cb.value; // 'free' / 'paid_default' / 'paid:PLAN-XXXX'
+      let type, planId = '', label;
+      if (val === 'free') {
+        type = 'free'; label = '無料招待';
+      } else if (val === 'paid_default') {
+        type = 'paid'; label = '有料招待（通常）';
+      } else {
+        type = 'paid'; planId = val.replace('paid:', ''); label = '有料: ' + planId;
+      }
+      let url = BASE_URL + 'index.html?e=' + eventId + '&type=' + type;
+      if (planId) url += '&plan=' + planId;
+      url += '&promoter=' + encodeURIComponent(promoter);
+      links.push({ type: type, plan_id: planId });
+      cuGeneratedUrls.push({ url: url, label: label });
+    });
 
-  if (val === 'free') {
-    type = 'free';
-    url  = BASE_URL + 'index.html?e=' + eventId + '&type=free&promoter=' + encodeURIComponent(promoter);
-  } else if (val === 'paid_default') {
-    // デフォルト有料URL（プランなし）
-    type = 'paid';
-    url  = BASE_URL + 'index.html?e=' + eventId + '&type=paid&promoter=' + encodeURIComponent(promoter);
-  } else {
-    // プランあり有料URL
-    type   = 'paid';
-    planId = val.replace('paid:', '');
-    url    = BASE_URL + 'index.html?e=' + eventId + '&type=paid&plan=' + planId + '&promoter=' + encodeURIComponent(promoter);
-  }
+    // 1回のPOSTでまとめて保存（複数形API）
+    const d = await apiPost({ action: 'savePromoUrls', event_id: eventId, promoter: promoter, links: links });
 
-  // GASに保存
-  const d = await apiPost({ action: 'savePromoUrl', event_id: eventId, promoter, type, plan_id: planId });
+    // キャッシュ更新（重複を避けて追加）
+    if (!allPromoUrls) allPromoUrls = [];
+    links.forEach(l => {
+      const exists = allPromoUrls.some(u =>
+        String(u.event_id) === String(eventId) && u.promoter === promoter &&
+        u.type === l.type && String(u.plan_id || '') === String(l.plan_id || ''));
+      if (!exists) allPromoUrls.push({ event_id: eventId, promoter: promoter, type: l.type, plan_id: l.plan_id });
+    });
 
-  document.getElementById('cu-url-text').textContent = url;
-  document.getElementById('cu-url-result').style.display = 'block';
-  toast('✅ URLを生成しました');
+    renderCustomUrlResults();
+    refreshPromoList(eventId);
+    renderEventGrid();
 
-  // キャッシュに追加
-  if (!allPromoUrls) allPromoUrls = [];
-  if (d.message !== 'already_exists') {
-    allPromoUrls.push({ event_id: eventId, promoter, type, plan_id: planId });
-  }
-  renderPromoUrls(eventId);
+    let msg = '✅ ' + cuGeneratedUrls.length + '件のURLを生成しました';
+    if (d && Array.isArray(d.created)) {
+      const skipped = Array.isArray(d.skipped) ? d.skipped.length : 0;
+      msg = '✅ ' + d.created.length + '件生成' + (skipped ? ' / ' + skipped + '件は既存' : '');
+    }
+    toast(msg);
+  });
 }
 
-function copyCustomUrl() {
-  const text = document.getElementById('cu-url-text').textContent;
-  copyText(text);
+// 生成した複数URLを結果欄に一覧表示（各URLに個別コピーボタン）
+function renderCustomUrlResults() {
+  const list = document.getElementById('cu-url-list');
+  if (!list) return;
+  list.innerHTML = cuGeneratedUrls.map((u, i) =>
+    '<div class="ev-url-row" style="margin-top:6px;">'
+    + '<div class="ev-url-text" style="font-size:0.55rem;word-break:break-all;white-space:normal;">'
+    + (u.label ? '<span style="color:var(--gray);">[' + u.label + '] </span>' : '') + u.url
+    + '</div>'
+    + '<button class="copy-btn" onclick="copyOneCustomUrl(' + i + ',this)">📋</button>'
+    + '</div>'
+  ).join('');
+  document.getElementById('cu-url-result').style.display = 'block';
+}
+
+function copyOneCustomUrl(i, btn) {
+  const u = cuGeneratedUrls[i];
+  if (u) copyText(u.url, btn);
+}
+
+// すべてのURLを改行区切りでまとめてコピー
+function copyAllCustomUrls(btn) {
+  if (!cuGeneratedUrls.length) return;
+  const text = cuGeneratedUrls.map(u => u.url).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ コピー済';
+    setTimeout(() => btn.textContent = orig, 1500);
+    toast('✦ すべてのURLをコピーしました（' + cuGeneratedUrls.length + '件）');
+  });
 }
 
 
@@ -5009,10 +5114,10 @@ function renderVipReservations() {
       <div style="font-size:0.65rem;color:var(--white);flex:1;">${r.name||'—'}</div>
       <div style="font-size:0.55rem;color:${color};border:1px solid ${color};padding:2px 8px;">${label}</div>
       <div style="font-size:0.5rem;color:var(--gray);">${r.payment_method==='stripe'?'💳':'🏦'}</div>
-      ${isPending && isTransfer ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}')">✅ 入金確認</button>` : ''}
-      ${st==='stripe_pending' ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}')">✅ 確認</button>` : ''}
-      ${isConfirmed ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;background:rgba(76,175,130,0.08);border-color:rgba(76,175,130,0.5);color:#4CAF82;" onclick="manualVipCheckIn('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">来場✓</button>` : ''}
-      ${isConfirmed ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;background:rgba(106,171,255,0.08);border-color:rgba(106,171,255,0.4);color:#6AABFF;" onclick="resendVipQr('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}')">📨 QR再送</button>` : ''}
+      ${isPending && isTransfer ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}',this)">✅ 入金確認</button>` : ''}
+      ${st==='stripe_pending' ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;" onclick="confirmVipTransferPayment('${r.guest_id}','${r.name||''}',this)">✅ 確認</button>` : ''}
+      ${isConfirmed ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;background:rgba(76,175,130,0.08);border-color:rgba(76,175,130,0.5);color:#4CAF82;" onclick="manualVipCheckIn('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}',this)">来場✓</button>` : ''}
+      ${isConfirmed ? `<button class="copy-btn" style="font-size:0.55rem;padding:4px 10px;background:rgba(106,171,255,0.08);border-color:rgba(106,171,255,0.4);color:#6AABFF;" onclick="resendVipQr('${r.guest_id}','${(r.name||'').replace(/'/g,"\\'")}',this)">📨 QR再送</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -5050,40 +5155,46 @@ async function submitVipRegistration() {
   }
 }
 
-async function confirmVipTransferPayment(guestId, guestName) {
+async function confirmVipTransferPayment(guestId, guestName, btn) {
   if (!confirm(guestName + ' 様の入金を確認しますか？QRコード招待状が送信されます。')) return;
-  const d = await apiPost({ action: 'confirmVipPayment', guest_id: guestId });
-  if (d.ok) {
-    toast('✅ 入金確認完了 — QR招待状を送信しました');
-    await loadVipData();
-  } else {
-    toast('❌ ' + (d.message || 'エラーが発生しました'));
-  }
+  await runBusy(btn, '処理中…', async () => {
+    const d = await apiPost({ action: 'confirmVipPayment', guest_id: guestId });
+    if (d.ok) {
+      toast('✅ 入金確認完了 — QR招待状を送信しました');
+      await loadVipData();
+    } else {
+      toast('❌ ' + (d.message || 'エラーが発生しました'));
+    }
+  });
 }
 
-async function resendVipQr(guestId, guestName) {
+async function resendVipQr(guestId, guestName, btn) {
   if (!confirm(guestName + ' 様にQRコード招待状を再送しますか？')) return;
-  const d = await apiPost({ action: 'resendVipQr', guest_id: guestId });
-  if (d.ok) {
-    toast('✅ QR招待状を再送しました — ' + (d.email || ''));
-  } else {
-    toast('❌ ' + (d.message || 'エラーが発生しました'));
-  }
+  await runBusy(btn, '送信中…', async () => {
+    const d = await apiPost({ action: 'resendVipQr', guest_id: guestId });
+    if (d.ok) {
+      toast('✅ QR招待状を再送しました — ' + (d.email || ''));
+    } else {
+      toast('❌ ' + (d.message || 'エラーが発生しました'));
+    }
+  });
 }
 
-async function manualVipCheckIn(guestId, guestName) {
+async function manualVipCheckIn(guestId, guestName, btn) {
   if (!confirm(guestName + ' 様の来場を記録しますか？')) return;
-  const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: vipEventId });
-  if (d.ok && d.vip_info) {
-    const v = d.vip_info;
-    const over = v.is_over ? `⚠️ 定員超過 ${v.checked_count}/${v.capacity}名` : `${v.checked_count}/${v.capacity}名入場`;
-    toast('✅ 来場記録 — ' + d.name + ' / ' + v.table_name + ' ' + over);
-  } else if (d.ok) {
-    toast('✅ 来場記録 — ' + d.name);
-  } else {
-    toast('❌ ' + (d.message || 'エラー'));
-  }
-  await loadVipData();
+  await runBusy(btn, '処理中…', async () => {
+    const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: vipEventId });
+    if (d.ok && d.vip_info) {
+      const v = d.vip_info;
+      const over = v.is_over ? `⚠️ 定員超過 ${v.checked_count}/${v.capacity}名` : `${v.checked_count}/${v.capacity}名入場`;
+      toast('✅ 来場記録 — ' + d.name + ' / ' + v.table_name + ' ' + over);
+    } else if (d.ok) {
+      toast('✅ 来場記録 — ' + d.name);
+    } else {
+      toast('❌ ' + (d.message || 'エラー'));
+    }
+    await loadVipData();
+  });
 }
 
 </script>
