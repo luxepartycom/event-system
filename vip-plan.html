@@ -132,6 +132,13 @@ body {
   font-weight:400;
   white-space:nowrap;
 }
+.rank-total {
+  font-size:0.62rem;
+  letter-spacing:0.14em;
+  color:var(--gray);
+  white-space:nowrap;
+  flex-shrink:0;
+}
 
 /* Plan Card */
 .plan-card {
@@ -794,8 +801,9 @@ function renderPlans(tables) {
     const key = (floor === null ? '_' : floor) + '|' + ty + '|' + price + '|' + men;
     if (!groupMap[key]) groupMap[key] = {
       floor, table_type: ty, price, capacity: Number(t.capacity) || 0,
-      available: 0, men_label: men, benefits_str: String(t.benefits || ''), sort_order: null
+      available: 0, total: 0, men_label: men, benefits_str: String(t.benefits || ''), sort_order: null
     };
+    groupMap[key].total++;   // 全卓数（合計席数の算出用・statusに依らず）
     if (String(t.status) === 'available') groupMap[key].available++;
     // カードの表示順キー：その卓群の最小 sort_order（B案：番号どおりにカードを並べる）
     const soRaw = t.sort_order;
@@ -823,6 +831,10 @@ function renderPlans(tables) {
         return b.price - a.price;
       });
     if (groups.length === 0) return '';
+
+    // 種別（プラン）ごとの合計席数＝各卓群の 卓数×収容 の総和
+    let typeTotalSeats = 0;
+    groups.forEach(g => { typeTotalSeats += (Number(g.total) || 0) * (Number(g.capacity) || 0); });
 
     const cls = CLASS_BY_TYPE[ty] || '';
     let cardsHtml = '';
@@ -871,6 +883,7 @@ function renderPlans(tables) {
         <div class="rank-heading">
           <div class="rank-name">${_escHtml(String(ty).toUpperCase())}</div>
           <div class="rank-heading-line"></div>
+          ${typeTotalSeats > 0 ? `<div class="rank-total">合計 ${typeTotalSeats}席</div>` : ''}
         </div>
         ${cardsHtml}
       </div>`;
