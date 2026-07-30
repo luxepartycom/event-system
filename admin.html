@@ -1125,278 +1125,81 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   <!-- フロアマップ + テーブル一覧 -->
   <div id="vip-content" style="display:none;">
 
-    <!-- フロアマップ -->
+    <!-- 座席画像 -->
     <div style="margin-bottom:24px;">
-      <div style="font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);margin-bottom:10px;text-transform:uppercase;">フロアマップ</div>
-      <!-- フロア切替タブ -->
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <button id="floortab-b1f" onclick="showFloor('b1f')" style="font-size:0.55rem;letter-spacing:0.15em;padding:7px 18px;cursor:pointer;background:var(--gold);color:#000;border:1px solid var(--gold);font-weight:700;">B1F</button>
-        <button id="floortab-1f" onclick="showFloor('1f')" style="font-size:0.55rem;letter-spacing:0.15em;padding:7px 18px;cursor:pointer;background:transparent;color:var(--gold);border:1px solid var(--gold);font-weight:400;">1階</button>
+      <div style="font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);margin-bottom:10px;text-transform:uppercase;">座席表（座席画像）</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <input class="form-input" id="vip-seat-url" placeholder="座席画像のURL（Google Drive 共有URL可）" style="flex:1;min-width:240px;">
+        <button class="copy-btn" style="font-size:0.6rem;padding:8px 18px;" onclick="saveVipSeatImageUrl(this)">保存</button>
       </div>
-      <div id="floor-b1f">
-      <div style="background:#0d0d0d;border:1px solid #1e1e1e;overflow:hidden;">
-        <svg viewBox="0 0 500 640" xmlns="http://www.w3.org/2000/svg" id="vip-admin-svg">
-          <rect width="500" height="640" fill="#0d0d0d"/>
-          <!-- BAR COUNTER -->
-          <rect x="30" y="110" width="370" height="26" rx="3" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1"/>
-          <text x="215" y="127" text-anchor="middle" fill="#444" font-size="10" font-family="sans-serif">BAR COUNTER</text>
-          <!-- WC -->
-          <rect x="10" y="250" width="44" height="50" rx="3" fill="#141414" stroke="#222" stroke-width="1"/>
-          <text x="32" y="280" text-anchor="middle" fill="#333" font-size="11" font-family="sans-serif">WC</text>
-          <!-- DJ -->
-          <rect x="185" y="400" width="110" height="60" rx="4" fill="#141414" stroke="#222" stroke-width="1"/>
-          <circle cx="215" cy="422" r="12" fill="none" stroke="#333" stroke-width="1.2"/><circle cx="215" cy="422" r="4" fill="none" stroke="#333" stroke-width="1"/><circle cx="215" cy="422" r="1.5" fill="#333"/>
-          <circle cx="265" cy="422" r="12" fill="none" stroke="#333" stroke-width="1.2"/><circle cx="265" cy="422" r="4" fill="none" stroke="#333" stroke-width="1"/><circle cx="265" cy="422" r="1.5" fill="#333"/>
-          <rect x="222" y="415" width="26" height="16" rx="1" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
-          <text x="240" y="452" text-anchor="middle" fill="#333" font-size="9" font-family="sans-serif">DJ</text>
-          <!-- LADIES SEAT bottom -->
-          <rect x="80" y="558" width="320" height="24" rx="3" fill="#330a1a" stroke="#880E4F" stroke-width="1"/>
-          <text x="240" y="574" text-anchor="middle" fill="#FCE4EC" font-size="9" font-family="sans-serif">LADIES SEAT</text>
-          <!-- S1 -->
-          <g class="vip-table" id="svg-S1" style="cursor:pointer">
-            <rect x="30" y="48" width="96" height="56" rx="7" fill="#4a0f0f" stroke="#CC2222" stroke-width="1.5"/>
-            <line x1="40" y1="48" x2="40" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="50" y1="48" x2="50" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="60" y1="48" x2="60" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="70" y1="48" x2="70" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="80" y1="48" x2="80" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="90" y1="48" x2="90" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="100" y1="48" x2="100" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="110" y1="48" x2="110" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="120" y1="48" x2="120" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <text x="78" y="74" text-anchor="middle" fill="#FF8888" font-size="14" font-weight="500" font-family="sans-serif">S1</text>
-            <text x="78" y="90" text-anchor="middle" fill="#CC5555" font-size="9" font-family="sans-serif">5名 ¥500,000</text>
-          </g>
-          <!-- S2 -->
-          <g class="vip-table" id="svg-S2" style="cursor:pointer">
-            <rect x="172" y="48" width="96" height="56" rx="7" fill="#4a0f0f" stroke="#CC2222" stroke-width="1.5"/>
-            <line x1="184" y1="48" x2="184" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="196" y1="48" x2="196" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="208" y1="48" x2="208" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="220" y1="48" x2="220" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="232" y1="48" x2="232" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="244" y1="48" x2="244" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="256" y1="48" x2="256" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <text x="220" y="74" text-anchor="middle" fill="#FF8888" font-size="14" font-weight="500" font-family="sans-serif">S2</text>
-            <text x="220" y="90" text-anchor="middle" fill="#CC5555" font-size="9" font-family="sans-serif">4名 ¥300,000</text>
-          </g>
-          <!-- S3 -->
-          <g class="vip-table" id="svg-S3" style="cursor:pointer">
-            <rect x="314" y="48" width="96" height="56" rx="7" fill="#4a0f0f" stroke="#CC2222" stroke-width="1.5"/>
-            <line x1="324" y1="48" x2="324" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="334" y1="48" x2="334" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="344" y1="48" x2="344" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="354" y1="48" x2="354" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="364" y1="48" x2="364" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="374" y1="48" x2="374" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="384" y1="48" x2="384" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="394" y1="48" x2="394" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <line x1="404" y1="48" x2="404" y2="104" stroke="#CC2222" stroke-width="0.5" opacity="0.5"/>
-            <text x="362" y="74" text-anchor="middle" fill="#FF8888" font-size="14" font-weight="500" font-family="sans-serif">S3</text>
-            <text x="362" y="90" text-anchor="middle" fill="#CC5555" font-size="9" font-family="sans-serif">5名 ¥500,000</text>
-          </g>
-          <!-- V1 -->
-          <g class="vip-table" id="svg-V1" style="cursor:pointer">
-            <rect x="66" y="148" width="80" height="98" rx="8" fill="#0F2461" stroke="#3355CC" stroke-width="1.5"/>
-            <line x1="66" y1="161" x2="146" y2="161" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="173" x2="146" y2="173" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="185" x2="146" y2="185" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="197" x2="146" y2="197" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="209" x2="146" y2="209" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="221" x2="146" y2="221" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="233" x2="146" y2="233" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <text x="106" y="183" text-anchor="middle" fill="#dbeafe" font-size="16" font-weight="500" font-family="sans-serif">V1</text>
-            <text x="106" y="199" text-anchor="middle" fill="#7eb3e8" font-size="9" font-family="sans-serif">4名</text>
-            <text x="106" y="213" text-anchor="middle" fill="#6090c0" font-size="9" font-family="sans-serif">¥300,000</text>
-          </g>
-          <!-- V2 -->
-          <g class="vip-table" id="svg-V2" style="cursor:pointer">
-            <rect x="66" y="264" width="80" height="98" rx="8" fill="#0F2461" stroke="#3355CC" stroke-width="1.5"/>
-            <line x1="66" y1="277" x2="146" y2="277" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="289" x2="146" y2="289" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="301" x2="146" y2="301" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="313" x2="146" y2="313" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="325" x2="146" y2="325" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="337" x2="146" y2="337" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="349" x2="146" y2="349" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <text x="106" y="299" text-anchor="middle" fill="#dbeafe" font-size="16" font-weight="500" font-family="sans-serif">V2</text>
-            <text x="106" y="315" text-anchor="middle" fill="#7eb3e8" font-size="9" font-family="sans-serif">4名</text>
-            <text x="106" y="329" text-anchor="middle" fill="#6090c0" font-size="9" font-family="sans-serif">¥300,000</text>
-          </g>
-          <!-- V3 -->
-          <g class="vip-table" id="svg-V3" style="cursor:pointer">
-            <rect x="200" y="148" width="80" height="98" rx="8" fill="#0F2461" stroke="#3355CC" stroke-width="1.5"/>
-            <line x1="200" y1="161" x2="280" y2="161" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="173" x2="280" y2="173" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="185" x2="280" y2="185" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="197" x2="280" y2="197" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="209" x2="280" y2="209" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="221" x2="280" y2="221" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="233" x2="280" y2="233" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="245" x2="280" y2="245" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="237" x2="280" y2="237" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <text x="240" y="183" text-anchor="middle" fill="#dbeafe" font-size="16" font-weight="500" font-family="sans-serif">V3</text>
-            <text x="240" y="199" text-anchor="middle" fill="#7eb3e8" font-size="9" font-family="sans-serif">5名</text>
-            <text x="240" y="213" text-anchor="middle" fill="#6090c0" font-size="9" font-family="sans-serif">¥300,000</text>
-          </g>
-          <!-- V4 -->
-          <g class="vip-table" id="svg-V4" style="cursor:pointer">
-            <rect x="200" y="264" width="80" height="98" rx="8" fill="#0F2461" stroke="#3355CC" stroke-width="1.5"/>
-            <line x1="200" y1="277" x2="280" y2="277" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="289" x2="280" y2="289" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="301" x2="280" y2="301" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="313" x2="280" y2="313" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="325" x2="280" y2="325" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="337" x2="280" y2="337" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="349" x2="280" y2="349" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="200" y1="361" x2="280" y2="361" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <text x="240" y="299" text-anchor="middle" fill="#dbeafe" font-size="16" font-weight="500" font-family="sans-serif">V4</text>
-            <text x="240" y="315" text-anchor="middle" fill="#7eb3e8" font-size="9" font-family="sans-serif">5名</text>
-            <text x="240" y="329" text-anchor="middle" fill="#6090c0" font-size="9" font-family="sans-serif">¥300,000</text>
-          </g>
-          <!-- V5 -->
-          <g class="vip-table" id="svg-V5" style="cursor:pointer">
-            <rect x="348" y="148" width="82" height="92" rx="8" fill="#0F2461" stroke="#3355CC" stroke-width="1.5"/>
-            <line x1="348" y1="161" x2="430" y2="161" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="173" x2="430" y2="173" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="185" x2="430" y2="185" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="197" x2="430" y2="197" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="209" x2="430" y2="209" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="221" x2="430" y2="221" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="233" x2="430" y2="233" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="226" x2="430" y2="226" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <text x="389" y="183" text-anchor="middle" fill="#dbeafe" font-size="16" font-weight="500" font-family="sans-serif">V5</text>
-            <text x="389" y="199" text-anchor="middle" fill="#7eb3e8" font-size="9" font-family="sans-serif">5名</text>
-            <text x="389" y="213" text-anchor="middle" fill="#6090c0" font-size="9" font-family="sans-serif">¥300,000</text>
-          </g>
-          <!-- V6 -->
-          <g class="vip-table" id="svg-V6" style="cursor:pointer">
-            <rect x="348" y="258" width="82" height="92" rx="8" fill="#0F2461" stroke="#3355CC" stroke-width="1.5"/>
-            <line x1="348" y1="271" x2="430" y2="271" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="283" x2="430" y2="283" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="295" x2="430" y2="295" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="307" x2="430" y2="307" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="319" x2="430" y2="319" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="331" x2="430" y2="331" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="343" x2="430" y2="343" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <line x1="348" y1="337" x2="430" y2="337" stroke="#3355CC" stroke-width="0.5" opacity="0.5"/>
-            <text x="389" y="293" text-anchor="middle" fill="#dbeafe" font-size="16" font-weight="500" font-family="sans-serif">V6</text>
-            <text x="389" y="309" text-anchor="middle" fill="#7eb3e8" font-size="9" font-family="sans-serif">5名</text>
-            <text x="389" y="323" text-anchor="middle" fill="#6090c0" font-size="9" font-family="sans-serif">¥300,000</text>
-          </g>
-          <!-- G1 -->
-          <g class="vip-table" id="svg-G1" style="cursor:pointer">
-            <rect x="98" y="478" width="110" height="58" rx="7" fill="#3D2800" stroke="#B8860B" stroke-width="1.5"/>
-            <line x1="109" y1="478" x2="109" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="120" y1="478" x2="120" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="131" y1="478" x2="131" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="142" y1="478" x2="142" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="153" y1="478" x2="153" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="164" y1="478" x2="164" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="175" y1="478" x2="175" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="186" y1="478" x2="186" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="197" y1="478" x2="197" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <text x="153" y="503" text-anchor="middle" fill="#fef3c7" font-size="14" font-weight="500" font-family="sans-serif">G1</text>
-            <text x="153" y="520" text-anchor="middle" fill="#d4a820" font-size="9" font-family="sans-serif">4〜5名 ¥500,000</text>
-          </g>
-          <!-- G2 -->
-          <g class="vip-table" id="svg-G2" style="cursor:pointer">
-            <rect x="258" y="478" width="110" height="58" rx="7" fill="#3D2800" stroke="#B8860B" stroke-width="1.5"/>
-            <line x1="269" y1="478" x2="269" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="280" y1="478" x2="280" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="291" y1="478" x2="291" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="302" y1="478" x2="302" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="313" y1="478" x2="313" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="324" y1="478" x2="324" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="335" y1="478" x2="335" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="346" y1="478" x2="346" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <line x1="357" y1="478" x2="357" y2="536" stroke="#B8860B" stroke-width="0.5" opacity="0.5"/>
-            <text x="313" y="503" text-anchor="middle" fill="#fef3c7" font-size="14" font-weight="500" font-family="sans-serif">G2</text>
-            <text x="313" y="520" text-anchor="middle" fill="#d4a820" font-size="9" font-family="sans-serif">4〜5名 ¥500,000</text>
-          </g>
-          <!-- D1 -->
-          <g class="vip-table" id="svg-D1" style="cursor:pointer">
-            <rect x="10" y="478" width="80" height="58" rx="7" fill="#1e1e1e" stroke="#777" stroke-width="1.5"/>
-            <line x1="18" y1="478" x2="18" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="24" y1="478" x2="24" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="30" y1="478" x2="30" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="36" y1="478" x2="36" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="42" y1="478" x2="42" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="48" y1="478" x2="48" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="54" y1="478" x2="54" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="60" y1="478" x2="60" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="66" y1="478" x2="66" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="72" y1="478" x2="72" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="78" y1="478" x2="78" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <line x1="84" y1="478" x2="84" y2="536" stroke="#888" stroke-width="0.5" opacity="0.5"/>
-            <text x="50" y="502" text-anchor="middle" fill="#e5e5e5" font-size="13" font-weight="500" font-family="sans-serif">D1</text>
-            <text x="50" y="516" text-anchor="middle" fill="#888" font-size="8" font-family="sans-serif">6〜7名</text>
-            <text x="50" y="528" text-anchor="middle" fill="#666" font-size="8" font-family="sans-serif">¥1,000,000</text>
-          </g>
-          <!-- 関係者席 -->
-          <rect x="390" y="478" width="98" height="58" rx="7" fill="#0D3320" stroke="#2E7D52" stroke-width="1"/>
-          <text x="439" y="502" text-anchor="middle" fill="#d1fae5" font-size="11" font-family="sans-serif">関係者席</text>
-          <text x="439" y="518" text-anchor="middle" fill="#6ee7b7" font-size="9" font-family="sans-serif">関係者のみ</text>
-          <!-- 動的ステータス描画レイヤー -->
-  <g id="vip-svg-tables" class="vip-overlay" style="pointer-events:none;"></g>
-</svg>
+      <div style="background:#0d0d0d;border:1px solid #1e1e1e;overflow:hidden;padding:8px;text-align:center;">
+        <div id="vip-seat-placeholder" style="font-size:0.62rem;color:var(--gray);padding:40px 12px;">座席画像は未設定です</div>
+        <img id="vip-seat-img" alt="座席表" style="display:none;max-width:100%;height:auto;" onerror="onVipSeatImgError()">
       </div>
-      </div><!-- /floor-b1f -->
+    </div>
 
-      <!-- 1F マップ -->
-      <div id="floor-1f" style="display:none;">
-        <div style="background:#0d0d0d;border:1px solid #1e1e1e;overflow:hidden;">
-          <svg viewBox="0 0 500 640" xmlns="http://www.w3.org/2000/svg" id="vip-admin-svg-1f">
-            <rect width="500" height="640" fill="#0d0d0d"/>
-            <!-- 設備 -->
-            <rect x="20" y="160" width="70" height="90" rx="3" fill="#141414" stroke="#222" stroke-width="1"/>
-            <text x="55" y="210" text-anchor="middle" fill="#444" font-size="13" font-family="sans-serif">WC</text>
-            <rect x="30" y="300" width="115" height="110" rx="4" fill="#141414" stroke="#222" stroke-width="1"/>
-            <circle cx="78" cy="338" r="13" fill="none" stroke="#333" stroke-width="1.2"/><circle cx="78" cy="338" r="4" fill="none" stroke="#333" stroke-width="1"/>
-            <circle cx="118" cy="338" r="13" fill="none" stroke="#333" stroke-width="1.2"/><circle cx="118" cy="338" r="4" fill="none" stroke="#333" stroke-width="1"/>
-            <text x="87" y="392" text-anchor="middle" fill="#444" font-size="16" font-family="sans-serif">DJ</text>
-            <rect x="35" y="440" width="80" height="165" rx="3" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1"/>
-            <text x="75" y="515" text-anchor="middle" fill="#444" font-size="9" font-family="sans-serif">BAR</text>
-            <text x="75" y="528" text-anchor="middle" fill="#444" font-size="9" font-family="sans-serif">COUNTER</text>
-            <!-- ② V8（上段左・横長 3名¥30万） -->
-            <g class="vip-table" id="svg-V8" style="cursor:pointer">
-              <rect x="110" y="68" width="160" height="48" rx="7" fill="#0a1733" stroke="#3355CC" stroke-width="1.5"/>
-              <text x="190" y="90" text-anchor="middle" fill="#aec6ff" font-size="14" font-weight="500" font-family="sans-serif">V8</text>
-              <text x="190" y="106" text-anchor="middle" fill="#6688cc" font-size="9" font-family="sans-serif">3名 ¥300,000</text>
-            </g>
-            <!-- ⑤ V11（上段右・横長 3名¥30万） -->
-            <g class="vip-table" id="svg-V11" style="cursor:pointer">
-              <rect x="300" y="68" width="160" height="48" rx="7" fill="#0a1733" stroke="#3355CC" stroke-width="1.5"/>
-              <text x="380" y="90" text-anchor="middle" fill="#aec6ff" font-size="14" font-weight="500" font-family="sans-serif">V11</text>
-              <text x="380" y="106" text-anchor="middle" fill="#6688cc" font-size="9" font-family="sans-serif">3名 ¥300,000</text>
-            </g>
-            <!-- ① V7（中段・縦長 3名¥30万） -->
-            <g class="vip-table" id="svg-V7" style="cursor:pointer">
-              <rect x="110" y="145" width="70" height="155" rx="7" fill="#0a1733" stroke="#3355CC" stroke-width="1.5"/>
-              <text x="145" y="216" text-anchor="middle" fill="#aec6ff" font-size="14" font-weight="500" font-family="sans-serif">V7</text>
-              <text x="145" y="234" text-anchor="middle" fill="#6688cc" font-size="8.5" font-family="sans-serif">3名 ¥300,000</text>
-            </g>
-            <!-- ③ V9（中段・縦長 2名¥20万） -->
-            <g class="vip-table" id="svg-V9" style="cursor:pointer">
-              <rect x="200" y="145" width="70" height="155" rx="7" fill="#0a1733" stroke="#3355CC" stroke-width="1.5"/>
-              <text x="235" y="216" text-anchor="middle" fill="#aec6ff" font-size="14" font-weight="500" font-family="sans-serif">V9</text>
-              <text x="235" y="234" text-anchor="middle" fill="#6688cc" font-size="8.5" font-family="sans-serif">2名 ¥200,000</text>
-            </g>
-            <!-- ④ V10（中段・縦長 2名¥20万） -->
-            <g class="vip-table" id="svg-V10" style="cursor:pointer">
-              <rect x="300" y="145" width="70" height="155" rx="7" fill="#0a1733" stroke="#3355CC" stroke-width="1.5"/>
-              <text x="335" y="216" text-anchor="middle" fill="#aec6ff" font-size="14" font-weight="500" font-family="sans-serif">V10</text>
-              <text x="335" y="234" text-anchor="middle" fill="#6688cc" font-size="8.5" font-family="sans-serif">2名 ¥200,000</text>
-            </g>
-            <!-- ⑥ V12（中段・縦長 3名¥30万） -->
-            <g class="vip-table" id="svg-V12" style="cursor:pointer">
-              <rect x="390" y="145" width="70" height="155" rx="7" fill="#0a1733" stroke="#3355CC" stroke-width="1.5"/>
-              <text x="425" y="216" text-anchor="middle" fill="#aec6ff" font-size="14" font-weight="500" font-family="sans-serif">V12</text>
-              <text x="425" y="234" text-anchor="middle" fill="#6688cc" font-size="8.5" font-family="sans-serif">3名 ¥300,000</text>
-            </g>
-            <g id="vip-svg-tables-1f" class="vip-overlay" style="pointer-events:none;"></g>
-          </svg>
+    <!-- テーブル管理 -->
+    <div style="margin-bottom:24px;">
+      <div style="font-size:0.55rem;letter-spacing:0.2em;color:var(--gold);margin-bottom:12px;text-transform:uppercase;">🪑 テーブル一覧</div>
+
+      <!-- 前回イベントから複製 -->
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <select class="modal-select" id="vip-copy-src" style="max-width:320px;">
+          <option value="">前回イベントから複製...</option>
+        </select>
+        <button class="copy-btn" style="font-size:0.6rem;padding:8px 18px;" onclick="copyVipTables(this)">複製</button>
+      </div>
+
+      <!-- テーブル一覧 -->
+      <div id="vip-table-list"></div>
+    </div>
+
+    <!-- テーブル追加/編集フォーム -->
+    <div style="background:var(--dark2);border:1px solid rgba(201,168,76,0.2);padding:20px;margin-bottom:24px;">
+      <div id="vip-tbl-form-title" style="font-size:0.55rem;letter-spacing:0.2em;color:var(--gold);margin-bottom:16px;text-transform:uppercase;">＋ テーブル追加</div>
+      <input type="hidden" id="vip-tbl-id" value="">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">テーブル名</label>
+          <input class="form-input" id="vip-tbl-name" placeholder="S1 / V7 など" style="width:100%;">
         </div>
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">種別（自由入力）</label>
+          <input class="form-input" id="vip-tbl-type" placeholder="VIP / SOFA / GROUP など" style="width:100%;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">席数（capacity）</label>
+          <input class="form-input" id="vip-tbl-capacity" type="number" min="0" placeholder="4" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">料金（price）</label>
+          <input class="form-input" id="vip-tbl-price" type="number" min="0" placeholder="300000" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">表示順（sort_order）</label>
+          <input class="form-input" id="vip-tbl-sort" type="number" min="0" placeholder="1" style="width:100%;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">収容人数表示（men_label）</label>
+          <input class="form-input" id="vip-tbl-menlabel" placeholder="男性4名 など" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">フロア（floor）</label>
+          <input class="form-input" id="vip-tbl-floor" placeholder="B1F / 1F など" style="width:100%;">
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">特典（benefits）</label>
+        <input class="form-input" id="vip-tbl-benefits" placeholder="シャンパン1本 / 女性ドリンク無料 など" style="width:100%;">
+      </div>
+      <div id="vip-tbl-error" style="display:none;font-size:0.62rem;color:#CF4444;margin-bottom:12px;padding:10px;background:rgba(207,68,68,0.1);border:1px solid rgba(207,68,68,0.3);"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-confirm" style="flex:1;" onclick="saveVipTableForm(this)">💾 保存</button>
+        <button class="copy-btn" id="vip-tbl-cancel" style="display:none;padding:0 22px;" onclick="resetVipTableForm()">キャンセル</button>
       </div>
     </div>
 
@@ -1433,7 +1236,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <input class="form-input" id="vip-reg-email" placeholder="email@example.com" style="width:100%;">
       </div>
       <div id="vip-reg-error" style="display:none;font-size:0.62rem;color:#CF4444;margin-bottom:12px;padding:10px;background:rgba(207,68,68,0.1);border:1px solid rgba(207,68,68,0.3);"></div>
-      <button class="btn-confirm" style="width:100%;" onclick="submitVipRegistration()">📨 メールを送信して登録</button>
+      <button class="btn-confirm" id="vip-reg-submit" style="width:100%;" onclick="submitVipRegistration()">📨 メールを送信して登録</button>
     </div>
 
     <!-- 予約一覧 -->
@@ -3025,13 +2828,13 @@ function showCamOverlay(d, status) {
         vipEl.style.background = 'rgba(207,68,68,0.15)';
         vipEl.style.border = '1px solid rgba(207,68,68,0.5)';
         vipEl.style.color = '#FF6666';
-        vipEl.innerHTML = '⚠️ ' + v.table_name + ' / ' + v.table_type + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong><br>上限超過 — 追加料金 ¥50,000 が発生します';
+        vipEl.innerHTML = '⚠️ ' + escH(v.table_name) + ' / ' + escH(v.table_type) + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong><br>上限超過 — 追加料金 ¥50,000 が発生します';
         document.getElementById('cam-ok-icon').textContent = '⚠️';
       } else {
         vipEl.style.background = 'rgba(201,168,76,0.1)';
         vipEl.style.border = '1px solid rgba(201,168,76,0.3)';
         vipEl.style.color = '#C9A84C';
-        vipEl.innerHTML = '✦ ' + v.table_name + ' / ' + v.table_type + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong>';
+        vipEl.innerHTML = '✦ ' + escH(v.table_name) + ' / ' + escH(v.table_type) + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong>';
       }
     } else {
       if (vipEl) vipEl.style.display = 'none';
@@ -4923,21 +4726,6 @@ let vipEventId    = '';
 let vipTables     = [];
 let vipReservations = [];
 
-const VIP_TABLE_INFO = {
-  S1:{x:30,y:42,w:96,h:52,fill:'#4a0f0f',stroke:'#CC2222'},
-  S2:{x:172,y:42,w:96,h:52,fill:'#4a0f0f',stroke:'#CC2222'},
-  S3:{x:314,y:42,w:96,h:52,fill:'#4a0f0f',stroke:'#CC2222'},
-  V1:{x:66,y:118,w:80,h:92,fill:'#0F2461',stroke:'#3355CC'},
-  V2:{x:66,y:224,w:80,h:92,fill:'#0F2461',stroke:'#3355CC'},
-  V3:{x:200,y:118,w:80,h:92,fill:'#0F2461',stroke:'#3355CC'},
-  V4:{x:200,y:224,w:80,h:92,fill:'#0F2461',stroke:'#3355CC'},
-  V5:{x:348,y:118,w:82,h:84,fill:'#0F2461',stroke:'#3355CC'},
-  V6:{x:348,y:218,w:82,h:84,fill:'#0F2461',stroke:'#3355CC'},
-  G1:{x:98,y:410,w:110,h:52,fill:'#3D2800',stroke:'#B8860B'},
-  G2:{x:258,y:410,w:110,h:52,fill:'#3D2800',stroke:'#B8860B'},
-  D1:{x:10,y:410,w:82,h:52,fill:'#1e1e1e',stroke:'#777'},
-};
-
 async function onVipTabOpen() {
   const sel = document.getElementById('vip-event-sel');
   // イベント一覧をセット
@@ -4983,98 +4771,226 @@ async function loadVipData() {
     vipTables       = [];
     vipReservations = [];
   }
-  renderVipMap();
+  renderVipSeatImage();
+  renderVipCopySrcSelect();
+  renderVipTableList();
   renderVipTableSelect();
   renderVipReservations();
+  resetVipTableForm();
 }
 
-// フロア切替（B1F / 1階）
-function showFloor(f) {
-  const b1f = document.getElementById('floor-b1f');
-  const f1  = document.getElementById('floor-1f');
-  const tb  = document.getElementById('floortab-b1f');
-  const t1  = document.getElementById('floortab-1f');
-  if (b1f) b1f.style.display = (f === 'b1f') ? '' : 'none';
-  if (f1)  f1.style.display  = (f === '1f')  ? '' : 'none';
-  [[tb, f === 'b1f'], [t1, f === '1f']].forEach(([btn, active]) => {
-    if (!btn) return;
-    btn.style.background = active ? 'var(--gold)' : 'transparent';
-    btn.style.color      = active ? '#000' : 'var(--gold)';
-    btn.style.fontWeight = active ? '700' : '400';
+// onclick属性用のJS文字列エスケープ（バックスラッシュ・シングルクォート）
+function escJs(s) {
+  return String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+const VIP_STATUS_LABEL = {
+  available:'空き', confirmed:'確定', reserved:'確定',
+  pending_payment:'振込待ち', stripe_pending:'決済待ち', expired:'期限切れ'
+};
+const VIP_STATUS_COLOR = {
+  available:'#6090cc', confirmed:'#4CAF82', reserved:'#4CAF82',
+  pending_payment:'#C9A84C', stripe_pending:'#6AABFF', expired:'#CF4444'
+};
+
+// ── 座席画像 ─────────────────────────────────────────────
+function renderVipSeatImage() {
+  const ev  = allEvents.find(e => e.event_id === vipEventId) || {};
+  const url = String(ev.vip_seat_image || '').trim();
+  const input = document.getElementById('vip-seat-url');
+  const img   = document.getElementById('vip-seat-img');
+  const ph    = document.getElementById('vip-seat-placeholder');
+  if (input) input.value = url;
+  if (!img || !ph) return;
+  if (url) {
+    // Drive共有URLはそのまま表示（変換関数は無いため src にそのまま入れる）
+    img.src = url;
+    img.style.display = 'block';
+    ph.style.display  = 'none';
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    ph.textContent    = '座席画像は未設定です';
+    ph.style.display  = 'block';
+  }
+}
+
+function onVipSeatImgError() {
+  const img = document.getElementById('vip-seat-img');
+  const ph  = document.getElementById('vip-seat-placeholder');
+  if (img) img.style.display = 'none';
+  if (ph)  { ph.textContent = '画像を読み込めませんでした（URLを確認してください）'; ph.style.display = 'block'; }
+}
+
+async function saveVipSeatImageUrl(btn) {
+  if (!vipEventId) { toast('❌ イベントを選択してください'); return; }
+  const url = document.getElementById('vip-seat-url').value.trim();
+  await runBusy(btn, '保存中…', async () => {
+    const d = await apiPost({ action: 'saveVipSeatImage', event_id: vipEventId, url });
+    if (d && d.ok) {
+      const ev = allEvents.find(e => e.event_id === vipEventId);
+      if (ev) ev.vip_seat_image = url;
+      toast(url ? '✅ 座席画像を保存しました' : '✅ 座席画像をクリアしました');
+      renderVipSeatImage();
+    } else {
+      toast('❌ ' + ((d && d.message) || '保存に失敗しました'));
+    }
   });
 }
 
-function renderVipMap() {
-  // 各フロアSVG内のオーバーレイg（.vip-overlay）にフロアごとに振り分けて描画
-  const overlays = document.querySelectorAll('.vip-overlay');
-  if (!overlays.length) return;
+// ── 前回イベントから複製 ─────────────────────────────────
+function renderVipCopySrcSelect() {
+  const sel = document.getElementById('vip-copy-src');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">前回イベントから複製...</option>';
+  sortedEvents().forEach(ev => {
+    if (ev.event_id === vipEventId) return;
+    const o = document.createElement('option');
+    o.value = ev.event_id;
+    o.textContent = ev.name + ' — ' + String(ev.date || '').substring(0, 10);
+    sel.appendChild(o);
+  });
+}
 
-  if (vipTables.length === 0) {
-    const main = document.getElementById('vip-svg-tables');
-    if (main) main.innerHTML = '<text x="250" y="320" text-anchor="middle" fill="#333" font-size="11" font-family="sans-serif">GASエディタで initVipTablesForEvent を実行してください</text>';
-    overlays.forEach(g => { if (g.id !== 'vip-svg-tables') g.innerHTML = ''; });
+async function copyVipTables(btn) {
+  if (!vipEventId) { toast('❌ 複製先イベントを選択してください'); return; }
+  const from = document.getElementById('vip-copy-src').value;
+  if (!from) { toast('❌ 複製元イベントを選択してください'); return; }
+  if (!confirm('選択したイベントのテーブル構成をこのイベントに複製しますか？')) return;
+  await runBusy(btn, '複製中…', async () => {
+    const d = await apiPost({ action: 'copyVipTablesFromEvent', from_event_id: from, to_event_id: vipEventId });
+    if (d && d.ok) {
+      toast('✅ ' + Number(d.copied || 0) + '件のテーブルを複製しました');
+      await loadVipData();
+    } else {
+      toast('❌ ' + ((d && d.message) || '複製に失敗しました'));
+    }
+  });
+}
+
+// ── テーブル一覧 ─────────────────────────────────────────
+function renderVipTableList() {
+  const el = document.getElementById('vip-table-list');
+  if (!el) return;
+  if (!vipTables.length) {
+    el.innerHTML = '<div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">テーブルがありません。下のフォームから追加、または前回イベントから複製してください。</div>';
     return;
   }
+  const th = 'padding:8px 10px;text-align:left;font-weight:600;white-space:nowrap;';
+  const td = 'padding:8px 10px;white-space:nowrap;';
+  const rows = [...vipTables]
+    .sort((a, b) => (Number(a.sort_order || 0) - Number(b.sort_order || 0)))
+    .map(t => {
+      const st    = String(t.status || 'available');
+      const color = VIP_STATUS_COLOR[st] || '#888';
+      const label = VIP_STATUS_LABEL[st] || st;
+      const idJs  = escJs(t.table_id);
+      return `<tr style="border-bottom:1px solid #1e1e1e;color:var(--white);">
+        <td style="${td}font-weight:600;">${escH(t.table_name || '')}</td>
+        <td style="${td}">${escH(t.table_type || '')}</td>
+        <td style="${td}text-align:center;">${Number(t.capacity || 0)}</td>
+        <td style="${td}">¥${Number(t.price || 0).toLocaleString()}</td>
+        <td style="${td}">${escH(t.men_label || '')}</td>
+        <td style="${td}max-width:180px;white-space:normal;">${escH(t.benefits || '')}</td>
+        <td style="${td}">${escH(t.floor || '')}</td>
+        <td style="${td}text-align:center;">${Number(t.sort_order || 0)}</td>
+        <td style="${td}"><span style="color:${color};border:1px solid ${color};padding:1px 7px;font-size:0.5rem;">${escH(label)}</span></td>
+        <td style="${td}">
+          <button class="copy-btn" style="font-size:0.52rem;padding:3px 9px;" onclick="editVipTable('${idJs}')">編集</button>
+          <button class="copy-btn" style="font-size:0.52rem;padding:3px 9px;background:rgba(207,68,68,0.08);border-color:rgba(207,68,68,0.5);color:#CF4444;" onclick="deleteVipTableRow('${idJs}', this)">削除</button>
+        </td>
+      </tr>`;
+    }).join('');
+  el.innerHTML = `<div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:0.6rem;">
+      <thead><tr style="color:var(--gray);border-bottom:1px solid #2a2a2a;">
+        <th style="${th}">テーブル</th><th style="${th}">種別</th><th style="${th}">席数</th>
+        <th style="${th}">料金</th><th style="${th}">収容人数</th><th style="${th}">特典</th>
+        <th style="${th}">フロア</th><th style="${th}">表示順</th><th style="${th}">状態</th><th style="${th}"></th>
+      </tr></thead><tbody>${rows}</tbody>
+    </table></div>`;
+}
 
-  // オーバーレイ方式: 元のSVG要素を変更せず、上から覆う形で描画
-  const buf = {};
-  overlays.forEach(g => { buf[g.id] = ''; });
-  const pushHtml = (svgEl, html) => {
-    const ov = svgEl.closest('svg') ? svgEl.closest('svg').querySelector('.vip-overlay') : null;
-    if (ov && buf[ov.id] !== undefined) buf[ov.id] += html;
-  };
-  vipTables.forEach(tRow => {
-    const tName   = String(tRow.table_name || '');
-    const status  = String(tRow.status || 'available');
-    const checked = Number(tRow.checked_count || 0);
-    const cap     = Number(tRow.capacity || 0);
-    const isOver  = cap > 0 && checked > cap;
-    const svgEl   = document.getElementById('svg-' + tName);
-    if (!svgEl) return;
+// ── テーブル追加/編集フォーム ────────────────────────────
+function resetVipTableForm() {
+  const ids = ['vip-tbl-id','vip-tbl-name','vip-tbl-type','vip-tbl-capacity','vip-tbl-price','vip-tbl-sort','vip-tbl-menlabel','vip-tbl-floor','vip-tbl-benefits'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const title  = document.getElementById('vip-tbl-form-title');
+  const cancel = document.getElementById('vip-tbl-cancel');
+  const err    = document.getElementById('vip-tbl-error');
+  if (title)  title.textContent = '＋ テーブル追加';
+  if (cancel) cancel.style.display = 'none';
+  if (err)    err.style.display = 'none';
+}
 
-    const rect = svgEl.querySelector('rect');
-    if (!rect) return;
+function editVipTable(tableId) {
+  const t = vipTables.find(x => String(x.table_id) === String(tableId));
+  if (!t) { toast('❌ テーブルが見つかりません'); return; }
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); };
+  set('vip-tbl-id', t.table_id);
+  set('vip-tbl-name', t.table_name);
+  set('vip-tbl-type', t.table_type);
+  set('vip-tbl-capacity', t.capacity);
+  set('vip-tbl-price', t.price);
+  set('vip-tbl-sort', t.sort_order);
+  set('vip-tbl-menlabel', t.men_label);
+  set('vip-tbl-floor', t.floor);
+  set('vip-tbl-benefits', t.benefits);
+  const title  = document.getElementById('vip-tbl-form-title');
+  const cancel = document.getElementById('vip-tbl-cancel');
+  const err    = document.getElementById('vip-tbl-error');
+  if (title)  title.textContent = '✏️ テーブル編集：' + String(t.table_name || '');
+  if (cancel) cancel.style.display = '';
+  if (err)    err.style.display = 'none';
+  const form = document.getElementById('vip-tbl-form-title');
+  if (form && form.scrollIntoView) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
-    const rx = Number(rect.getAttribute('x')||0);
-    const ry = Number(rect.getAttribute('y')||0);
-    const rw = Number(rect.getAttribute('width')||0);
-    const rh = Number(rect.getAttribute('height')||0);
-    const rr = Number(rect.getAttribute('rx')||0);
-    const cx = rx + rw / 2;
+async function saveVipTableForm(btn) {
+  if (!vipEventId) { toast('❌ イベントを選択してください'); return; }
+  const err   = document.getElementById('vip-tbl-error');
+  const val   = id => (document.getElementById(id).value || '').trim();
+  const tableId    = val('vip-tbl-id');
+  const table_name = val('vip-tbl-name');
+  const table_type = val('vip-tbl-type');
+  const men_label  = val('vip-tbl-menlabel');
+  const benefits   = val('vip-tbl-benefits');
+  const floor      = val('vip-tbl-floor');
+  const capacity   = Number(val('vip-tbl-capacity') || 0);
+  const price      = Number(val('vip-tbl-price') || 0);
+  const sort_order = Number(val('vip-tbl-sort') || 0);
 
-    let h = '';
-    if (status === 'confirmed' || status === 'reserved') {
-      const bgFill   = isOver ? '#1a0000' : '#0d0d0d';
-      const bgStroke = isOver ? '#CF4444' : '#2a2a2a';
-      const guestName = String(tRow.reserved_by || '—');
-      h += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="${rr}" fill="${bgFill}" opacity="0.95" stroke="${bgStroke}" stroke-width="1.5"/>`;
-      h += `<text x="${cx}" y="${ry+13}" text-anchor="middle" fill="#444" font-size="8" font-family="sans-serif">${tName}</text>`;
-      h += `<text x="${cx}" y="${ry+rh/2+5}" text-anchor="middle" fill="#C9A84C" font-size="9" font-family="sans-serif" font-weight="600">${guestName}</text>`;
-      if (cap > 0) {
-        const scanColor = isOver ? '#CF4444' : '#4CAF82';
-        const scanLabel = isOver ? `超過 ${checked}/${cap}` : `${checked}/${cap}`;
-        h += `<text x="${cx}" y="${ry+rh-7}" text-anchor="middle" fill="${scanColor}" font-size="8" font-family="sans-serif" font-weight="${isOver?'700':'400'}">${scanLabel}</text>`;
-      }
-    } else if (status === 'pending_payment' || status === 'stripe_pending') {
-      const guestName = String(tRow.reserved_by || '');
-      h += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="${rr}" fill="#1a1200" opacity="0.95" stroke="#B8860B" stroke-width="1.5"/>`;
-      h += `<text x="${cx}" y="${ry+13}" text-anchor="middle" fill="#555" font-size="8" font-family="sans-serif">${tName}</text>`;
-      if (guestName) {
-        h += `<text x="${cx}" y="${ry+rh/2+5}" text-anchor="middle" fill="#B8860B" font-size="9" font-family="sans-serif">${guestName}</text>`;
-      }
-      h += `<text x="${cx}" y="${ry+rh-7}" text-anchor="middle" fill="#B8860B" font-size="8" font-family="sans-serif">振込待ち</text>`;
+  const showErr = m => { if (err) { err.textContent = m; err.style.display = 'block'; } };
+  if (!table_name) { showErr('テーブル名を入力してください'); return; }
+  if (!table_type) { showErr('種別を入力してください'); return; }
+  if (err) err.style.display = 'none';
+
+  await runBusy(btn, '保存中…', async () => {
+    const d = await apiPost({
+      action: 'saveVipTable', event_id: vipEventId, table_id: tableId,
+      table_name, table_type, capacity, price, men_label, benefits, floor, sort_order
+    });
+    if (d && d.ok) {
+      toast(tableId ? '✅ テーブルを更新しました' : '✅ テーブルを追加しました');
+      await loadVipData();
     } else {
-      // available: 静的SVGテキストをオーバーレイで上書きし、SSのmen_label・priceを動的表示
-      const menLabel = String(tRow.men_label || '');
-      const price    = Number(tRow.price || 0);
-      const infoLine = [menLabel, price > 0 ? '¥' + price.toLocaleString() : ''].filter(Boolean).join(' ');
-      h += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" rx="${rr}" fill="#050d1a" opacity="0.94" stroke="#2244aa" stroke-width="1.5"/>`;
-      h += `<text x="${cx}" y="${ry+13}" text-anchor="middle" fill="#445" font-size="8" font-family="sans-serif">${tName}</text>`;
-      if (infoLine) h += `<text x="${cx}" y="${ry+rh/2+5}" text-anchor="middle" fill="#6090cc" font-size="9" font-family="sans-serif">${infoLine}</text>`;
+      showErr((d && d.message) || '保存に失敗しました');
     }
-    pushHtml(svgEl, h);
   });
-  Object.keys(buf).forEach(id => { const g = document.getElementById(id); if (g) g.innerHTML = buf[id]; });
+}
+
+async function deleteVipTableRow(tableId, btn) {
+  const t = vipTables.find(x => String(x.table_id) === String(tableId)) || {};
+  if (!confirm('テーブル「' + (t.table_name || '') + '」を削除しますか？この操作は取り消せません。')) return;
+  await runBusy(btn, '削除中…', async () => {
+    const d = await apiPost({ action: 'deleteVipTable', table_id: tableId });
+    if (d && d.ok) {
+      toast('✅ テーブルを削除しました');
+      await loadVipData();
+    } else {
+      toast('❌ ' + ((d && d.message) || '削除に失敗しました'));
+    }
+  });
 }
 
 function renderVipTableSelect() {
@@ -5136,7 +5052,7 @@ async function submitVipRegistration() {
   errEl.style.display = 'none';
 
   const action = pay === 'stripe' ? 'createVipStripeLink' : 'createVipTransfer';
-  const btn = document.querySelector('#page-vip .btn-confirm');
+  const btn = document.getElementById('vip-reg-submit');
   btn.disabled = true; btn.textContent = '送信中...';
 
   const d = await apiPost({ action, table_id: tableId, event_id: vipEventId, name, email, phone });

@@ -640,125 +640,253 @@ const params    = new URLSearchParams(location.search);
 const EVENT_ID  = params.get('e') || '';
 const PAY_FIXED = params.get('pay') || null;
 
-const RANK_TYPE_MAP = {
-  diamond:'Diamond VIP',
-  gold:'GOLD VIP',
-  secret:'Secret VIP',
-  vvip:'VVIP'
-};
+// ===== 動的スタイル基盤 =====
+// table_type は毎回自由に作られるため、固定表に依存せず取得データから
+// 動的にグルーピング・表示順・配色する。特典・人数はSSの
+// vip_tables.men_label / vip_tables.benefits から取得。
 
-const RANK_STYLE = {
-  diamond:{ bg:'#999',    tc:'#e8e8e8', btnBg:'#888',    btnTc:'#000' },
-  gold:   { bg:'#B8860B', tc:'#fef3c7', btnBg:'#C9A84C', btnTc:'#000' },
-  secret: { bg:'#CC2222', tc:'#ffcccc', btnBg:'#CC2222', btnTc:'#fff' },
-  vvip:   { bg:'#3355CC', tc:'#aec6ff', btnBg:'#3355CC', btnTc:'#fff' },
-};
-
-// 特典・人数はSSの vip_tables.men_label / vip_tables.benefits から取得
-
-// テーブル種別の表示順
-const RANK_TYPE_ORDER = ['Diamond VIP', 'GOLD VIP', 'Secret VIP', 'VVIP'];
-const RANK_KEYS = {
-  'Diamond VIP': 'diamond',
-  'GOLD VIP':    'gold',
-  'Secret VIP':  'secret',
-  'VVIP':        'vvip'
-};
-
-// テーブル名からフロアを判定（V1-V6 = B1F、V7以降 = 1F）
-function getFloor(tableName) {
-  const name = String(tableName);
-  if (name.startsWith('D') || name.startsWith('S')) return 'B1F';
-  const vNum = parseInt(name.replace('V', ''), 10);
-  return (!isNaN(vNum) && vNum <= 6) ? 'B1F' : '1F';
+// 既知種別の色味（現行4種を踏襲）。種別名を正規化した部分一致で判定する。
+function _knownStyle(tableType) {
+  const n = String(tableType).toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (n.indexOf('diamond') >= 0) return {
+    name:'#e8e8e8', line:'rgba(200,200,200,0.3)', border:'rgba(160,160,160,0.25)',
+    bg:'rgba(25,25,25,0.5)', bgH:'rgba(35,35,35,0.5)', bar:'#999',
+    btnB:'#888', btnC:'#e8e8e8', btnHB:'#888', btnHC:'#000',
+    badgeBg:'#999', badgeC:'#e8e8e8', solidBg:'#888', solidTc:'#000'
+  };
+  if (n.indexOf('vvip') >= 0) return {            // 'vvip' は 'vip' より先に判定
+    name:'#aec6ff', line:'rgba(51,85,204,0.35)', border:'rgba(51,85,204,0.22)',
+    bg:'rgba(8,20,65,0.4)', bgH:'rgba(12,28,80,0.5)', bar:'#3355CC',
+    btnB:'rgba(51,85,204,0.6)', btnC:'#aec6ff', btnHB:'rgba(51,85,204,0.35)', btnHC:'#aec6ff',
+    badgeBg:'#3355CC', badgeC:'#aec6ff', solidBg:'#3355CC', solidTc:'#fff'
+  };
+  if (n.indexOf('gold') >= 0) return {
+    name:'#C9A84C', line:'rgba(201,168,76,0.4)', border:'rgba(201,168,76,0.25)',
+    bg:'rgba(40,28,0,0.4)', bgH:'rgba(55,38,0,0.5)', bar:'#C9A84C',
+    btnB:'#C9A84C', btnC:'#C9A84C', btnHB:'#C9A84C', btnHC:'#000',
+    badgeBg:'#B8860B', badgeC:'#fef3c7', solidBg:'#C9A84C', solidTc:'#000'
+  };
+  if (n.indexOf('secret') >= 0) return {
+    name:'#ff8888', line:'rgba(204,34,34,0.35)', border:'rgba(204,34,34,0.22)',
+    bg:'rgba(50,10,10,0.4)', bgH:'rgba(65,12,12,0.5)', bar:'#CC2222',
+    btnB:'rgba(204,34,34,0.6)', btnC:'#ff8888', btnHB:'rgba(204,34,34,0.4)', btnHC:'#ff8888',
+    badgeBg:'#CC2222', badgeC:'#ffcccc', solidBg:'#CC2222', solidTc:'#fff'
+  };
+  return null;
 }
 
-const FLOOR_ORDER = [
-  { id:'B1F', label:'B1F', sub:'BASEMENT 1F' },
-  { id:'1F',  label:'1F',  sub:'FIRST FLOOR' }
+// 未知種別用フォールバック・パレット（accent RGB / 種別名テキスト色 / 背景ベースRGB）
+const _FALLBACK_PALETTE = [
+  { rgb:[60,180,110],  name:'#a7f3d0', bg:[6,40,24]  }, // green
+  { rgb:[150,90,220],  name:'#d8b4fe', bg:[30,12,55] }, // purple
+  { rgb:[45,180,190],  name:'#99f6e4', bg:[4,40,42]  }, // teal
+  { rgb:[220,130,40],  name:'#fdba74', bg:[45,25,4]  }, // orange
+  { rgb:[220,80,150],  name:'#f9a8d4', bg:[48,10,30] }, // pink
+  { rgb:[90,160,220],  name:'#bfdbfe', bg:[10,28,48] }  // sky
 ];
 
-// フロア→ランク→価格でグループ化、1種類1カード・残件数表示
+function _paletteStyle(p) {
+  const r = p.rgb[0], g = p.rgb[1], b = p.rgb[2];
+  const br = p.bg[0], bg2 = p.bg[1], bb = p.bg[2];
+  return {
+    name:p.name,
+    line:`rgba(${r},${g},${b},0.35)`,
+    border:`rgba(${r},${g},${b},0.22)`,
+    bg:`rgba(${br},${bg2},${bb},0.4)`,
+    bgH:`rgba(${br},${bg2},${bb},0.55)`,
+    bar:`rgb(${r},${g},${b})`,
+    btnB:`rgba(${r},${g},${b},0.6)`,
+    btnC:p.name,
+    btnHB:`rgba(${r},${g},${b},0.4)`,
+    btnHC:'#fff',
+    badgeBg:`rgb(${r},${g},${b})`,
+    badgeC:p.name,
+    solidBg:`rgb(${r},${g},${b})`,
+    solidTc:'#fff'
+  };
+}
+
+// 種別 → スタイル / CSSクラスの動的割り当て（グローバル状態）
+let STYLE_BY_TYPE = {};   // table_type -> style object
+let CLASS_BY_TYPE = {};   // table_type -> css class name
+let PLAN_CACHE   = [];    // 申込対象プランの実データ（onclick文字列連結を排除）
+
+function assignStyles(orderedTypes) {
+  STYLE_BY_TYPE = {};
+  CLASS_BY_TYPE = {};
+  let fbCursor = 0;
+  let css = '';
+  orderedTypes.forEach((ty, i) => {
+    let st = _knownStyle(ty);
+    if (!st) { st = _paletteStyle(_FALLBACK_PALETTE[fbCursor % _FALLBACK_PALETTE.length]); fbCursor++; }
+    const cls = 'rank-dyn-' + i;
+    STYLE_BY_TYPE[ty] = st;
+    CLASS_BY_TYPE[ty] = cls;
+    css += `
+      .${cls} .rank-name { color:${st.name}; }
+      .${cls} .rank-heading-line { background:linear-gradient(90deg, ${st.line}, transparent); }
+      .${cls} .plan-card { border-color:${st.border}; background:${st.bg}; }
+      .${cls} .plan-card::before { background:${st.bar}; }
+      .${cls} .plan-btn { border-color:${st.btnB}; color:${st.btnC}; }
+      .${cls} .plan-btn:hover { background:${st.btnHB}; color:${st.btnHC}; }
+      .${cls} .plan-card:hover { background:${st.bgH}; }`;
+  });
+  let styleEl = document.getElementById('dyn-rank-styles');
+  if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'dyn-rank-styles'; document.head.appendChild(styleEl); }
+  styleEl.textContent = css;
+}
+
+function _escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// 取得データから種別を動的にグルーピングして描画
+// （表示順: sort_order 昇順 → 無ければ price 降順 / 配色: 種別ごとに動的割当）
 function renderPlans(tables) {
+  tables = Array.isArray(tables) ? tables : [];
+
+  // 1) 種別の表示順を決定（sort_order 昇順、無ければ price 降順）
+  const typeInfo = {};
+  tables.forEach(t => {
+    const ty = String(t.table_type);
+    if (!typeInfo[ty]) typeInfo[ty] = { type: ty, sortOrder: null, maxPrice: 0 };
+    const raw = t.sort_order;
+    const so = (raw !== undefined && raw !== null && raw !== '') ? Number(raw) : null;
+    if (so !== null && !isNaN(so)) {
+      typeInfo[ty].sortOrder = (typeInfo[ty].sortOrder === null) ? so : Math.min(typeInfo[ty].sortOrder, so);
+    }
+    typeInfo[ty].maxPrice = Math.max(typeInfo[ty].maxPrice, Number(t.price) || 0);
+  });
+  const orderedTypes = Object.values(typeInfo).sort((a, b) => {
+    const aHas = a.sortOrder !== null, bHas = b.sortOrder !== null;
+    if (aHas && bHas) return a.sortOrder - b.sortOrder;
+    if (aHas) return -1;
+    if (bHas) return 1;
+    return b.maxPrice - a.maxPrice;   // sort_order が無ければ price 降順
+  }).map(x => x.type);
+
+  // 2) 種別ごとに配色・CSSクラスを動的割当（未知種別はパレット循環でフォールバック）
+  assignStyles(orderedTypes);
+
+  // 3) フロアの有無を判定（floor フィールドがあればフロア分け、無ければ単一リスト）
+  const floorOf = t => {
+    const f = t.floor;
+    return (f !== undefined && f !== null && String(f).trim() !== '') ? String(f).trim() : '';
+  };
+  const hasFloor = tables.some(t => floorOf(t) !== '');
+  const floors = [];
+  if (hasFloor) {
+    tables.forEach(t => {
+      const fl = floorOf(t) || '—';
+      if (floors.indexOf(fl) < 0) floors.push(fl); // 出現順を維持
+    });
+  }
+
+  // 4) floor|type|price|men_label でグルーピングし残数を集計
   const groupMap = {};
   tables.forEach(t => {
-    const floor = getFloor(t.table_name);
-    // Diamond VIP は同価格帯で定員が異なるため定員をキーにする
-    const disc = t.table_type === 'Diamond VIP' ? Number(t.capacity) : Number(t.price);
-    const key = floor + '|' + t.table_type + '|' + disc;
-    if (!groupMap[key]) groupMap[key] = { floor, table_type: t.table_type, price: Number(t.price), capacity: Number(t.capacity), disc, available: 0, men_label: String(t.men_label || ''), benefits_str: String(t.benefits || '') };
+    const ty = String(t.table_type);
+    const floor = hasFloor ? (floorOf(t) || '—') : null;
+    const men = String(t.men_label || '');
+    const price = Number(t.price) || 0;
+    const key = (floor === null ? '_' : floor) + '|' + ty + '|' + price + '|' + men;
+    if (!groupMap[key]) groupMap[key] = {
+      floor, table_type: ty, price, capacity: Number(t.capacity) || 0,
+      available: 0, men_label: men, benefits_str: String(t.benefits || '')
+    };
     if (String(t.status) === 'available') groupMap[key].available++;
   });
 
   const container = document.getElementById('plans-container');
   container.innerHTML = '';
+  PLAN_CACHE = [];
 
-  FLOOR_ORDER.forEach(({ id: floorId, label: floorLabel, sub: floorSub }) => {
-    let floorHtml = '';
+  // 1種別ぶんのカード群を生成（floorId=null は全件対象）
+  function renderTypeSection(floorId, ty) {
+    const groups = Object.values(groupMap)
+      .filter(g => g.table_type === ty && (floorId === null ? true : g.floor === floorId))
+      .sort((a, b) => b.price - a.price);
+    if (groups.length === 0) return '';
 
-    RANK_TYPE_ORDER.forEach(rankName => {
-      const rankGroups = Object.values(groupMap)
-        .filter(g => g.floor === floorId && g.table_type === rankName)
-        .sort((a, b) => b.price - a.price);
-      if (rankGroups.length === 0) return;
+    const cls = CLASS_BY_TYPE[ty] || '';
+    let cardsHtml = '';
+    groups.forEach(g => {
+      if (!g.men_label) return;
+      const isAvailable = g.available > 0;
+      const stockCls = isAvailable ? 'stock-available' : 'stock-out';
+      const stockLbl = isAvailable ? '' : '満席';
+      const priceDisp = '¥' + (g.price / 10000) + '万';
+      const benefitsList = g.benefits_str ? g.benefits_str.split(/[,\n]+/).map(b => b.trim()).filter(Boolean) : [];
+      const benefitsHtml = benefitsList.map(b => `<span class="plan-benefit-tag">${_escHtml(b)}</span>`).join('');
+      const cardCls = isAvailable ? '' : ' sold-out';
 
-      const rankKey = RANK_KEYS[rankName];
-      let cardsHtml = '';
+      let idxAttr = '';
+      if (isAvailable) {
+        const idx = PLAN_CACHE.length;
+        PLAN_CACHE.push({
+          tableType: ty,
+          location: '',
+          men: g.men_label,
+          price: g.price,
+          benefits: benefitsList
+        });
+        idxAttr = ` data-plan-idx="${idx}"`;
+      }
 
-      rankGroups.forEach(g => {
-        if (!g.men_label) return;
-
-        const rankKey = RANK_KEYS[rankName] || 'vvip';
-        const isAvailable = g.available > 0;
-        const stockCls = isAvailable ? 'stock-available' : 'stock-out';
-        const stockLbl = isAvailable ? '' : '満席';
-        const priceDisp = '¥' + (g.price / 10000) + '万';
-        const benefitsList = g.benefits_str ? g.benefits_str.split(/[,\n]+/).map(b => b.trim()).filter(Boolean) : [];
-        const benefitsHtml = benefitsList.map(b => `<span class="plan-benefit-tag">${b}</span>`).join('');
-        const cardCls = isAvailable ? '' : ' sold-out';
-        const benefitsForModal = benefitsList.join(',').replace(/'/g, "\\'");
-        const onclick = isAvailable
-          ? `onclick="openModal('${rankKey}','${rankName}','','${g.men_label.replace(/'/g, "\\'")}',${g.price},'${benefitsForModal}')"`
-          : '';
-
-        cardsHtml += `
-          <div class="plan-card${cardCls}" ${onclick}>
-            <div class="plan-card-inner">
-              <div>
-                ${isAvailable ? '' : `<div class="plan-stock ${stockCls}"><span class="plan-stock-dot"></span>${stockLbl}</div>`}
-                <div class="plan-men">${g.men_label}</div>
-                <div class="plan-benefits">${benefitsHtml}</div>
-              </div>
-              <div class="plan-right">
-                <div class="plan-price">${priceDisp}<span>円</span></div>
-                <button class="plan-btn">申し込む</button>
-              </div>
+      cardsHtml += `
+        <div class="plan-card${cardCls}"${idxAttr}>
+          <div class="plan-card-inner">
+            <div>
+              ${isAvailable ? '' : `<div class="plan-stock ${stockCls}"><span class="plan-stock-dot"></span>${stockLbl}</div>`}
+              <div class="plan-men">${_escHtml(g.men_label)}</div>
+              <div class="plan-benefits">${benefitsHtml}</div>
             </div>
-          </div>`;
-      });
-
-      floorHtml += `
-        <div class="rank-section rank-${rankKey}">
-          <div class="rank-heading">
-            <div class="rank-name">${rankName.toUpperCase()}</div>
-            <div class="rank-heading-line"></div>
+            <div class="plan-right">
+              <div class="plan-price">${priceDisp}<span>円</span></div>
+              <button class="plan-btn">申し込む</button>
+            </div>
           </div>
-          ${cardsHtml}
         </div>`;
     });
+    if (!cardsHtml) return '';
 
-    if (!floorHtml) return;
-
-    container.insertAdjacentHTML('beforeend', `
-      <div class="floor-section">
-        <div class="floor-heading">
-          <div>
-            <div class="floor-label">${floorLabel}</div>
-            <div class="floor-sublabel">${floorSub}</div>
-          </div>
+    return `
+      <div class="rank-section ${cls}">
+        <div class="rank-heading">
+          <div class="rank-name">${_escHtml(String(ty).toUpperCase())}</div>
+          <div class="rank-heading-line"></div>
         </div>
-        ${floorHtml}
-      </div>`);
+        ${cardsHtml}
+      </div>`;
+  }
+
+  if (hasFloor) {
+    floors.forEach(floorId => {
+      let floorHtml = '';
+      orderedTypes.forEach(ty => { floorHtml += renderTypeSection(floorId, ty); });
+      if (!floorHtml) return;
+      container.insertAdjacentHTML('beforeend', `
+        <div class="floor-section">
+          <div class="floor-heading">
+            <div>
+              <div class="floor-label">${_escHtml(floorId)}</div>
+              <div class="floor-sublabel"></div>
+            </div>
+          </div>
+          ${floorHtml}
+        </div>`);
+    });
+  } else {
+    let listHtml = '';
+    orderedTypes.forEach(ty => { listHtml += renderTypeSection(null, ty); });
+    if (listHtml) container.insertAdjacentHTML('beforeend', `<div class="floor-section">${listHtml}</div>`);
+  }
+
+  // カードにクリックハンドラを付与（onclick文字列連結を排除しエスケープ事故を防止）
+  container.querySelectorAll('.plan-card[data-plan-idx]').forEach(el => {
+    el.addEventListener('click', () => openModalByIdx(Number(el.getAttribute('data-plan-idx'))));
   });
 }
 
@@ -806,34 +934,48 @@ function toggleVipAgree() {
   document.getElementById('submit-btn-transfer').disabled = !vipTermsAgreed;
 }
 
-function openModal(rankKey, rankLabel, location, men, price, benefitsStr) {
-  currentPlan = { rankKey, rankLabel, location, men, price, benefitsStr };
-  const style = RANK_STYLE[rankKey];
+function openModalByIdx(idx) {
+  const p = PLAN_CACHE[idx];
+  if (p) openModal(p);
+}
+
+function openModal(plan) {
+  currentPlan = {
+    rankType: plan.tableType,        // = table_type 文字列（reserveVipByRank へそのまま渡す）
+    rankLabel: plan.tableType,
+    location: plan.location || '',
+    men: plan.men,
+    price: Number(plan.price) || 0,
+    benefits: Array.isArray(plan.benefits) ? plan.benefits : []
+  };
+  const style = STYLE_BY_TYPE[plan.tableType] || {
+    name:'#e8e8e8', badgeBg:'#888', badgeC:'#e8e8e8', solidBg:'#888', solidTc:'#000'
+  };
 
   // badge
   const badge = document.getElementById('m-badge');
-  badge.textContent = rankLabel;
-  badge.style.color = style.tc;
-  badge.style.borderColor = style.bg;
-  badge.style.background = style.bg + '22';
+  badge.textContent = currentPlan.rankLabel;
+  badge.style.color = style.badgeC;
+  badge.style.borderColor = style.badgeBg;
+  badge.style.background = style.badgeBg + '22';
 
   // title
-  const titleParts = [men + '定員'];
-  if (location) titleParts.unshift(location);
+  const titleParts = [currentPlan.men + '定員'];
+  if (currentPlan.location) titleParts.unshift(currentPlan.location);
   document.getElementById('m-title').textContent = titleParts.join(' — ');
   document.getElementById('m-sub').textContent =
     PAY_FIXED === 'transfer' ? '銀行振込' : PAY_FIXED === 'stripe' ? 'カード決済' : 'カード決済 / 銀行振込';
 
   // price
-  document.getElementById('m-price').textContent = '¥' + price.toLocaleString();
+  document.getElementById('m-price').textContent = '¥' + currentPlan.price.toLocaleString();
 
   // benefits
   const bEl = document.getElementById('m-benefits');
   bEl.innerHTML = '';
-  benefitsStr.split(',').forEach(b => {
+  currentPlan.benefits.forEach(b => {
     const s = document.createElement('span');
     s.className = 'modal-benefit-item';
-    s.textContent = b.trim();
+    s.textContent = String(b).trim();
     bEl.appendChild(s);
   });
 
@@ -846,8 +988,8 @@ function openModal(rankKey, rankLabel, location, men, price, benefitsStr) {
   } else {
     btn.style.display = '';
     bothEl.style.display = 'none';
-    btn.style.background = style.btnBg;
-    btn.style.color = style.btnTc;
+    btn.style.background = style.solidBg;
+    btn.style.color = style.solidTc;
     btn.textContent = PAY_FIXED === 'stripe' ? 'カード決済で申し込む' : '銀行振込で申し込む';
   }
 
@@ -900,7 +1042,7 @@ async function submitForm(payOverride) {
   errEl.style.display = 'none';
 
   const payMethod = payOverride || PAY_FIXED || 'transfer';
-  const rankType  = RANK_TYPE_MAP[currentPlan.rankKey];
+  const rankType  = currentPlan.rankType;   // = table_type 文字列（GAS側は文字列一致で空き卓を探索）
 
   document.getElementById('loading').classList.add('show');
   document.getElementById('submit-btn').disabled = true;

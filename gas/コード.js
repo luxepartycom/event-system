@@ -2890,6 +2890,156 @@ function doPost(e) {
           }catch(eCVMail){console.log('VIPconfirmmail:',eCVMail);}
           return res({ok:true,guest_id:guestIdCV,name:gNameCV,amount:amtCV,table_name:tNameCV,event_name:evNameCV});
         }
+
+        // \u2500\u2500 VIP\u30c6\u30fc\u30d6\u30eb \u7ba1\u7406\u753b\u9762\u7de8\u96c6\uff08\u30a4\u30d9\u30f3\u30c8\u5358\u4f4d\u3067\u5b8c\u5168\u53ef\u5909\uff09 \u2500\u2500
+        case 'saveVipTable': {
+          // upsert: table_id \u304c\u65e2\u5b58\u884c\u306b\u4e00\u81f4\u2192\u66f4\u65b0\uff08reserved\u7cfb\u30fbstatus\u306f\u4fdd\u6301\uff09\uff0f\u7a7a or \u672a\u4e00\u81f4\u2192\u65b0\u898fappend
+          var svtLock = LockService.getScriptLock();
+          try { svtLock.tryLock(10000); } catch (eSvtL) {}
+          try {
+            var svts = addVipTableIfNeeded();
+            // \u4e0d\u8db3\u5217\u3092\u78ba\u4fdd\u3057\u3066\u304b\u3089\u66f8\u304f
+            ensureCol_(svts, 'men_label');
+            ensureCol_(svts, 'benefits');
+            ensureCol_(svts, 'floor');
+            ensureCol_(svts, 'sort_order');
+            var svtRows = svts.getRange(1,1,svts.getLastRow(),svts.getLastColumn()).getValues();
+            var svtH = svtRows[0].map(function(c){ return String(c).trim(); });
+            var svtId = body.table_id || '';
+            var svtEditable = {
+              table_name: body.table_name != null ? body.table_name : '',
+              table_type: body.table_type != null ? body.table_type : '',
+              capacity:   Number(body.capacity || 0),
+              price:      Number(body.price || 0),
+              men_label:  body.men_label != null ? body.men_label : '',
+              benefits:   body.benefits != null ? body.benefits : '',
+              floor:      body.floor != null ? body.floor : '',
+              sort_order: Number(body.sort_order || 0)
+            };
+            var svtRow = -1;
+            if (svtId) {
+              for (var i=1; i<svtRows.length; i++) {
+                if (String(svtRows[i][svtH.indexOf('table_id')]) === svtId) { svtRow = i; break; }
+              }
+            }
+            if (svtRow >= 0) {
+              // \u66f4\u65b0\uff1a\u7de8\u96c6\u53ef\u80fd\u30d5\u30a3\u30fc\u30eb\u30c9\u306e\u307f\u66f8\u304d\u63db\u3048\u3002event_id\u30fbstatus\u30fbreserved\u7cfb\u30fbguest_id\u7b49\u306f\u4fdd\u6301
+              Object.keys(svtEditable).forEach(function(k){
+                var ci = svtH.indexOf(k);
+                if (ci >= 0) svts.getRange(svtRow+1, ci+1).setValue(svtEditable[k]);
+              });
+              SpreadsheetApp.flush();
+              return res({ ok:true, table_id: svtId });
+            }
+            // \u65b0\u898f\u8ffd\u52a0\uff08\u4ed6\u30a4\u30d9\u30f3\u30c8\u306e\u884c\u306f\u4e00\u5207\u89e6\u3089\u306a\u3044\uff09
+            var svtNewId = 'VT-' + Date.now().toString(36).toUpperCase();
+            var svtNewRow = svtH.map(function(k){
+              if (k === 'table_id') return svtNewId;
+              if (k === 'event_id') return body.event_id || '';
+              if (k === 'status')   return 'available';
+              if (svtEditable.hasOwnProperty(k)) return svtEditable[k];
+              return '';
+            });
+            svts.appendRow(svtNewRow);
+            SpreadsheetApp.flush();
+            return res({ ok:true, table_id: svtNewId });
+          } finally { try { svtLock.releaseLock(); } catch (eSvtU) {} }
+        }
+
+        case 'deleteVipTable': {
+          // available \u306e\u307f\u524a\u9664\u53ef\u3002\u4e88\u7d04\u6e08\u307f(reserved/pending_payment/confirmed\u7b49)\u306f\u524a\u9664\u62d2\u5426
+          var dvtLock = LockService.getScriptLock();
+          try { dvtLock.tryLock(10000); } catch (eDvtL) {}
+          try {
+            var dvts = addVipTableIfNeeded();
+            var dvtRows = dvts.getRange(1,1,dvts.getLastRow(),dvts.getLastColumn()).getValues();
+            var dvtH = dvtRows[0].map(function(c){ return String(c).trim(); });
+            var dvtId = body.table_id || '';
+            var dvtRow = -1;
+            for (var i=1; i<dvtRows.length; i++) {
+              if (String(dvtRows[i][dvtH.indexOf('table_id')]) === dvtId) { dvtRow = i; break; }
+            }
+            if (dvtRow < 0) return res({ ok:false, message:'\u30c6\u30fc\u30d6\u30eb\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093' });
+            var dvtSt = String(dvtRows[dvtRow][dvtH.indexOf('status')] || '');
+            if (dvtSt !== 'available') return res({ ok:false, message:'\u4e88\u7d04\u6e08\u307f\u306e\u305f\u3081\u524a\u9664\u3067\u304d\u307e\u305b\u3093' });
+            dvts.deleteRow(dvtRow+1);
+            SpreadsheetApp.flush();
+            return res({ ok:true });
+          } finally { try { dvtLock.releaseLock(); } catch (eDvtU) {} }
+        }
+
+        case 'copyVipTablesFromEvent': {
+          // from_event_id \u306e\u5168\u5353\u3092 to_event_id \u3078\u8907\u88fd\uff08\u305f\u305f\u304d\u53f0\u7528\u9014\uff09\u3002\u30b3\u30d4\u30fc\u5148\u306b\u65e2\u5b58\u304c\u3042\u308c\u3070\u62d2\u5426
+          var cvtLock = LockService.getScriptLock();
+          try { cvtLock.tryLock(10000); } catch (eCvtL) {}
+          try {
+            var cvFrom = body.from_event_id || '';
+            var cvTo   = body.to_event_id || '';
+            if (!cvFrom || !cvTo) return res({ ok:false, message:'from_event_id \u3068 to_event_id \u304c\u5fc5\u8981\u3067\u3059' });
+            var cvts = addVipTableIfNeeded();
+            ensureCol_(cvts, 'men_label');
+            ensureCol_(cvts, 'benefits');
+            ensureCol_(cvts, 'floor');
+            ensureCol_(cvts, 'sort_order');
+            var cvRows = cvts.getRange(1,1,cvts.getLastRow(),cvts.getLastColumn()).getValues();
+            var cvH = cvRows[0].map(function(c){ return String(c).trim(); });
+            var cvEvIdx = cvH.indexOf('event_id');
+            // \u30b3\u30d4\u30fc\u5148\u306b\u65e2\u306b\u30c6\u30fc\u30d6\u30eb\u304c\u3042\u308c\u3070\u62d2\u5426\uff08\u5b89\u5168\u5074\uff09
+            for (var i=1; i<cvRows.length; i++) {
+              if (String(cvRows[i][cvEvIdx]) === cvTo) return res({ ok:false, message:'\u30b3\u30d4\u30fc\u5148\u306b\u65e2\u306bVIP\u30c6\u30fc\u30d6\u30eb\u304c\u3042\u308a\u307e\u3059' });
+            }
+            var cvCopyFields = ['table_name','table_type','capacity','price','men_label','benefits','floor','sort_order'];
+            var cvCount = 0;
+            for (var i=1; i<cvRows.length; i++) {
+              if (String(cvRows[i][cvEvIdx]) !== cvFrom) continue;
+              var srcRow = cvRows[i];
+              var newIdCv = 'VT-' + Date.now().toString(36).toUpperCase() + '-' + cvCount;
+              var newRowCv = cvH.map(function(k, j){
+                if (k === 'table_id') return newIdCv;
+                if (k === 'event_id') return cvTo;
+                if (k === 'status')   return 'available';
+                if (cvCopyFields.indexOf(k) >= 0) return srcRow[j];
+                return ''; // reserved\u7cfb/guest_id/confirmed_at/transfer_deadline \u306f\u7a7a
+              });
+              cvts.appendRow(newRowCv);
+              cvCount++;
+              Utilities.sleep(2); // table_id \u306e\u30df\u30ea\u79d2\u885d\u7a81\u56de\u907f\u306e\u4fdd\u967a
+            }
+            SpreadsheetApp.flush();
+            return res({ ok:true, copied: cvCount });
+          } finally { try { cvtLock.releaseLock(); } catch (eCvtU) {} }
+        }
+
+        case 'saveVipSeatImage': {
+          // events \u30b7\u30fc\u30c8\u306e\u8a72\u5f53 event_id \u884c\u306e vip_seat_image \u5217\u306bURL\u3092\u4fdd\u5b58
+          var svsEvId = body.event_id || '';
+          var svsUrl  = body.url != null ? body.url : '';
+          if (!svsEvId) return res({ ok:false, message:'event_id \u304c\u5fc5\u8981\u3067\u3059' });
+          var evSVS = sheet('events');
+          if (!evSVS) return res({ ok:false, message:'events \u30b7\u30fc\u30c8\u304c\u3042\u308a\u307e\u305b\u3093' });
+          var evSVSH = evSVS.getRange(1,1,1,evSVS.getLastColumn()).getValues()[0].map(function(c){ return String(c).trim(); });
+          if (evSVSH[0] === 'event_id') {
+            // 1\u5217\u76ee\u304c event_id \u524d\u63d0\u306e setRowField_\uff08vip_seat_image \u5217\u304c\u7121\u3051\u308c\u3070\u8ffd\u52a0\uff09
+            setRowField_(evSVS, svsEvId, 'vip_seat_image', svsUrl);
+          } else {
+            // 1\u5217\u76ee\u304c event_id \u3067\u306a\u3044\u5834\u5408\u306f event_id \u5217\u3092\u63a2\u3057\u3066\u8a2d\u5b9a
+            var evIdCol = evSVSH.indexOf('event_id');
+            if (evIdCol < 0) return res({ ok:false, message:'events \u306b event_id \u5217\u304c\u3042\u308a\u307e\u305b\u3093' });
+            var imgColSvs = ensureCol_(evSVS, 'vip_seat_image');
+            var evColSvs = evSVS.getRange(1,1,evSVS.getLastRow(),evSVS.getLastColumn()).getValues();
+            var svsFound = false;
+            for (var r=evColSvs.length-1; r>=1; r--) {
+              if (String(evColSvs[r][evIdCol]) === String(svsEvId)) {
+                evSVS.getRange(r+1, imgColSvs+1).setValue(svsUrl);
+                svsFound = true; break;
+              }
+            }
+            if (!svsFound) return res({ ok:false, message:'\u30a4\u30d9\u30f3\u30c8\u304c\u898b\u3064\u304b\u308a\u307e\u305b\u3093' });
+          }
+          SpreadsheetApp.flush();
+          return res({ ok:true });
+        }
+
 default: return res({ ok: false, message: '\u4e0d\u660e\u306aaction: ' + action });
     }
   } catch(err) { return res({ ok: false, message: err.message }); }
@@ -3081,6 +3231,8 @@ function setupVipTransferDeadlinesTrigger() {
 
 // ================================================================
 // VIPテーブル初期登録（GASエディタから手動実行）
+// 【非推奨】管理画面の saveVipTable / copyVipTablesFromEvent を使用すること。
+// この関数は既存データ行を全削除するため、運用では使わない（イベントIDもハードコード）。
 // ================================================================
 function initVipTablesForEvent() {
   var eventId = 'EV-MP45BP13'; // ← 対象イベントIDに変更
