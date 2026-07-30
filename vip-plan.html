@@ -794,9 +794,15 @@ function renderPlans(tables) {
     const key = (floor === null ? '_' : floor) + '|' + ty + '|' + price + '|' + men;
     if (!groupMap[key]) groupMap[key] = {
       floor, table_type: ty, price, capacity: Number(t.capacity) || 0,
-      available: 0, men_label: men, benefits_str: String(t.benefits || '')
+      available: 0, men_label: men, benefits_str: String(t.benefits || ''), sort_order: null
     };
     if (String(t.status) === 'available') groupMap[key].available++;
+    // カードの表示順キー：その卓群の最小 sort_order（B案：番号どおりにカードを並べる）
+    const soRaw = t.sort_order;
+    if (soRaw !== '' && soRaw !== null && soRaw !== undefined) {
+      const so = Number(soRaw);
+      if (!isNaN(so)) groupMap[key].sort_order = (groupMap[key].sort_order === null) ? so : Math.min(groupMap[key].sort_order, so);
+    }
   });
 
   const container = document.getElementById('plans-container');
@@ -807,7 +813,15 @@ function renderPlans(tables) {
   function renderTypeSection(floorId, ty) {
     const groups = Object.values(groupMap)
       .filter(g => g.table_type === ty && (floorId === null ? true : g.floor === floorId))
-      .sort((a, b) => b.price - a.price);
+      .sort((a, b) => {
+        // B案：カードは sort_order 昇順（番号どおり）。両方無ければ料金の高い順。
+        const aH = a.sort_order !== null && a.sort_order !== undefined;
+        const bH = b.sort_order !== null && b.sort_order !== undefined;
+        if (aH && bH) return a.sort_order - b.sort_order;
+        if (aH) return -1;
+        if (bH) return 1;
+        return b.price - a.price;
+      });
     if (groups.length === 0) return '';
 
     const cls = CLASS_BY_TYPE[ty] || '';
