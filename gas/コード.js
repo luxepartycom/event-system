@@ -2573,7 +2573,7 @@ function doPost(e) {
 
           if (payMethod === 'transfer') {
             try {
-              var replyToV = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
+              var replyToV = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'info@luxepartytokyo.com';
               var bankInfo = PropertiesService.getScriptProperties().getProperty('BANK_INFO')||'【お振込先】\nさわやか信用金庫 渋谷支店\n普通 No.1254947\n株式会社リュクス';
               var companyInfoV = '【発行者情報】\n株式会社リュクス\n〒150-0041 東京都渋谷区神南1-23-14\nTel: 03-6892-7253\n担当: 池田隆史\n登録番号: T2011001152835';
               var evNameV=''; var evSV=sheet('events');
@@ -2682,7 +2682,7 @@ function doPost(e) {
           if(evSVR){var evRVR=evSVR.getDataRange().getValues();var evHVR=evRVR[0].map(function(c){return String(c).trim();});
             for(var ei=1;ei<evRVR.length;ei++){if(String(evRVR[ei][evHVR.indexOf('event_id')])===evIdR2){evNameVR=String(evRVR[ei][evHVR.indexOf('name')]||'');break;}}}
           var invitedLineVR = invitedByR ? '\n紹介者: '+invitedByR : '';
-          var replyToVR = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
+          var replyToVR = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'info@luxepartytokyo.com';
 
           if (payMethodR === 'transfer') {
             console.warn('[VIP振込] メール送信開始 to=' + body.email + ' name=' + body.name);
@@ -2772,7 +2772,7 @@ function doPost(e) {
           if(evS3){var evR3=evS3.getDataRange().getValues();var evH3=evR3[0].map(function(c){return String(c).trim();});
             for(var ei3=1;ei3<evR3.length;ei3++){if(String(evR3[ei3][evH3.indexOf('event_id')])===evId3){evName3=String(evR3[ei3][evH3.indexOf('name')]||'');break;}}}
           try {
-            var rTo3=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
+            var rTo3=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'info@luxepartytokyo.com';
             var qrUrl3='https://entry.luxepartytokyo.com/vip-ticket.html?id='+guestId3;
             GmailApp.sendEmail(toEmail3,'【LUXE PARTY TOKYO】VIPご招待状 / QRコード',
               toName3+'様\n\nお振込を確認いたしました。誠にありがとうございます。\nご予約が確定いたしました。\n\n■当日のご案内\n受付にて以下のQRコードをご提示ください。\nQRコードURL: '+qrUrl3+'\n\n本QRコードはご来場予定の各位にご共有いただけます。受付にて各自ご提示ください。\nご入場は購入席数を上限とさせていただきます。上限を超えるご入場をご希望の場合は、男性お一人につき5万円の追加料金が発生いたします。\n\n■ご注意\n・本予約はキャンセル・返金不可となります。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\nLUXE PARTY TOKYO\n'+rTo3,
@@ -2824,7 +2824,7 @@ function doPost(e) {
           var vrsL=sheet('vip_reservations');if(!vrsL){vrsL=SS.insertSheet('vip_reservations');vrsL.appendRow(['reservation_id','table_id','event_id','table_name','table_type','name','email','phone','payment_method','status','transfer_deadline','confirmed_at','guest_id','reserved_at','notes']);}
           vrsL.appendRow(['RES-'+Date.now().toString(36).toUpperCase(),tableIdL,evIdL,tNameL,tTypeL,guestName,guestEmail,guestPhone,'stripe','stripe_pending','','',vGidL,nowStr(),'']);
           SpreadsheetApp.flush();
-          try{var rtL=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';GmailApp.sendEmail(guestEmail,'【LUXE PARTY TOKYO】VIPテーブル お申し込みありがとうございます',guestName+'様\n\nこの度はLUXE PARTY TOKYOへのお申し込み、誠にありがとうございます。\n以下の内容でVIPテーブルの仮予約を承りました。\n\n■ご予約内容\nイベント: '+evNameL+'\nテーブル: '+tNameL+' ('+tTypeL+')\n料金: ¥'+tPriceL.toLocaleString()+'（税込）\n\n■お支払いのご案内\n▼決済URL（有効期限：発行から24時間）\n'+strDataL.url+'\n\n期限を過ぎると決済URLが無効となり、予約は自動キャンセルとなります。\nお早めにお手続きください。\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\n決済完了後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+rtL,{name:'LUXE PARTY TOKYO',replyTo:rtL});}catch(eML){console.log('err:',eML);}
+          try{var rtL=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'info@luxepartytokyo.com';GmailApp.sendEmail(guestEmail,'【LUXE PARTY TOKYO】VIPテーブル お申し込みありがとうございます',guestName+'様\n\nこの度はLUXE PARTY TOKYOへのお申し込み、誠にありがとうございます。\n以下の内容でVIPテーブルの仮予約を承りました。\n\n■ご予約内容\nイベント: '+evNameL+'\nテーブル: '+tNameL+' ('+tTypeL+')\n料金: ¥'+tPriceL.toLocaleString()+'（税込）\n\n■お支払いのご案内\n▼決済URL（有効期限：発行から24時間）\n'+strDataL.url+'\n\n期限を過ぎると決済URLが無効となり、予約は自動キャンセルとなります。\nお早めにお手続きください。\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\n決済完了後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+rtL,{name:'LUXE PARTY TOKYO',replyTo:rtL});}catch(eML){console.log('err:',eML);}
           return res({ok:true,guest_id:vGidL,checkout_url:strDataL.url,table_name:tNameL});
         }
         case 'createVipTransfer': {
@@ -2846,7 +2846,7 @@ function doPost(e) {
           var vrsT=sheet('vip_reservations');if(!vrsT){vrsT=SS.insertSheet('vip_reservations');vrsT.appendRow(['reservation_id','table_id','event_id','table_name','table_type','name','email','phone','payment_method','status','transfer_deadline','confirmed_at','guest_id','reserved_at','notes']);}
           vrsT.appendRow(['RES-'+Date.now().toString(36).toUpperCase(),tableIdT,evIdT,tNameT,tTypeT,gNameT,gEmailT,gPhoneT,'transfer','pending_payment',Utilities.formatDate(dlT,'Asia/Tokyo','yyyy-MM-dd'),'',vGidT,nowStr(),'']);
           SpreadsheetApp.flush();
-          try{var rtT=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';GmailApp.sendEmail(gEmailT,'【LUXE PARTY TOKYO】VIPテーブル ご請求書',gNameT+'様\n\nこの度はLUXE PARTY TOKYOにお申し込みいただき、誠にありがとうございます。\n\n■ご請求内容\n請求先: '+gNameT+' 様\nイベント: '+evNameT+'\nテーブル: '+tNameT+' ('+tTypeT+')\n品目: 飲食代\n金額: ¥'+tPriceT.toLocaleString()+'（税込）\nお振込期限: '+dlTStr+'\n\n'+bankInfo+'\n振込金額: ¥'+tPriceT.toLocaleString()+'（税込）\n\n'+companyInfoT+'\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\n期限までにご入金をお願いいたします。\nご入金確認後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+rtT,{name:'LUXE PARTY TOKYO',replyTo:rtT});}catch(eTM){console.log('VIPtransfermail:',eTM);}
+          try{var rtT=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'info@luxepartytokyo.com';GmailApp.sendEmail(gEmailT,'【LUXE PARTY TOKYO】VIPテーブル ご請求書',gNameT+'様\n\nこの度はLUXE PARTY TOKYOにお申し込みいただき、誠にありがとうございます。\n\n■ご請求内容\n請求先: '+gNameT+' 様\nイベント: '+evNameT+'\nテーブル: '+tNameT+' ('+tTypeT+')\n品目: 飲食代\n金額: ¥'+tPriceT.toLocaleString()+'（税込）\nお振込期限: '+dlTStr+'\n\n'+bankInfo+'\n振込金額: ¥'+tPriceT.toLocaleString()+'（税込）\n\n'+companyInfoT+'\n\n■ご注意\n・本予約はキャンセル・返金不可となります。予めご了承の上でお申し込みください。\n・上限席数を超えるご入場をご希望の場合は、男性お一人につき5万円頂戴します。\n\n期限までにご入金をお願いいたします。\nご入金確認後、QRコード招待状をお送りします。\n\nLUXE PARTY TOKYO\n'+rtT,{name:'LUXE PARTY TOKYO',replyTo:rtT});}catch(eTM){console.log('VIPtransfermail:',eTM);}
           return res({ok:true,guest_id:vGidT,table_name:tNameT,transfer_deadline:dlTStr});
         }
         case 'completeVipStripePayment': {
@@ -2865,7 +2865,7 @@ function doPost(e) {
           SpreadsheetApp.flush();
           var evNameCV='',evSCV=sheet('events');if(evSCV){var evRCV=evSCV.getDataRange().getValues(),evHCV=evRCV[0].map(function(c){return String(c).trim();});for(var ei=1;ei<evRCV.length;ei++){if(String(evRCV[ei][evHCV.indexOf('event_id')])===evIdCV){evNameCV=String(evRCV[ei][evHCV.indexOf('name')]||'');break;}}}
           try{
-            var rtCV=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'luxe.party.com@gmail.com';
+            var rtCV=PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')||'info@luxepartytokyo.com';
             var qrCV='https://entry.luxepartytokyo.com/vip-ticket.html?id='+guestIdCV;
             var bodyCV=gNameCV+'様\n\nカード決済が完了しました。VIPテーブルのご予約が確定いたしました。\n\n'
               +'■ご予約内容\n'
@@ -3141,7 +3141,7 @@ function checkVipTransferDeadlines() {
   }
 
   var now = new Date();
-  var replyTo = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO') || 'luxe.party.com@gmail.com';
+  var replyTo = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO') || 'info@luxepartytokyo.com';
   var bankInfo = PropertiesService.getScriptProperties().getProperty('BANK_INFO') || '《お振込先》\nさわやか信用金庫 渋谷支店\n普通 No.1254947\n株式会社リュクス';
   var adminEmails = vipGetAdminEmails_();
 
@@ -3369,7 +3369,7 @@ function seedStagingVipTables() {
 function vipGetAdminEmails_() {
   var s = PropertiesService.getScriptProperties().getProperty('VIP_ADMIN_EMAILS')
     || PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO')
-    || 'luxe.party.com@gmail.com';
+    || 'info@luxepartytokyo.com';
   return s.split(',').map(function(e){ return e.trim(); }).filter(function(e){ return !!e; });
 }
 
@@ -3536,7 +3536,7 @@ function sendVipDailySummary() {
 
 // GASエディタから直接実行してGmailApp権限を確認するテスト関数
 function testGmailPermission() {
-  var replyTo = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO') || 'luxe.party.com@gmail.com';
+  var replyTo = PropertiesService.getScriptProperties().getProperty('MAIL_REPLY_TO') || 'info@luxepartytokyo.com';
   try {
     GmailApp.sendEmail(
       replyTo,
