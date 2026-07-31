@@ -132,6 +132,12 @@ body {
   font-weight:400;
   white-space:nowrap;
 }
+.plan-seats {
+  font-size:0.66rem;
+  letter-spacing:0.08em;
+  color:var(--gold);
+  margin-top:2px;
+}
 
 /* Plan Card */
 .plan-card {
@@ -855,6 +861,7 @@ function renderPlans(tables) {
             <div>
               ${isAvailable ? '' : `<div class="plan-stock ${stockCls}"><span class="plan-stock-dot"></span>${stockLbl}</div>`}
               <div class="plan-men">${_escHtml(g.men_label)}</div>
+              ${g.capacity > 0 ? `<div class="plan-seats">席数 ${g.capacity}席</div>` : ''}
               <div class="plan-benefits">${benefitsHtml}</div>
             </div>
             <div class="plan-right">
