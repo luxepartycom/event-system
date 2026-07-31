@@ -4797,6 +4797,18 @@ const VIP_STATUS_COLOR = {
 };
 
 // ── 座席画像 ─────────────────────────────────────────────
+// Google Drive の各種共有URLを <img> で表示可能な直リンク(thumbnail)へ変換。
+// 対応: /file/d/ID/view, open?id=ID, uc?id=ID, thumbnail?id=ID。Drive以外の画像URLはそのまま返す。
+function toDirectImageUrl(u) {
+  const s = String(u || '').trim();
+  if (!s) return '';
+  if (!/drive\.google\.com|docs\.google\.com/.test(s)) return s;
+  let m, id = '';
+  if ((m = s.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)))      id = m[1];
+  else if ((m = s.match(/[?&]id=([a-zA-Z0-9_-]+)/)))     id = m[1];
+  return id ? ('https://drive.google.com/thumbnail?id=' + id + '&sz=w2000') : s;
+}
+
 function renderVipSeatImage() {
   const ev  = allEvents.find(e => e.event_id === vipEventId) || {};
   const url = String(ev.vip_seat_image || '').trim();
@@ -4806,8 +4818,8 @@ function renderVipSeatImage() {
   if (input) input.value = url;
   if (!img || !ph) return;
   if (url) {
-    // Drive共有URLはそのまま表示（変換関数は無いため src にそのまま入れる）
-    img.src = url;
+    // Google Drive の共有URLは <img> で直接表示できないため直リンク(thumbnail)へ変換
+    img.src = toDirectImageUrl(url);
     img.style.display = 'block';
     ph.style.display  = 'none';
   } else {
