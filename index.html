@@ -287,12 +287,12 @@ const BASE_URL = 'https://entry.luxepartytokyo.com/';
 let currentEvent=null,currentPayType='paid',selectedGender='',selectedFirstTime='',termsAgreed=false,hiddenPromoter='',currentPlanId='',currentPlanName='';
 function _sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 // 読み取り系API用：コールドスタート対策の自動リトライ＋タイムアウト
-async function _fetchJsonRetry(url, opts, tries=3, delay=1500){
+async function _fetchJsonRetry(url, opts, tries=3, delay=1500, timeoutMs=8000){
   let lastErr;
   for(let i=0;i<tries;i++){
     try{
       const ctrl=new AbortController();
-      const timer=setTimeout(()=>ctrl.abort(),8000);
+      const timer=setTimeout(()=>ctrl.abort(),timeoutMs);
       const r=await fetch(url,Object.assign({},opts,{signal:ctrl.signal}));
       clearTimeout(timer);
       if(!r.ok) throw new Error('HTTP '+r.status);
@@ -304,8 +304,11 @@ async function _fetchJsonRetry(url, opts, tries=3, delay=1500){
 // 読み取り系（冪等）：リトライあり
 async function apiGet(p){return _fetchJsonRetry(API+'?'+new URLSearchParams(p),{});}
 async function apiPostRead(b){return _fetchJsonRetry(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});}
-// 書き込み系（非冪等）：リトライなし（二重登録防止）
+// 書き込み系（単発・12sタイムアウト）
 async function apiPost(b){const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),12000);try{const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b),signal:ctrl.signal});return await r.json();}finally{clearTimeout(t);}}
+// 書き込みの自動リトライ版：submission_id安定化で冪等なのでリトライ安全。遅延・接続断でも重複せず応答を取り直す（手動リトライ不要）。
+// 2回×10sタイムアウト（最悪~21.5s）に抑え、公開本番での過度なボタンロックを回避（敵対的レビュー指摘・2026-08-04）。
+async function apiPostRetryWrite(b){return _fetchJsonRetry(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)},2,1500,10000);}
 // 送信ごとの冪等キー。1回の送信が二重実行されてもサーバ側で1行にまとめられる。
 function genSubId(){return 'S-'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);}
 // 二重送信防止(②): 送信内容が同じ間は同じ冪等キーを再利用（＝連打・再送はサーバ側dedupで必ず1行にまとまる）。
@@ -549,20 +552,21 @@ async function stripeCheckout(){
     _submitting=true; btn0.disabled=true;
     btn0.querySelector('.btn-stripe-title').textContent='登録中…';
     try {
-      const d0=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify({action:'registerGuest',event_id:currentEvent.event_id,
+      // 冪等キー安定化により自動リトライが安全（遅延/接続断でも重複しない・手動リトライ不要）
+      const res0=await apiPostRetryWrite({action:'registerGuest',event_id:currentEvent.event_id,
           name:fd0.name,email:fd0.email,gender:selectedGender,
           invited_by:fd0.invitedBy,pay_type:'free',amount:0,
-          payment_method:'free_female',plan_id:currentPlanId||'',first_time:selectedFirstTime,submission_id:_subId0})});
-      const res0=await d0.json();
-      if(res0.ok){
+          payment_method:'free_female',plan_id:currentPlanId||'',first_time:selectedFirstTime,submission_id:_subId0});
+      if(res0 && res0.ok){
+        if(!res0.pay_type) res0.pay_type='free';   // dedup応答はpay_type欠落→無料フローは常にfree（完了画面の誤表示防止）
+        showResult(res0,fd0.name,fd0.email,fd0.invitedBy);   // QRを最優先で表示（付随処理の失敗でQRを消さない）
         clearPendingSubId();   // 成功→次の申込は新しいキー
-        if(currentPlanId) await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},
-          body:JSON.stringify({action:'incrementPlanCount',plan_id:currentPlanId,gender:selectedGender})});
-        showResult(res0,fd0.name,fd0.email,fd0.invitedBy);
-        // QRメール送信
+        // QRメール送信（画面QRが主・メールは補助。失敗してもQR表示は維持）
+        // pay_type/amount/event_nameを明示（未指定だとメールが「有料¥0」誤記になるため・敵対的レビュー指摘）
         apiPost({action:'sendQREmail',guest_id:res0.guest_id,email:fd0.email,
-          name:fd0.name,event_id:currentEvent.event_id});
+          name:fd0.name,pay_type:'free',amount:0,event_name:currentEvent.name,
+          description:currentEvent.description||'',event_id:currentEvent.event_id}).catch(()=>{});
+        // ※プラン加算はバックエンドregisterGuestがfree/paid双方で実施済み。フロントからの追加加算は二重計上になるため呼ばない（敵対的レビュー指摘・2026-08-04）。
       } else {
         btn0.disabled=false;
         btn0.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む';
@@ -653,10 +657,10 @@ async function submitForm(){
         return;
       }
     }
-    const data=await apiPost({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType,plan_id:currentPlanId||'',first_time:selectedFirstTime,submission_id:_subId});
-    if(!data.ok){document.getElementById('form-error').textContent=data.message||'エラーが発生しました';document.getElementById('form-error').style.display='block';btn.disabled=false;return;}
+    const data=await apiPostRetryWrite({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType,plan_id:currentPlanId||'',first_time:selectedFirstTime,submission_id:_subId});
+    if(!(data&&data.ok)){document.getElementById('form-error').textContent=(data&&data.message)||'エラーが発生しました';document.getElementById('form-error').style.display='block';btn.disabled=false;return;}
+    showResult(data,name,email,invitedBy);   // QRを最優先で表示
     clearPendingSubId();   // 成功→次の申込は新しいキー
-    showResult(data,name,email,invitedBy);
     apiPost({action:'sendQREmail',guest_id:data.guest_id,email,name,pay_type:data.pay_type,amount:data.amount,event_name:currentEvent.name,description:currentEvent.description||''}).catch(()=>{});
   } catch(err){document.getElementById('form-error').textContent='通信に時間がかかっています。もう一度お試しください（重複はしません）。';document.getElementById('form-error').style.display='block';btn.disabled=false;} finally { _submitting=false; }
 }
