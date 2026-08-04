@@ -49,6 +49,60 @@ function res(data) {
   return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// ── getEvents ペイロード生成（getEventsハンドラとウォームアップで共用） ──
+function _buildEventsPayload_() {
+  var events = sheetToObjects(sheet('events'));
+  var plansSheet = sheet('event_plans');
+  var allPlans = plansSheet ? sheetToObjects(plansSheet) : [];
+  events.forEach(function(ev) {
+    ev.plans = allPlans.filter(function(p) {
+      return String(p.event_id) === String(ev.event_id);
+    });
+  });
+  return { ok: true, events: events };
+}
+
+// ── 速度改善(③): 5分毎に getEvents キャッシュを事前生成し GAS を温める ──
+// オーナーが GASエディタで setupWarmup() を一度だけ実行してトリガーを作成する。
+function warmupCache() {
+  try {
+    CacheService.getScriptCache().put('getEvents_v1', JSON.stringify(_buildEventsPayload_()), 360);
+  } catch (e) {}
+}
+function setupWarmup() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'warmupCache') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('warmupCache').timeBased().everyMinutes(5).create();
+  warmupCache();
+  Logger.log('✅ warmupCache トリガー作成（5分毎）＋初回キャッシュ生成完了');
+}
+
+// ── 自己テスト(検証ハーネス層2): GASエディタで実行し ✅/❌ で健全性を確認（読み取り中心） ──
+function testLptSelfCheck() {
+  var log = [], ok = true;
+  function chk(name, cond) { log.push((cond ? '✅' : '❌') + ' ' + name); if (!cond) ok = false; }
+  // 環境：SSが本番固定か（getUrl依存撤去の確認）
+  chk('SS=本番SS(1otXZ...)に固定', SS.getId() === _PROD_SS_ID);
+  chk('guestsシート存在', !!sheet('guests'));
+  chk('eventsシート存在', !!sheet('events'));
+  // 全ハンドラ補助・新規関数の存在
+  ['_getSpreadsheet','_buildEventsPayload_','warmupCache','setupWarmup','findIdBySubmission_','res','sheetToObjects','doPost','doGet'].forEach(function(fn){
+    chk('関数 ' + fn + ' 存在', eval('typeof ' + fn) === 'function');
+  });
+  // getEventsペイロードの形（③キャッシュ本体）
+  var payload = _buildEventsPayload_();
+  chk('getEventsペイロード ok=true', !!(payload && payload.ok === true));
+  chk('getEvents events は配列', Array.isArray(payload.events));
+  // CacheService 往復（③の前提）
+  try { var c = CacheService.getScriptCache(); c.put('_selftest', 'v', 20); chk('CacheService 往復', c.get('_selftest') === 'v'); }
+  catch (e) { chk('CacheService 往復', false); }
+  // 冪等判定（②の前提）：空submission_idは重複ヒットしない
+  chk('findIdBySubmission_(空)=null', findIdBySubmission_(sheet('guests'), '', 'guest_id') === null);
+  Logger.log(log.join('\n') + '\n' + (ok ? '—— 全合格 ✅ ——' : '—— 不合格あり ❌ ——'));
+  return ok;
+}
+
 function sheetToObjects(s) {
   var lr = s.getLastRow(), lc = s.getLastColumn();
   if (lr < 2) return [];
@@ -633,16 +687,14 @@ function doGet(e) {
       }
 
       case 'getEvents': {
-        var events = sheetToObjects(sheet('events'));
-        // 各イベントのプラン情報を付加
-        var plansSheet = sheet('event_plans');
-        var allPlans = plansSheet ? sheetToObjects(plansSheet) : [];
-        events.forEach(function(ev) {
-          ev.plans = allPlans.filter(function(p) {
-            return String(p.event_id) === String(ev.event_id);
-          });
-        });
-        return res({ ok: true, events: events });
+        // 速度改善(③): CacheServiceで応答をキャッシュ。ウォームアップtriggerが5分毎に事前生成する。
+        // プランの申込可否は submit 時 checkPlan がリアルタイム判定するため、表示用の数分の遅延は許容。
+        var _geCache = CacheService.getScriptCache();
+        var _geHit = _geCache.get('getEvents_v1');
+        if (_geHit) return ContentService.createTextOutput(_geHit).setMimeType(ContentService.MimeType.JSON);
+        var _geOut = JSON.stringify(_buildEventsPayload_());
+        _geCache.put('getEvents_v1', _geOut, 360);
+        return ContentService.createTextOutput(_geOut).setMimeType(ContentService.MimeType.JSON);
       }
 
       // ── 速度改善: ループ内でevent_idフィルタリングし全件取得を回避 ──

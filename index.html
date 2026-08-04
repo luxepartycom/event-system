@@ -292,7 +292,7 @@ async function _fetchJsonRetry(url, opts, tries=3, delay=1500){
   for(let i=0;i<tries;i++){
     try{
       const ctrl=new AbortController();
-      const timer=setTimeout(()=>ctrl.abort(),20000);
+      const timer=setTimeout(()=>ctrl.abort(),8000);
       const r=await fetch(url,Object.assign({},opts,{signal:ctrl.signal}));
       clearTimeout(timer);
       if(!r.ok) throw new Error('HTTP '+r.status);
@@ -305,9 +305,14 @@ async function _fetchJsonRetry(url, opts, tries=3, delay=1500){
 async function apiGet(p){return _fetchJsonRetry(API+'?'+new URLSearchParams(p),{});}
 async function apiPostRead(b){return _fetchJsonRetry(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});}
 // 書き込み系（非冪等）：リトライなし（二重登録防止）
-async function apiPost(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});return r.json();}
+async function apiPost(b){const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),12000);try{const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b),signal:ctrl.signal});return await r.json();}finally{clearTimeout(t);}}
 // 送信ごとの冪等キー。1回の送信が二重実行されてもサーバ側で1行にまとめられる。
 function genSubId(){return 'S-'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);}
+// 二重送信防止(②): 送信内容が同じ間は同じ冪等キーを再利用（＝連打・再送はサーバ側dedupで必ず1行にまとまる）。
+// 内容が変われば新規キー。成功後に clearPendingSubId() でリセットし、次の申込は新しいキーになる。
+let _pendingSubId='', _pendingKey='', _submitting=false;
+function subIdFor(key){ if(_pendingSubId && _pendingKey===key) return _pendingSubId; _pendingSubId=genSubId(); _pendingKey=key; return _pendingSubId; }
+function clearPendingSubId(){ _pendingSubId=''; _pendingKey=''; }
 
 window.addEventListener('load', async () => {
   const params=new URLSearchParams(location.search);
@@ -536,10 +541,12 @@ async function stripeCheckout(){
   }
   // 金額が0円（女性無料など）の場合はStripeをスキップして直接登録
   if(amount<=0){
+    if(_submitting) return;   // 二重送信防止(②): 応答が返るまで再入不可
     const fd0=getFormData();if(!fd0)return;
-    const _subId0=genSubId();
+    // 安定した冪等キー：連打・再送でも同じID＝サーバ側で1行にまとまる
+    const _subId0=subIdFor([fd0.name,fd0.email,currentEvent.event_id,'free',currentPlanId||''].join('|'));
     const btn0=document.getElementById('btn-stripe');
-    btn0.disabled=true;
+    _submitting=true; btn0.disabled=true;
     btn0.querySelector('.btn-stripe-title').textContent='登録中…';
     try {
       const d0=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},
@@ -548,9 +555,8 @@ async function stripeCheckout(){
           invited_by:fd0.invitedBy,pay_type:'free',amount:0,
           payment_method:'free_female',plan_id:currentPlanId||'',first_time:selectedFirstTime,submission_id:_subId0})});
       const res0=await d0.json();
-      btn0.disabled=false;
-      btn0.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む';
       if(res0.ok){
+        clearPendingSubId();   // 成功→次の申込は新しいキー
         if(currentPlanId) await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},
           body:JSON.stringify({action:'incrementPlanCount',plan_id:currentPlanId,gender:selectedGender})});
         showResult(res0,fd0.name,fd0.email,fd0.invitedBy);
@@ -558,15 +564,17 @@ async function stripeCheckout(){
         apiPost({action:'sendQREmail',guest_id:res0.guest_id,email:fd0.email,
           name:fd0.name,event_id:currentEvent.event_id});
       } else {
+        btn0.disabled=false;
+        btn0.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む';
         document.getElementById('form-error').textContent=res0.message||'登録に失敗しました';
         document.getElementById('form-error').style.display='block';
       }
     } catch(e){
       btn0.disabled=false;
       btn0.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む';
-      document.getElementById('form-error').textContent='通信エラーが発生しました';
+      document.getElementById('form-error').textContent='通信に時間がかかっています。もう一度お試しください（重複はしません）。';
       document.getElementById('form-error').style.display='block';
-    }
+    } finally { _submitting=false; }
     return;
   }
   const btn=document.getElementById('btn-stripe');
@@ -602,11 +610,13 @@ async function stripeCheckout(){
 }
 
 async function submitForm(){
+  if(_submitting) return;   // 二重送信防止(②): 応答が返るまで再入不可
   const fd=getFormData();if(!fd)return;
   const {name,email,invitedBy}=fd;
-  const _subId=genSubId();   // この送信の冪等キー（二重実行を1行にまとめる）
+  // 安定した冪等キー：連打・再送でも同じID＝サーバ側で1行にまとまる（内容変更で新規）
+  const _subId=subIdFor([name,email,(currentEvent&&currentEvent.event_id)||'',currentPayType,currentPlanId||''].join('|'));
   const btn=currentPayType==='paid'?document.getElementById('btn-walkin'):document.getElementById('btn-submit');
-  btn.disabled=true;
+  _submitting=true; btn.disabled=true;
   try {
     // 有料プランの場合、送信直前に男女別上限を再チェック
     if(currentPayType==='paid' && currentPlanId) {
@@ -617,10 +627,10 @@ async function submitForm(){
           if(recheckRedirectBase) {
             // promoterパラメータを引き継ぐ
             let recheckRedirectUrl = recheckRedirectBase;
-            if(promoter) {
+            if(hiddenPromoter) {   // 修正: promoterはloadハンドラ内スコープ→グローバルのhiddenPromoterを参照
               const sep2 = recheckRedirectUrl.includes('?') ? '&' : '?';
               if(!recheckRedirectUrl.includes('promoter=')) {
-                recheckRedirectUrl += sep2 + 'promoter=' + encodeURIComponent(promoter);
+                recheckRedirectUrl += sep2 + 'promoter=' + encodeURIComponent(hiddenPromoter);
               }
             }
             const btnLabel2 = recheckRedirectName
@@ -645,9 +655,10 @@ async function submitForm(){
     }
     const data=await apiPost({action:'registerGuest',event_id:currentEvent.event_id,name,email,gender:selectedGender,invited_by:invitedBy,pay_type:currentPayType,plan_id:currentPlanId||'',first_time:selectedFirstTime,submission_id:_subId});
     if(!data.ok){document.getElementById('form-error').textContent=data.message||'エラーが発生しました';document.getElementById('form-error').style.display='block';btn.disabled=false;return;}
+    clearPendingSubId();   // 成功→次の申込は新しいキー
     showResult(data,name,email,invitedBy);
     apiPost({action:'sendQREmail',guest_id:data.guest_id,email,name,pay_type:data.pay_type,amount:data.amount,event_name:currentEvent.name,description:currentEvent.description||''}).catch(()=>{});
-  } catch(err){document.getElementById('form-error').textContent='通信エラーが発生しました。再度お試しください。';document.getElementById('form-error').style.display='block';btn.disabled=false;}
+  } catch(err){document.getElementById('form-error').textContent='通信に時間がかかっています。もう一度お試しください（重複はしません）。';document.getElementById('form-error').style.display='block';btn.disabled=false;} finally { _submitting=false; }
 }
 
 function showResult(data,name,email,invitedBy){
