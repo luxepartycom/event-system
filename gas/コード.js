@@ -11,15 +11,12 @@ function requestExternalAccess() {
 // ── 環境ルーティング（staging / production 自動切り替え） ──
 var _STAGING_DEPLOY_ID = 'AKfycbwYH2RFU4G2RYF6XyYn9-kv5CPSoNREKj52N5-WnKLn7kIAE3KFaEK0Ubn0OQQdvlDJ';
 var _imgUrlCache = {}; // セッション内 Drive→GitHub URL キャッシュ
+// 本番SSをIDで固定。従来は ScriptApp.getService().getUrl()（＝最新デプロイのURLを返す不安定な値）で
+// staging/本番を判定していたが、stagingデプロイ後に本番リクエストが誤ってstaging/別SSへ書き込む事故が発生。
+// getUrl依存を撤去し、本番は必ず本番SSへ書く。staging分離が必要なら将来フロントのenvフラグで再導入する。
+var _PROD_SS_ID = '1otXZaerNfav6prpR8rhQgZNQ7crk9E2hC8mGqqF7V4M';
 function _getSpreadsheet() {
-  try {
-    var url = ScriptApp.getService().getUrl();
-    if (url.indexOf(_STAGING_DEPLOY_ID) >= 0) {
-      var stagingId = PropertiesService.getScriptProperties().getProperty('STAGING_SPREADSHEET_ID');
-      if (stagingId) return SpreadsheetApp.openById(stagingId);
-    }
-  } catch(e) {}
-  return SpreadsheetApp.getActiveSpreadsheet();
+  return SpreadsheetApp.openById(_PROD_SS_ID);
 }
 var SS = _getSpreadsheet();
 function sheet(name) { return SS.getSheetByName(name); }
