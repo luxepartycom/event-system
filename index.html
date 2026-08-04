@@ -307,7 +307,8 @@ async function apiPostRead(b){return _fetchJsonRetry(API,{method:'POST',headers:
 // 書き込み系（単発・12sタイムアウト）
 async function apiPost(b){const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),12000);try{const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b),signal:ctrl.signal});return await r.json();}finally{clearTimeout(t);}}
 // 書き込みの自動リトライ版：submission_id安定化で冪等なのでリトライ安全。遅延・接続断でも重複せず応答を取り直す（手動リトライ不要）。
-async function apiPostRetryWrite(b){return _fetchJsonRetry(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)},3,1500,15000);}
+// 2回×10sタイムアウト（最悪~21.5s）に抑え、公開本番での過度なボタンロックを回避（敵対的レビュー指摘・2026-08-04）。
+async function apiPostRetryWrite(b){return _fetchJsonRetry(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)},2,1500,10000);}
 // 送信ごとの冪等キー。1回の送信が二重実行されてもサーバ側で1行にまとめられる。
 function genSubId(){return 'S-'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);}
 // 二重送信防止(②): 送信内容が同じ間は同じ冪等キーを再利用（＝連打・再送はサーバ側dedupで必ず1行にまとまる）。
@@ -557,12 +558,15 @@ async function stripeCheckout(){
           invited_by:fd0.invitedBy,pay_type:'free',amount:0,
           payment_method:'free_female',plan_id:currentPlanId||'',first_time:selectedFirstTime,submission_id:_subId0});
       if(res0 && res0.ok){
+        if(!res0.pay_type) res0.pay_type='free';   // dedup応答はpay_type欠落→無料フローは常にfree（完了画面の誤表示防止）
         showResult(res0,fd0.name,fd0.email,fd0.invitedBy);   // QRを最優先で表示（付随処理の失敗でQRを消さない）
         clearPendingSubId();   // 成功→次の申込は新しいキー
         // QRメール送信（画面QRが主・メールは補助。失敗してもQR表示は維持）
+        // pay_type/amount/event_nameを明示（未指定だとメールが「有料¥0」誤記になるため・敵対的レビュー指摘）
         apiPost({action:'sendQREmail',guest_id:res0.guest_id,email:fd0.email,
-          name:fd0.name,event_id:currentEvent.event_id}).catch(()=>{});
-        if(currentPlanId){ try{ await apiPost({action:'incrementPlanCount',plan_id:currentPlanId,gender:selectedGender}); }catch(_){} }
+          name:fd0.name,pay_type:'free',amount:0,event_name:currentEvent.name,
+          description:currentEvent.description||'',event_id:currentEvent.event_id}).catch(()=>{});
+        // ※プラン加算はバックエンドregisterGuestがfree/paid双方で実施済み。フロントからの追加加算は二重計上になるため呼ばない（敵対的レビュー指摘・2026-08-04）。
       } else {
         btn0.disabled=false;
         btn0.querySelector('.btn-stripe-title').textContent='💳 カードで事前決済して申し込む';
