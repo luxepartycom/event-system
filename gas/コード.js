@@ -87,7 +87,7 @@ function testLptSelfCheck() {
   chk('guestsシート存在', !!sheet('guests'));
   chk('eventsシート存在', !!sheet('events'));
   // 全ハンドラ補助・新規関数の存在
-  ['_getSpreadsheet','_buildEventsPayload_','warmupCache','setupWarmup','findIdBySubmission_','res','sheetToObjects','doPost','doGet'].forEach(function(fn){
+  ['_getSpreadsheet','_buildEventsPayload_','warmupCache','setupWarmup','findIdBySubmission_','findGuestRowBySubmission_','res','sheetToObjects','doPost','doGet'].forEach(function(fn){
     chk('関数 ' + fn + ' 存在', eval('typeof ' + fn) === 'function');
   });
   // getEventsペイロードの形（③キャッシュ本体）
@@ -100,6 +100,47 @@ function testLptSelfCheck() {
   // 冪等判定（②の前提）：空submission_idは重複ヒットしない
   chk('findIdBySubmission_(空)=null', findIdBySubmission_(sheet('guests'), '', 'guest_id') === null);
   Logger.log(log.join('\n') + '\n' + (ok ? '—— 全合格 ✅ ——' : '—— 不合格あり ❌ ——'));
+  return ok;
+}
+
+// ── §13検証: テストSS(STAGING_SPREADSHEET_ID)に対して書込安全性(Fix C/D)を検証（本番は汚さない） ──
+// 手順: GASエディタで setupStagingSpreadsheet() を1回 → 本関数を実行 → ログが全✅なら本番反映OK。
+function testLptWriteSafety() {
+  var stagingId = PropertiesService.getScriptProperties().getProperty('STAGING_SPREADSHEET_ID');
+  if (!stagingId) { Logger.log('❌ STAGING_SPREADSHEET_ID 未設定。先に setupStagingSpreadsheet() を実行してください'); return false; }
+  var ss = SpreadsheetApp.openById(stagingId);
+  var g = ss.getSheetByName('guests');
+  if (!g) { Logger.log('❌ テストSSに guests シートがありません'); return false; }
+  var log = [], ok = true;
+  function chk(n,c){ log.push((c?'✅':'❌')+' '+n); if(!c) ok=false; }
+
+  var testSub = 'TEST-' + Date.now().toString(36);
+  var testId  = 'G-TEST-' + Date.now().toString(36).toUpperCase();
+  var before  = g.getLastRow();
+
+  // Fix D: submission_id を appendRow に原子的に含めて1行追記
+  var hdr = g.getRange(1,1,1,g.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+  var subCol = hdr.indexOf('submission_id');
+  if (subCol < 0) { g.getRange(1, g.getLastColumn()+1).setValue('submission_id'); subCol = g.getLastColumn()-1; }
+  var row = [testId,'EV-TEST','テスト太郎','t@example.com','male','REVIEW','paid',5000,'FALSE','FALSE','','2026-01-01 00:00','','FALSE','','PLAN-X'];
+  while (row.length <= subCol) row.push('');
+  row[subCol] = testSub;
+  g.appendRow(row); SpreadsheetApp.flush();
+
+  chk('原子書込: guests に1行追加', g.getLastRow() === before + 1);
+  var dup = findGuestRowBySubmission_(g, testSub);
+  chk('dedup検出: 同一submission_idの行を発見', !!dup);
+  chk('Fix C: guest_id 一致', !!dup && dup.guest_id === testId);
+  chk('Fix C: pay_type 取得(paid)', !!dup && dup.pay_type === 'paid');
+  chk('Fix C: amount 取得(5000)', !!dup && dup.amount === 5000);
+  chk('誤dedupなし: 別subIdは非検出', findGuestRowBySubmission_(g, 'TEST-NOPE-' + Date.now()) === null);
+
+  // 後始末: テスト行を削除（テストSSを綺麗に保つ）
+  var last = g.getLastRow();
+  if (String(g.getRange(last,1).getValue()) === testId) g.deleteRow(last);
+  chk('後始末: テスト行を削除', g.getLastRow() === before);
+
+  Logger.log(log.join('\n') + '\n' + (ok ? '—— 全合格 ✅（テストSS・本番非汚染）——' : '—— 不合格あり ❌ ——'));
   return ok;
 }
 
@@ -314,6 +355,32 @@ function findIdBySubmission_(sh, submissionId, idHeader) {
   for (var r = data.length - 1; r >= 0; r--) { // 新しい行から探索
     if (String(data[r][subIdx]) !== '' && String(data[r][subIdx]) === String(submissionId)) {
       return idIdx >= 0 ? String(data[r][idIdx]) : '';
+    }
+  }
+  return null;
+}
+
+// submission_id で既存行を探し、guest_id / pay_type / amount をまとめて返す（無ければ null）。
+// 自動リトライの再送(dedup)時に、完了画面・QRメールの種別/金額を正しく表示するために使う（Fix C）。
+function findGuestRowBySubmission_(sh, submissionId) {
+  if (!sh || !submissionId) return null;
+  var lastRow = sh.getLastRow();
+  if (lastRow < 2) return null;
+  var lastCol = sh.getLastColumn();
+  var hdr = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h){ return String(h).trim(); });
+  var subIdx = hdr.indexOf('submission_id');
+  if (subIdx < 0) return null;
+  var gidIdx = hdr.indexOf('guest_id');
+  var ptIdx  = hdr.indexOf('pay_type');
+  var amIdx  = hdr.indexOf('amount');
+  var data = sh.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  for (var r = data.length - 1; r >= 0; r--) {
+    if (String(data[r][subIdx]) !== '' && String(data[r][subIdx]) === String(submissionId)) {
+      return {
+        guest_id: gidIdx >= 0 ? String(data[r][gidIdx]) : '',
+        pay_type: ptIdx  >= 0 ? String(data[r][ptIdx])  : '',
+        amount:   amIdx  >= 0 ? Number(data[r][amIdx] || 0) : 0
+      };
     }
   }
   return null;
@@ -939,12 +1006,17 @@ function doPost(e) {
         // 冪等化：1送信の二重実行を1行にまとめる（同一人物の再申込は別submission_idなので許容）
         var subId = body.submission_id || '';
         var regLock = LockService.getScriptLock();
-        try { regLock.tryLock(10000); } catch (eLk) {}
+        var gotRegLock = false;
+        try { gotRegLock = regLock.tryLock(10000); } catch (eLk) {}
+        // ロック獲得失敗時は書かずに即リターン（無ロック続行で重複行が生じるのを防ぐ・Fix D）。
+        // フロントは同一submission_idで自動リトライするため、ここで弾いても冪等に回収される。
+        if (!gotRegLock) return res({ ok: false, message: '混雑しています。数秒後にもう一度お試しください。' });
         try {
         if (subId) {
-          var dupGid = findIdBySubmission_(sheet('guests'), subId, 'guest_id');
-          if (dupGid) {
-            return res({ ok: true, guest_id: dupGid, duplicate_prevented: true });
+          var dupRow = findGuestRowBySubmission_(sheet('guests'), subId);
+          if (dupRow) {
+            // 既存行の種別・金額も返す（再送時に完了画面/メールが正しく表示される・Fix C）
+            return res({ ok: true, guest_id: dupRow.guest_id, pay_type: dupRow.pay_type, amount: dupRow.amount, duplicate_prevented: true });
           }
         }
         var id      = 'G-' + Date.now().toString(36).toUpperCase();
@@ -977,15 +1049,21 @@ function doPost(e) {
             if (ev) amount = body.gender === 'female' ? Number(ev.price_female||0) : Number(ev.price_male||0);
           }
         }
-        sheet('guests').appendRow([
+        // submission_id を appendRow に原子的に含める（appendRow→別書きの隙間で重複が生じるのを排除・Fix D）
+        var gSheet = sheet('guests');
+        var gHdr = gSheet.getRange(1, 1, 1, gSheet.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
+        var subColIdx = gHdr.indexOf('submission_id');
+        if (subColIdx < 0) { gSheet.getRange(1, gSheet.getLastColumn() + 1).setValue('submission_id'); subColIdx = gSheet.getLastColumn() - 1; }
+        var rowArr = [
           id, body.event_id||'', body.name||'', body.email||'', body.gender||'', body.invited_by||'',
           payType, amount, 'FALSE', 'FALSE', '', nowStr(), '', 'FALSE', '', planId
-        ]);
+        ];
+        while (rowArr.length <= subColIdx) rowArr.push('');
+        if (subId) rowArr[subColIdx] = subId;   // 冪等キーを同一行で確定＝dedupの取りこぼしを防ぐ
+        gSheet.appendRow(rowArr);
         SpreadsheetApp.flush();
         // 初参加か否か（初めて=yes / 2回目以降=no）をヘッダー安全に記録
         setGuestFirstTime_(id, normFirstTime_(body.first_time));
-        // 冪等キー（送信ID）を記録：同一送信の二重実行時にこの行が再ヒットする
-        if (subId) setRowField_(sheet('guests'), id, 'submission_id', subId);
         // プラン申込数を+1（男女別）
         if (planId) {
           var ps8 = sheet('event_plans');
