@@ -452,6 +452,14 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   font-size:0.6rem;color:var(--gray);
   line-height:1.8;margin-bottom:14px;
 }
+.cam-ci-type{
+  flex:1;padding:7px 4px;font-family:inherit;font-size:0.66rem;
+  background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);
+  color:#F5F0E8;border-radius:4px;cursor:pointer;transition:all 0.12s;
+}
+.cam-ci-type.active{
+  background:rgba(201,168,76,0.22);border-color:#C9A84C;color:#C9A84C;font-weight:bold;
+}
 .cam-next-btn{
   background:transparent;
   border:1px solid rgba(201,168,76,0.5);
@@ -894,6 +902,27 @@ td.muted{color:var(--gray);font-size:0.62rem;}
           <div class="cam-ok-badge" id="cam-ok-badge" style="display:none;"></div>
           <div class="cam-ok-name" id="cam-ok-name"></div>
           <div class="cam-ok-meta" id="cam-ok-meta"></div>
+
+          <!-- 実態訂正＋備考（通常ゲストのみ表示） -->
+          <div id="cam-ci-editor-ok" style="display:none;width:100%;max-width:320px;margin:14px auto 0;background:rgba(255,255,255,0.05);border:1px solid rgba(201,168,76,0.25);border-radius:6px;padding:12px;">
+            <div style="font-size:0.6rem;letter-spacing:0.1em;color:#C9A84C;margin-bottom:8px;">実態訂正・備考</div>
+            <div style="display:flex;gap:6px;margin-bottom:8px;" id="cam-ci-type-btns-ok">
+              <button type="button" class="cam-ci-type" data-v=""     onclick="setCiType('ok','')">申込どおり</button>
+              <button type="button" class="cam-ci-type" data-v="paid" onclick="setCiType('ok','paid')">有料</button>
+              <button type="button" class="cam-ci-type" data-v="free" onclick="setCiType('ok','free')">無料</button>
+            </div>
+            <div id="cam-ci-pay-ok" style="display:none;margin-bottom:8px;">
+              <input id="cam-ci-amount-ok" type="number" inputmode="numeric" oninput="ciMarkDirty()" placeholder="金額 (¥)" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;">
+              <div style="display:flex;gap:6px;margin-top:6px;" id="cam-ci-method-btns-ok">
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="cash"   onclick="setCiMethod('ok','cash')">現金</button>
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="card"   onclick="setCiMethod('ok','card')">カード</button>
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="paypay" onclick="setCiMethod('ok','paypay')">PayPay</button>
+              </div>
+            </div>
+            <textarea id="cam-ci-note-ok" rows="2" oninput="ciMarkDirty()" placeholder="備考（例：有料タグだが実際は無料）" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;resize:vertical;"></textarea>
+            <button type="button" id="cam-ci-save-ok" onclick="saveCheckinInfoFromOverlay('ok',this)" style="width:100%;margin-top:8px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.5);color:#C9A84C;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;cursor:pointer;">備考・訂正を保存</button>
+          </div>
+
           <button class="cam-next-btn" onclick="resumeCamera()">📷 次の読み取りへ</button>
         </div>
 
@@ -917,6 +946,27 @@ td.muted{color:var(--gray);font-size:0.62rem;}
           <div class="cam-ok-title" style="color:#E8A020;">入場済み</div>
           <div class="cam-ok-name" id="cam-dup-name"></div>
           <div class="cam-ok-meta" id="cam-dup-meta"></div>
+
+          <!-- 入場済みでも実態訂正＋備考を編集可（通常ゲストのみ） -->
+          <div id="cam-ci-editor-dup" style="display:none;width:100%;max-width:320px;margin:14px auto 0;background:rgba(255,255,255,0.05);border:1px solid rgba(201,168,76,0.25);border-radius:6px;padding:12px;">
+            <div style="font-size:0.6rem;letter-spacing:0.1em;color:#C9A84C;margin-bottom:8px;">実態訂正・備考</div>
+            <div style="display:flex;gap:6px;margin-bottom:8px;" id="cam-ci-type-btns-dup">
+              <button type="button" class="cam-ci-type" data-v=""     onclick="setCiType('dup','')">申込どおり</button>
+              <button type="button" class="cam-ci-type" data-v="paid" onclick="setCiType('dup','paid')">有料</button>
+              <button type="button" class="cam-ci-type" data-v="free" onclick="setCiType('dup','free')">無料</button>
+            </div>
+            <div id="cam-ci-pay-dup" style="display:none;margin-bottom:8px;">
+              <input id="cam-ci-amount-dup" type="number" inputmode="numeric" oninput="ciMarkDirty()" placeholder="金額 (¥)" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;">
+              <div style="display:flex;gap:6px;margin-top:6px;" id="cam-ci-method-btns-dup">
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="cash"   onclick="setCiMethod('dup','cash')">現金</button>
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="card"   onclick="setCiMethod('dup','card')">カード</button>
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="paypay" onclick="setCiMethod('dup','paypay')">PayPay</button>
+              </div>
+            </div>
+            <textarea id="cam-ci-note-dup" rows="2" oninput="ciMarkDirty()" placeholder="備考（例：有料タグだが実際は無料）" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;resize:vertical;"></textarea>
+            <button type="button" id="cam-ci-save-dup" onclick="saveCheckinInfoFromOverlay('dup',this)" style="width:100%;margin-top:8px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.5);color:#C9A84C;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;cursor:pointer;">備考・訂正を保存</button>
+          </div>
+
           <button class="cam-next-btn" onclick="resumeCamera()">📷 次の読み取りへ</button>
         </div>
 
@@ -1565,6 +1615,9 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   <div class="modal">
     <div class="modal-title">登録内容の修正</div>
     <div class="modal-note" id="eg-guest-label" style="margin-bottom:14px;color:var(--gold);"></div>
+
+    <div class="form-label" style="color:var(--gold);letter-spacing:0.08em;margin-bottom:6px;">① 申込データの訂正（原本を書き換え）</div>
+    <div class="modal-note" style="margin-bottom:10px;color:#E8A020;">※申込時の登録そのものを上書きします。入場時に実態が違っただけの記録なら、下の②を使うと申込記録を残せます（監査向き）。</div>
     <div class="modal-group">
       <label class="form-label">区分</label>
       <select class="modal-select" id="eg-pay-type" style="width:100%;" onchange="onEgTypeChange()">
@@ -1586,6 +1639,24 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <input class="form-input" id="eg-amount" type="number" placeholder="5000">
     </div>
     <div class="modal-note">「無料」に変更すると支払方法・金額は自動でクリアされ、売上（現金/カード/PayPay）集計から外れます。</div>
+
+    <div style="border-top:1px solid rgba(201,168,76,0.18);margin:16px 0 4px;padding-top:14px;">
+      <div class="form-label" style="color:var(--gold);letter-spacing:0.08em;margin-bottom:8px;">② チェックイン実態・備考（申込データは残す）</div>
+      <div class="modal-group">
+        <label class="form-label">実態の種別（集計はこちらを優先）</label>
+        <select class="modal-select" id="eg-actual-type" style="width:100%;">
+          <option value="">訂正なし（申込どおり）</option>
+          <option value="paid">有料（実態）</option>
+          <option value="free">無料（実態）</option>
+        </select>
+      </div>
+      <div class="modal-group">
+        <label class="form-label">備考（自由記述）</label>
+        <textarea class="form-input" id="eg-note" rows="2" placeholder="例：有料タグで入場したが実際は無料招待" style="width:100%;resize:vertical;"></textarea>
+      </div>
+      <div class="modal-note">申込時の区分は原本として保持し、実態訂正・備考は監査ログに記録されます。</div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn-cancel"  onclick="closeModal('modal-edit-guest')">キャンセル</button>
       <button class="btn-confirm" onclick="saveGuestEdit()">保存</button>
@@ -2227,11 +2298,24 @@ function invalidateGuestCache(eventId) {
   if (guestCache[eventId]) delete guestCache[eventId];
 }
 
+// 集計用の「有効種別」＝スタッフが実態訂正(actual_pay_type)していればそれを優先、無ければ申込時(pay_type)。
+// 申込時の値は原本として残るため、この関数は表示・監査を壊さず集計だけを実態に合わせる。
+function effPT(g) {
+  const a = g && g.actual_pay_type ? String(g.actual_pay_type).toLowerCase() : '';
+  if (a === 'free' || a === 'paid') return a;
+  return g ? g.pay_type : '';
+}
+// 実態訂正が入っていて申込時と食い違うか
+function hasPTCorrection(g) {
+  const a = g && g.actual_pay_type ? String(g.actual_pay_type).toLowerCase() : '';
+  return (a === 'free' || a === 'paid') && a !== g.pay_type;
+}
+
 function updateGuestStats() {
   const total     = allGuests.length;
   const arrived   = allGuests.filter(g => String(g.arrived).toUpperCase() === 'TRUE').length;
-  const free      = allGuests.filter(g => g.pay_type === 'free').length;
-  const paid      = allGuests.filter(g => g.pay_type === 'paid').length;
+  const free      = allGuests.filter(g => effPT(g) === 'free').length;
+  const paid      = allGuests.filter(g => effPT(g) === 'paid').length;
   const confirmed = allGuests.filter(g => String(g.pay_confirmed).toUpperCase() === 'TRUE').length;
   const firsttime = allGuests.filter(g => String(g.first_time).toLowerCase() === 'yes').length;
   const firstArrived = allGuests.filter(g => String(g.first_time).toLowerCase() === 'yes' && String(g.arrived).toUpperCase() === 'TRUE').length;
@@ -2256,7 +2340,7 @@ function renderGuestTable() {
     const mQ  = [g.name, g.email, g.guest_id, g.invited_by || ''].some(v => (v + '').toLowerCase().includes(q));
     const arr = String(g.arrived).toUpperCase() === 'TRUE';
     const mS  = st === 'all' || (st === 'arrived' && arr) || (st === 'pending' && !arr);
-    const mT  = ty === 'all' || g.pay_type === ty;
+    const mT  = ty === 'all' || effPT(g) === ty;
     return mQ && mS && mT;
   });
 
@@ -2272,15 +2356,23 @@ function renderGuestTable() {
     const method = (g.payment_method || '').toLowerCase();
     const methodLabel = { cash:'💵 現金', card:'💳 カード', paypay:'📱 PayPay', stripe:'✅ 事前決済済み' }[method] || '';
     const methodColor = { cash:'var(--gold)', card:'var(--cash)', paypay:'var(--free)', stripe:'var(--arrived)' }[method] || 'var(--gray)';
+    const eff = effPT(g);
+    const corrected = hasPTCorrection(g);
+    // 実態訂正あり＝申込時を打ち消し線＋実態バッジ。備考があれば📝マーク（title属性で全文）。
+    const typeCell = corrected
+      ? `<span class="badge ${eff === 'free' ? 'badge-free' : 'badge-paid'}" title="申込時: ${g.pay_type === 'free' ? '無料' : '有料'} → 実態訂正">${eff === 'free' ? '無料' : '有料'}<span style="opacity:0.65;font-size:0.9em;">✎</span></span>`
+      : `<span class="badge ${eff === 'free' ? 'badge-free' : 'badge-paid'}">${eff === 'free' ? '無料' : '有料'}</span>`;
+    const noteMark = g.staff_note
+      ? ` <span title="${escH(g.staff_note)}" style="cursor:help;font-size:0.7rem;">📝</span>` : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="muted" style="color:var(--gold-dim)">${g.guest_id}</td>
-      <td>${g.name}${String(g.first_time).toLowerCase() === 'yes' ? ' <span class="badge badge-first">初</span>' : ''}</td>
+      <td>${g.name}${String(g.first_time).toLowerCase() === 'yes' ? ' <span class="badge badge-first">初</span>' : ''}${noteMark}</td>
       <td><span class="gender-badge">${g.gender === 'female' ? '女' : '男'}</span></td>
       <td class="muted">${g.invited_by || '—'}</td>
-      <td><span class="badge ${g.pay_type === 'free' ? 'badge-free' : 'badge-paid'}">${g.pay_type === 'free' ? '無料' : '有料'}</span></td>
-      <td class="muted" style="font-size:0.62rem;color:${methodColor}">${g.pay_type === 'paid' ? (methodLabel || (conf ? '確認済' : '—')) : '—'}</td>
-      <td class="muted">${g.pay_type === 'paid' ? '¥' + Number(g.amount || 0).toLocaleString() : '—'}</td>
+      <td>${typeCell}</td>
+      <td class="muted" style="font-size:0.62rem;color:${methodColor}">${eff === 'paid' ? (methodLabel || (conf ? '確認済' : '—')) : '—'}</td>
+      <td class="muted">${eff === 'paid' ? '¥' + Number(g.amount || 0).toLocaleString() : '—'}</td>
       <td>${arr ? '<span class="badge badge-arrived">来場済</span>' : '<span class="badge badge-pending">未来場</span> <button class="btn-list-arrive" onclick="manualCheckInFromList(\'' + g.guest_id + '\',this)">来場にする</button>'} <button class="btn-list-edit" onclick="openEditGuest(\'' + g.guest_id + '\')">編集</button></td>`;
     tbody.appendChild(tr);
   });
@@ -2299,6 +2391,9 @@ function openEditGuest(guestId) {
   document.getElementById('eg-payment-method').value =
     ['cash','card','paypay','stripe'].includes(method) ? method : 'cash';
   document.getElementById('eg-amount').value = Number(g.amount || 0);
+  const act = (g.actual_pay_type || '').toLowerCase();
+  document.getElementById('eg-actual-type').value = (act === 'free' || act === 'paid') ? act : '';
+  document.getElementById('eg-note').value = g.staff_note || '';
   onEgTypeChange();
   document.getElementById('modal-edit-guest').classList.add('active');
 }
@@ -2334,23 +2429,60 @@ async function saveGuestEdit() {
     pay_confirmed: 'TRUE',   // 区分・支払方法を確定＝確認済み扱い
     editor: 'admin'
   });
-  if (btn) btn.disabled = false;
-  if (res.ok) {
-    const idx = allGuests.findIndex(x => String(x.guest_id) === String(egCurrentGuestId));
-    if (idx >= 0) {
-      allGuests[idx].pay_type       = payType;
-      allGuests[idx].payment_method = payment_method;
-      allGuests[idx].amount         = amount;
-      allGuests[idx].pay_confirmed  = 'TRUE';
+  // チェックイン実態・備考（申込データを残す別アクション）
+  const actualType = document.getElementById('eg-actual-type').value;   // '' | 'paid' | 'free'
+  const staffNote  = document.getElementById('eg-note').value || '';
+  let ciRes = { ok: true };
+  const ciChanged = (actualType !== ((g.actual_pay_type || '').toLowerCase())) ||
+                    (staffNote !== (g.staff_note || ''));
+  if (res.ok && ciChanged) {
+    const ciPayload = {
+      action: 'saveGuestCheckinInfo',
+      guest_id: egCurrentGuestId,
+      event_id: g.event_id || '',
+      actual_pay_type: actualType,
+      staff_note: staffNote,
+      editor: 'admin'
+    };
+    // 実態=有料 のときは金額・支払方法も実態値として記録（会計内訳と一致させる）
+    if (actualType === 'paid') {
+      ciPayload.amount = Number(document.getElementById('eg-amount').value || 0);
+      ciPayload.payment_method = document.getElementById('eg-payment-method').value;
     }
-    // レポート用キャッシュを無効化（次回開いた時に最新へ）
-    if (g.event_id) invalidateGuestCache(g.event_id);
-    updateGuestStats();
-    renderGuestTable();
+    ciRes = await apiPost(ciPayload);
+  }
+  if (btn) btn.disabled = false;
+
+  if (!res.ok) {
+    // 支払変更自体が失敗＝何も確定していない
+    toast('修正失敗: ' + (res.message || '不明なエラー'));
+    return;
+  }
+
+  // ここに来た時点で updateGuestPayment は本番に確定済み。
+  // 備考/実態訂正(ciRes)が失敗しても支払変更は取り消せないため、
+  // ローカルキャッシュ・レポートキャッシュへは必ず支払変更を反映する（誤って旧値表示にしない）。
+  const idx = allGuests.findIndex(x => String(x.guest_id) === String(egCurrentGuestId));
+  if (idx >= 0) {
+    allGuests[idx].pay_type       = payType;
+    allGuests[idx].payment_method = payment_method;
+    allGuests[idx].amount         = amount;
+    allGuests[idx].pay_confirmed  = 'TRUE';
+    if (ciRes.ok) {
+      allGuests[idx].actual_pay_type = actualType;
+      allGuests[idx].staff_note      = staffNote;
+    }
+  }
+  if (g.event_id) invalidateGuestCache(g.event_id);
+  updateGuestStats();
+  renderGuestTable();
+
+  if (ciRes.ok) {
     closeModal('modal-edit-guest');
     toast('✓ 登録内容を修正しました' + (res.changed && res.changed.length ? '（' + res.changed.length + '項目）' : '（変更なし）'));
   } else {
-    toast('修正失敗: ' + (res.message || '不明なエラー'));
+    // 支払は保存済み・備考のみ失敗。モーダルは閉じず再試行を促す（誤認防止）。
+    toast('支払変更は保存しました。備考・実態訂正の保存に失敗したため、もう一度保存してください: ' + (ciRes.message || ''));
   }
 }
 
@@ -2370,7 +2502,7 @@ function renderPromoterStats() {
     if (!groups[name]) groups[name] = { total: 0, arrived: 0, free: 0, paid: 0 };
     groups[name].total++;
     if (String(g.arrived).toUpperCase() === 'TRUE') groups[name].arrived++;
-    if (g.pay_type === 'free') groups[name].free++;
+    if (effPT(g) === 'free') groups[name].free++;
     else groups[name].paid++;
   });
 
@@ -2843,6 +2975,9 @@ function showCamOverlay(d, status) {
       if (vipEl) vipEl.style.display = 'none';
     }
 
+    // 実態訂正＋備考エディタ（通常ゲストのみ。VIPは対象外）
+    populateCiEditor('ok', d);
+
     document.getElementById('cam-overlay-ok').style.display = 'flex';
 
   } else if (status === 'payment_required') {
@@ -2854,12 +2989,123 @@ function showCamOverlay(d, status) {
   } else if (status === 'duplicate') {
     document.getElementById('cam-dup-name').textContent = d.name || '—';
     document.getElementById('cam-dup-meta').textContent = meta;
+    // 入場済みでも実態訂正・備考は編集可能にする（受付が入場後に気づくケース）
+    populateCiEditor('dup', d);
     document.getElementById('cam-overlay-duplicate').style.display = 'flex';
+  }
+}
+
+// ── チェックイン結果画面の実態訂正＋備考（scope: 'ok'=新規完了 / 'dup'=入場済み）──
+let ciCurrentGuest = null;   // オーバーレイで編集中の guest_id（同時に1名のみ）
+let ciDirty = false;         // 未保存の編集があるか（next時に警告）
+let ciPopulating = false;    // populate中のプログラム変更をdirty扱いしないためのガード
+
+function ciMarkDirty() { if (!ciPopulating) ciDirty = true; }
+
+function setCiType(scope, v) {
+  const norm = (v === 'paid' || v === 'free') ? v : '';
+  document.querySelectorAll('#cam-ci-type-btns-' + scope + ' .cam-ci-type').forEach(b => {
+    b.classList.toggle('active', (b.getAttribute('data-v') || '') === norm);
+  });
+  // 実態=有料 のときだけ金額・支払方法の入力欄を表示
+  const pay = document.getElementById('cam-ci-pay-' + scope);
+  if (pay) pay.style.display = (norm === 'paid') ? 'block' : 'none';
+  ciMarkDirty();
+}
+function ciReadType(scope) {
+  const a = document.querySelector('#cam-ci-type-btns-' + scope + ' .cam-ci-type.active');
+  return a ? (a.getAttribute('data-v') || '') : '';
+}
+function setCiMethod(scope, m) {
+  document.querySelectorAll('#cam-ci-method-btns-' + scope + ' .cam-ci-method').forEach(b => {
+    b.classList.toggle('active', (b.getAttribute('data-m') || '') === m);
+  });
+  ciMarkDirty();
+}
+function ciReadMethod(scope) {
+  const a = document.querySelector('#cam-ci-method-btns-' + scope + ' .cam-ci-method.active');
+  return a ? (a.getAttribute('data-m') || '') : '';
+}
+
+// d（checkIn応答）を受け、指定scopeのエディタを表示・初期化。VIP/guest_id無しは非表示。
+function populateCiEditor(scope, d) {
+  const editor = document.getElementById('cam-ci-editor-' + scope);
+  if (!editor) return;
+  const isVip = String(d.guest_id || '').indexOf('VIP-') === 0;
+  if (isVip || !d.guest_id) {
+    editor.style.display = 'none';
+    if (scope === 'ok') ciCurrentGuest = null;
+    return;
+  }
+  ciPopulating = true;
+  ciCurrentGuest = String(d.guest_id);
+  const act = (d.actual_pay_type || '').toLowerCase();
+  setCiType(scope, act);        // 有料なら金額欄も表示される
+  // 金額・支払方法の初期値（既存の実態値 or 原本）
+  const amtEl = document.getElementById('cam-ci-amount-' + scope);
+  if (amtEl) amtEl.value = Number(d.amount || 0) || '';
+  setCiMethod(scope, (d.payment_method || '').toLowerCase());
+  const note = document.getElementById('cam-ci-note-' + scope);
+  if (note) note.value = d.staff_note || '';
+  const sv = document.getElementById('cam-ci-save-' + scope);
+  if (sv) { sv.disabled = false; sv.textContent = '備考・訂正を保存'; }
+  editor.style.display = 'block';
+  ciDirty = false;
+  ciPopulating = false;
+}
+
+async function saveCheckinInfoFromOverlay(scope, btn) {
+  if (!ciCurrentGuest) { toast('対象ゲストが不明です'); return; }
+  const noteEl = document.getElementById('cam-ci-note-' + scope);
+  const note = noteEl ? (noteEl.value || '') : '';
+  const actualType = ciReadType(scope);
+  const payload = {
+    action: 'saveGuestCheckinInfo',
+    guest_id: ciCurrentGuest,
+    event_id: document.getElementById('scan-event-sel').value,
+    actual_pay_type: actualType,
+    staff_note: note,
+    editor: 'reception'
+  };
+  let ovAmount, ovMethod;
+  if (actualType === 'paid') {
+    const amtEl = document.getElementById('cam-ci-amount-' + scope);
+    ovAmount = Number(amtEl && amtEl.value || 0);
+    ovMethod = ciReadMethod(scope);
+    payload.amount = ovAmount;
+    payload.payment_method = ovMethod;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
+  const eventId = payload.event_id;
+  const res = await apiPost(payload);
+  if (res.ok) {
+    // ローカルキャッシュへ反映（一覧・レポートへ即時反映）
+    const idx = allGuests.findIndex(g => String(g.guest_id) === String(ciCurrentGuest));
+    if (idx >= 0) {
+      allGuests[idx].actual_pay_type = actualType;
+      allGuests[idx].staff_note      = note;
+      if (actualType === 'paid') {
+        allGuests[idx].amount         = ovAmount;
+        allGuests[idx].payment_method = ovMethod;
+        allGuests[idx].pay_confirmed  = 'TRUE';
+      }
+    }
+    if (eventId) invalidateGuestCache(eventId);
+    if (currentEventId === eventId) { updateGuestStats(); renderGuestTable(); }
+    if (btn) { btn.disabled = false; btn.textContent = '✓ 保存しました'; }
+    ciDirty = false;
+    toast('✓ 備考・実態訂正を保存しました');
+  } else {
+    if (btn) { btn.disabled = false; btn.textContent = '備考・訂正を保存'; }
+    toast('保存失敗: ' + (res.message || '不明なエラー'));
   }
 }
 
 // カメラを再起動して次の読み取りへ
 async function resumeCamera() {
+  // 未保存の実態訂正・備考があれば破棄前に確認
+  if (ciDirty && !confirm('実態訂正・備考が未保存です。保存せずに次の読み取りへ進みますか？')) return;
+  ciDirty = false;
   camHideAll();
   checkinBusy = false;
   lastScanned = '';
@@ -3094,8 +3340,8 @@ function renderReportGroups() {
       const guestRows = aliasMembers.map(gu => {
         const arr  = String(gu.arrived).toUpperCase() === 'TRUE';
         const date = (gu.registered_at||'').substring(0,10);
-        const typeClass = gu.pay_type === 'free' ? 'agu-type-free' : 'agu-type-paid';
-        const typeLabel = gu.pay_type === 'free' ? '無料' : '有料';
+        const typeClass = effPT(gu) === 'free' ? 'agu-type-free' : 'agu-type-paid';
+        const typeLabel = effPT(gu) === 'free' ? '無料' : '有料';
         return `<div class="alias-guest-row">
           <span class="agu-name">${escH(gu.name)}</span>
           <span class="agu-gender">${gu.gender === 'female' ? '女' : '男'}</span>
@@ -3164,8 +3410,8 @@ function renderReportGroups() {
       })
       .map(gu => {
         const arr  = String(gu.arrived).toUpperCase() === 'TRUE';
-        const typeClass = gu.pay_type === 'free' ? 'agu-type-free' : 'agu-type-paid';
-        const typeLabel = gu.pay_type === 'free' ? '無料' : '有料';
+        const typeClass = effPT(gu) === 'free' ? 'agu-type-free' : 'agu-type-paid';
+        const typeLabel = effPT(gu) === 'free' ? '無料' : '有料';
         const invBy = gu.invited_by ? gu.invited_by : '（空）';
         return `<div class="alias-guest-row">
           <span class="agu-name">${escH(gu.name)}</span>
@@ -3246,20 +3492,21 @@ function buildReportRow(name, members, confirmed) {
   const fTotal   = members.filter(g => g.gender === 'female').length;
   const mArrived = arrived.filter(g => g.gender === 'male').length;
   const fArrived = arrived.filter(g => g.gender === 'female').length;
-  const free     = members.filter(g => g.pay_type === 'free').length;
-  const paid     = members.filter(g => g.pay_type === 'paid').length;
-  const cash     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'cash').length;
-  const card     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'card').length;
-  const paypay   = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'paypay').length;
-  // 有料/無料 × 男/女 内訳
-  const paidM  = members.filter(g => g.pay_type === 'paid' && g.gender === 'male').length;
-  const paidF  = members.filter(g => g.pay_type === 'paid' && g.gender === 'female').length;
-  const freeM  = members.filter(g => g.pay_type === 'free' && g.gender === 'male').length;
-  const freeF  = members.filter(g => g.pay_type === 'free' && g.gender === 'female').length;
-  const paidMA = arrived.filter(g => g.pay_type === 'paid' && g.gender === 'male').length;
-  const paidFA = arrived.filter(g => g.pay_type === 'paid' && g.gender === 'female').length;
-  const freeMA = arrived.filter(g => g.pay_type === 'free' && g.gender === 'male').length;
-  const freeFA = arrived.filter(g => g.pay_type === 'free' && g.gender === 'female').length;
+  const free     = members.filter(g => effPT(g) === 'free').length;
+  const paid     = members.filter(g => effPT(g) === 'paid').length;
+  // 実態が有料の来場者のみ支払方法内訳に計上（有料→無料訂正で method が残っても除外＝合計と一致）
+  const cash     = arrived.filter(g => effPT(g) === 'paid' && (g.payment_method||'').toLowerCase() === 'cash').length;
+  const card     = arrived.filter(g => effPT(g) === 'paid' && (g.payment_method||'').toLowerCase() === 'card').length;
+  const paypay   = arrived.filter(g => effPT(g) === 'paid' && (g.payment_method||'').toLowerCase() === 'paypay').length;
+  // 有料/無料 × 男/女 内訳（実態訂正を優先）
+  const paidM  = members.filter(g => effPT(g) === 'paid' && g.gender === 'male').length;
+  const paidF  = members.filter(g => effPT(g) === 'paid' && g.gender === 'female').length;
+  const freeM  = members.filter(g => effPT(g) === 'free' && g.gender === 'male').length;
+  const freeF  = members.filter(g => effPT(g) === 'free' && g.gender === 'female').length;
+  const paidMA = arrived.filter(g => effPT(g) === 'paid' && g.gender === 'male').length;
+  const paidFA = arrived.filter(g => effPT(g) === 'paid' && g.gender === 'female').length;
+  const freeMA = arrived.filter(g => effPT(g) === 'free' && g.gender === 'male').length;
+  const freeFA = arrived.filter(g => effPT(g) === 'free' && g.gender === 'female').length;
   return { name, confirmed, total:members.length, mTotal, fTotal,
            arrived:arrived.length, mArrived, fArrived, free, paid, cash, card, paypay,
            paidMTotal:paidM, paidFTotal:paidF, freeMTotal:freeM, freeFTotal:freeF,
@@ -3386,7 +3633,7 @@ async function exportToSheetCore(ev) {
     members.forEach(gu => {
       detailRows.push({
         promoter: g.canonical, name: gu.name, gender: gu.gender,
-        pay_type: gu.pay_type, arrived: String(gu.arrived).toUpperCase() === 'TRUE',
+        pay_type: effPT(gu), arrived: String(gu.arrived).toUpperCase() === 'TRUE',
         payment_method: gu.payment_method || '', amount: Number(gu.amount || 0),
         registered_at: gu.registered_at || ''
       });
@@ -3398,7 +3645,7 @@ async function exportToSheetCore(ev) {
     .forEach(gu => {
       detailRows.push({
         promoter: '（未グループ）', name: gu.name, gender: gu.gender,
-        pay_type: gu.pay_type, arrived: String(gu.arrived).toUpperCase() === 'TRUE',
+        pay_type: effPT(gu), arrived: String(gu.arrived).toUpperCase() === 'TRUE',
         payment_method: gu.payment_method || '', amount: Number(gu.amount || 0),
         registered_at: gu.registered_at || ''
       });
@@ -3606,7 +3853,7 @@ function renderSalesSummary() {
   document.getElementById('sales-invite-section').style.display = 'block';
 
   // ── 招待決済集計 ──
-  const paidGuests     = salesGuests.filter(g => g.pay_type === 'paid');
+  const paidGuests     = salesGuests.filter(g => effPT(g) === 'paid');
   const arrivedPaid    = paidGuests.filter(g => String(g.arrived).toUpperCase() === 'TRUE');
   const expectedTotal  = paidGuests.reduce((s, g) => s + Number(g.amount || 0), 0);
   const actualTotal    = arrivedPaid.reduce((s, g) => s + Number(g.amount || 0), 0);
@@ -3772,8 +4019,8 @@ async function loadMmGuests() {
   const d = await apiPost({ action: 'getMailList', scope, exclude_latest: excludeLatest });
   if (!d.ok) { toast('❌ リスト取得失敗: ' + (d.message || '')); return; }
 
-  mmGuestsFree = (d.guests || []).filter(g => g.pay_type === 'free');
-  mmGuestsPaid = (d.guests || []).filter(g => g.pay_type === 'paid');
+  mmGuestsFree = (d.guests || []).filter(g => effPT(g) === 'free');
+  mmGuestsPaid = (d.guests || []).filter(g => effPT(g) === 'paid');
   updateMmCount();
 }
 
