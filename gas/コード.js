@@ -135,6 +135,28 @@ function testLptWriteSafety() {
   chk('Fix C: amount 取得(5000)', !!dup && dup.amount === 5000);
   chk('誤dedupなし: 別subIdは非検出', findGuestRowBySubmission_(g, 'TEST-NOPE-' + Date.now()) === null);
 
+  // ── チェックイン備考＋種別訂正（saveGuestCheckinInfo の核ロジックをテスト行へ適用）──
+  // 原本 pay_type(=paid) を壊さず、actual_pay_type / staff_note を別列へ書けることを検証。
+  var ciRow = -1;
+  var ciCol1 = g.getRange(1,1,g.getLastRow(),1).getValues();
+  for (var ci=ciCol1.length-1; ci>=1; ci--) { if (String(ciCol1[ci][0]) === testId) { ciRow = ci+1; break; } }
+  chk('備考: テスト行を再特定', ciRow > 0);
+  if (ciRow > 0) {
+    var noteColT = ensureCol_(g, 'staff_note');
+    var actColT  = ensureCol_(g, 'actual_pay_type');
+    var ptColT   = g.getRange(1,1,1,g.getLastColumn()).getValues()[0].map(function(h){return String(h).trim();}).indexOf('pay_type');
+    g.getRange(ciRow, noteColT+1).setValue('有料タグだが実際は無料');
+    g.getRange(ciRow, actColT+1).setValue('free');
+    SpreadsheetApp.flush();
+    chk('備考: staff_note が保存される', String(g.getRange(ciRow, noteColT+1).getValue()) === '有料タグだが実際は無料');
+    chk('種別訂正: actual_pay_type=free が保存される', String(g.getRange(ciRow, actColT+1).getValue()) === 'free');
+    chk('原本保持: 元 pay_type は paid のまま（監査可能）', String(g.getRange(ciRow, ptColT+1).getValue()) === 'paid');
+    // 訂正解除（空文字上書き）が効くこと
+    g.getRange(ciRow, actColT+1).setValue('');
+    SpreadsheetApp.flush();
+    chk('訂正解除: actual_pay_type を空へ戻せる', String(g.getRange(ciRow, actColT+1).getValue()) === '');
+  }
+
   // 後始末: テスト行を削除（テストSSを綺麗に保つ）
   var last = g.getLastRow();
   if (String(g.getRange(last,1).getValue()) === testId) g.deleteRow(last);
@@ -772,7 +794,8 @@ function doGet(e) {
         // 返却する列を必要最小限に絞る（速度改善）
         var NEEDED = ['guest_id','event_id','name','email','gender',
                       'invited_by','pay_type','amount','pay_confirmed',
-                      'arrived','payment_method','first_time'];
+                      'arrived','payment_method','first_time',
+                      'staff_note','actual_pay_type'];
 
         function fetchFromSheetLite(sheetName) {
           var s = sheet(sheetName);
@@ -1202,12 +1225,16 @@ function doPost(e) {
         var gPayConf = String(r[ci('pay_confirmed')]).toUpperCase() === 'TRUE';
         var gArrived = String(r[ci('arrived')]).toUpperCase() === 'TRUE';
         var gPayMeth = r[ci('payment_method')] || '';
+        var gStaffNote = ci('staff_note')      >= 0 ? String(r[ci('staff_note')]      || '') : '';
+        var gActualPT  = ci('actual_pay_type') >= 0 ? String(r[ci('actual_pay_type')] || '') : '';
 
-        // 入場済み
+        // 入場済み（備考・種別訂正の既存値も返し、結果画面で再編集できるようにする）
         if (gArrived) return res({
           ok: false, status: 'duplicate', message: '入場済みです',
+          guest_id: String(body.guest_id),
           name: gName, gender: gGender, invited_by: gInvBy,
-          pay_type: gPayType, amount: gAmount, payment_method: gPayMeth
+          pay_type: gPayType, amount: gAmount, payment_method: gPayMeth,
+          staff_note: gStaffNote, actual_pay_type: gActualPT
         });
 
         // 当日払い未決済（payment_methodが指定されていない場合）
@@ -1266,9 +1293,11 @@ function doPost(e) {
 
         return res({
           ok: true, status: 'checked_in',
+          guest_id: String(body.guest_id),
           name: gName, gender: gGender, invited_by: gInvBy,
           pay_type: gPayType, amount: gAmount,
           payment_method: payMethod || gPayMeth,
+          staff_note: gStaffNote, actual_pay_type: gActualPT,
           vip_info: vipInfo
         });
       }
@@ -1350,6 +1379,97 @@ function doPost(e) {
         SpreadsheetApp.flush();
 
         return res({ ok: true, changed: changed });
+      }
+
+      // ── チェックイン備考＋種別訂正（申込時pay_typeは残し、実態をactual_pay_typeへ）──
+      // 入場時に実態と申込が食い違う（例：有料タグだが実際は無料）ケースを、
+      // 元データを壊さずに記録する。staff_note(自由記述)＋actual_pay_type(訂正後の種別)を
+      // guest_id 行へ上書き保存（最新1件保持）。集計はフロントが actual_pay_type を優先参照する。
+      // 通常ゲストのみ（VIPは1QR共有運用で個人単位の種別訂正が成立しないため対象外）。
+      case 'saveGuestCheckinInfo': {
+        if (!body.guest_id) return res({ ok: false, message: 'guest_id がありません' });
+        if (String(body.guest_id).indexOf('VIP-') === 0) {
+          return res({ ok: false, message: 'VIPはこの機能の対象外です' });
+        }
+
+        // actual_pay_type は '' / 'free' / 'paid' のみ許容（''=訂正解除）
+        var actRaw = body.actual_pay_type;
+        var actVal;
+        if (actRaw === undefined || actRaw === null || String(actRaw).trim() === '') {
+          actVal = '';
+        } else {
+          actVal = String(actRaw).trim().toLowerCase() === 'free' ? 'free'
+                 : String(actRaw).trim().toLowerCase() === 'paid' ? 'paid'
+                 : null;
+          if (actVal === null) return res({ ok: false, message: 'actual_pay_type は free / paid / 空 のみ' });
+        }
+        var noteVal = body.staff_note === undefined || body.staff_note === null
+                    ? undefined : String(body.staff_note);
+
+        var gciLock = LockService.getScriptLock();
+        var gciLocked = false;
+        try { gciLocked = gciLock.tryLock(10000); } catch (eGciLk) { gciLocked = false; }
+        if (!gciLocked) return res({ ok: false, message: '混雑のため保存できませんでした。もう一度お試しください' });
+        try {
+          // guests → guests_archive の順で対象行を検索
+          function findRowGci(sheetName) {
+            var s = sheet(sheetName);
+            if (!s) return null;
+            var lastRow = s.getLastRow();
+            if (lastRow < 2) return null;
+            var col1 = s.getRange(1, 1, lastRow, 1).getValues();
+            for (var i = 1; i < col1.length; i++) {
+              if (String(col1[i][0]) === String(body.guest_id)) {
+                return { sheet: s, rowNum: i + 1 };
+              }
+            }
+            return null;
+          }
+          var gci = findRowGci('guests') || findRowGci('guests_archive');
+          if (!gci) return res({ ok: false, message: '登録が見つかりません' });
+
+          var gs = gci.sheet, gRow = gci.rowNum;
+
+          // 変更前の値（監査ログ用）
+          var noteCol = ensureCol_(gs, 'staff_note');
+          var actCol  = ensureCol_(gs, 'actual_pay_type');
+          var beforeNote = String(gs.getRange(gRow, noteCol + 1).getValue() || '');
+          var beforeAct  = String(gs.getRange(gRow, actCol + 1).getValue() || '');
+
+          var changedGci = [];
+          if (noteVal !== undefined) {
+            gs.getRange(gRow, noteCol + 1).setValue(noteVal);
+            if (beforeNote !== noteVal) changedGci.push('staff_note');
+          }
+          gs.getRange(gRow, actCol + 1).setValue(actVal);
+          if (beforeAct !== actVal) changedGci.push('actual_pay_type: ' + (beforeAct || '—') + ' → ' + (actVal || '—'));
+          SpreadsheetApp.flush();
+
+          // 監査ログ（既存 guest_edit_log を再利用。備考/種別訂正は changes 列に記す）
+          var logGci = sheet('guest_edit_log');
+          if (!logGci) {
+            logGci = SS.insertSheet('guest_edit_log');
+            logGci.appendRow(['edited_at','guest_id','event_id','editor','changes',
+                              'before_pay_type','before_payment_method','before_amount',
+                              'after_pay_type','after_payment_method','after_amount']);
+          }
+          logGci.appendRow([
+            nowStr(),
+            body.guest_id,
+            body.event_id || '',
+            body.editor || 'staff',
+            'checkin_info: ' + changedGci.join(' / ') + (noteVal !== undefined ? ' | note="' + noteVal + '"' : ''),
+            '', '', '', '', '', ''
+          ]);
+          SpreadsheetApp.flush();
+
+          return res({
+            ok: true,
+            changed: changedGci,
+            staff_note: noteVal !== undefined ? noteVal : beforeNote,
+            actual_pay_type: actVal
+          });
+        } finally { try { gciLock.releaseLock(); } catch (eGciUl) {} }
       }
 
       case 'sendQREmail': {
