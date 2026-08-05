@@ -70,14 +70,30 @@ setTimeout(() => {
     A('ok scope は影響を受けない', w.ciReadType('ok') === '');
   }
 
-  // populateCiEditor: VIPは非表示、通常ゲストは表示
+  // 金額/支払方法（中4）
+  A('setCiMethod 定義済み', typeof w.setCiMethod === 'function');
+  A('ciReadMethod 定義済み', typeof w.ciReadMethod === 'function');
+  A('ciMarkDirty 定義済み', typeof w.ciMarkDirty === 'function');
+  if (typeof w.setCiType === 'function') {
+    w.setCiType('ok', 'paid');
+    A('有料選択で金額/支払方法欄が表示', w.document.getElementById('cam-ci-pay-ok').style.display === 'block');
+    w.setCiMethod('ok', 'card');
+    A('ciReadMethod("ok")=card', w.ciReadMethod('ok') === 'card');
+    w.setCiType('ok', 'free');
+    A('無料選択で金額/支払方法欄が非表示', w.document.getElementById('cam-ci-pay-ok').style.display === 'none');
+  }
+
+  // populateCiEditor: VIPは非表示、通常ゲストは表示、金額/method反映
   if (typeof w.populateCiEditor === 'function') {
     w.populateCiEditor('ok', { guest_id: 'VIP-3', actual_pay_type: '', staff_note: '' });
     A('VIPは実態訂正エディタ非表示', w.document.getElementById('cam-ci-editor-ok').style.display === 'none');
-    w.populateCiEditor('ok', { guest_id: 'G-abc12345', actual_pay_type: 'free', staff_note: 'メモ' });
+    w.populateCiEditor('ok', { guest_id: 'G-abc12345', actual_pay_type: 'paid', staff_note: 'メモ', amount: 5000, payment_method: 'cash' });
     A('通常ゲストは実態訂正エディタ表示', w.document.getElementById('cam-ci-editor-ok').style.display === 'block');
     A('既存備考が反映される', w.document.getElementById('cam-ci-note-ok').value === 'メモ');
-    A('既存actual_pay_typeが反映される', w.ciReadType('ok') === 'free');
+    A('既存actual_pay_typeが反映される(paid)', w.ciReadType('ok') === 'paid');
+    A('paidなら金額欄表示', w.document.getElementById('cam-ci-pay-ok').style.display === 'block');
+    A('既存金額が反映される', Number(w.document.getElementById('cam-ci-amount-ok').value) === 5000);
+    A('既存支払方法が反映される', w.ciReadMethod('ok') === 'cash');
   }
 
   console.log('\n=== 層3(admin jsdom) 結果: ' + pass + ' 合格 / ' + fail + ' 不合格 ===');

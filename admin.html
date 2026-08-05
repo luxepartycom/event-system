@@ -911,7 +911,15 @@ td.muted{color:var(--gray);font-size:0.62rem;}
               <button type="button" class="cam-ci-type" data-v="paid" onclick="setCiType('ok','paid')">有料</button>
               <button type="button" class="cam-ci-type" data-v="free" onclick="setCiType('ok','free')">無料</button>
             </div>
-            <textarea id="cam-ci-note-ok" rows="2" placeholder="備考（例：有料タグだが実際は無料）" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;resize:vertical;"></textarea>
+            <div id="cam-ci-pay-ok" style="display:none;margin-bottom:8px;">
+              <input id="cam-ci-amount-ok" type="number" inputmode="numeric" oninput="ciMarkDirty()" placeholder="金額 (¥)" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;">
+              <div style="display:flex;gap:6px;margin-top:6px;" id="cam-ci-method-btns-ok">
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="cash"   onclick="setCiMethod('ok','cash')">現金</button>
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="card"   onclick="setCiMethod('ok','card')">カード</button>
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="paypay" onclick="setCiMethod('ok','paypay')">PayPay</button>
+              </div>
+            </div>
+            <textarea id="cam-ci-note-ok" rows="2" oninput="ciMarkDirty()" placeholder="備考（例：有料タグだが実際は無料）" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;resize:vertical;"></textarea>
             <button type="button" id="cam-ci-save-ok" onclick="saveCheckinInfoFromOverlay('ok',this)" style="width:100%;margin-top:8px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.5);color:#C9A84C;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;cursor:pointer;">備考・訂正を保存</button>
           </div>
 
@@ -947,7 +955,15 @@ td.muted{color:var(--gray);font-size:0.62rem;}
               <button type="button" class="cam-ci-type" data-v="paid" onclick="setCiType('dup','paid')">有料</button>
               <button type="button" class="cam-ci-type" data-v="free" onclick="setCiType('dup','free')">無料</button>
             </div>
-            <textarea id="cam-ci-note-dup" rows="2" placeholder="備考（例：有料タグだが実際は無料）" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;resize:vertical;"></textarea>
+            <div id="cam-ci-pay-dup" style="display:none;margin-bottom:8px;">
+              <input id="cam-ci-amount-dup" type="number" inputmode="numeric" oninput="ciMarkDirty()" placeholder="金額 (¥)" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;">
+              <div style="display:flex;gap:6px;margin-top:6px;" id="cam-ci-method-btns-dup">
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="cash"   onclick="setCiMethod('dup','cash')">現金</button>
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="card"   onclick="setCiMethod('dup','card')">カード</button>
+                <button type="button" class="cam-ci-type cam-ci-method" data-m="paypay" onclick="setCiMethod('dup','paypay')">PayPay</button>
+              </div>
+            </div>
+            <textarea id="cam-ci-note-dup" rows="2" oninput="ciMarkDirty()" placeholder="備考（例：有料タグだが実際は無料）" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);color:#F5F0E8;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;resize:vertical;"></textarea>
             <button type="button" id="cam-ci-save-dup" onclick="saveCheckinInfoFromOverlay('dup',this)" style="width:100%;margin-top:8px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.5);color:#C9A84C;border-radius:4px;padding:8px;font-family:inherit;font-size:0.72rem;cursor:pointer;">備考・訂正を保存</button>
           </div>
 
@@ -1599,6 +1615,9 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   <div class="modal">
     <div class="modal-title">登録内容の修正</div>
     <div class="modal-note" id="eg-guest-label" style="margin-bottom:14px;color:var(--gold);"></div>
+
+    <div class="form-label" style="color:var(--gold);letter-spacing:0.08em;margin-bottom:6px;">① 申込データの訂正（原本を書き換え）</div>
+    <div class="modal-note" style="margin-bottom:10px;color:#E8A020;">※申込時の登録そのものを上書きします。入場時に実態が違っただけの記録なら、下の②を使うと申込記録を残せます（監査向き）。</div>
     <div class="modal-group">
       <label class="form-label">区分</label>
       <select class="modal-select" id="eg-pay-type" style="width:100%;" onchange="onEgTypeChange()">
@@ -1622,7 +1641,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     <div class="modal-note">「無料」に変更すると支払方法・金額は自動でクリアされ、売上（現金/カード/PayPay）集計から外れます。</div>
 
     <div style="border-top:1px solid rgba(201,168,76,0.18);margin:16px 0 4px;padding-top:14px;">
-      <div class="form-label" style="color:var(--gold);letter-spacing:0.08em;margin-bottom:8px;">チェックイン実態・備考（申込データは残す）</div>
+      <div class="form-label" style="color:var(--gold);letter-spacing:0.08em;margin-bottom:8px;">② チェックイン実態・備考（申込データは残す）</div>
       <div class="modal-group">
         <label class="form-label">実態の種別（集計はこちらを優先）</label>
         <select class="modal-select" id="eg-actual-type" style="width:100%;">
@@ -2417,14 +2436,20 @@ async function saveGuestEdit() {
   const ciChanged = (actualType !== ((g.actual_pay_type || '').toLowerCase())) ||
                     (staffNote !== (g.staff_note || ''));
   if (res.ok && ciChanged) {
-    ciRes = await apiPost({
+    const ciPayload = {
       action: 'saveGuestCheckinInfo',
       guest_id: egCurrentGuestId,
       event_id: g.event_id || '',
       actual_pay_type: actualType,
       staff_note: staffNote,
       editor: 'admin'
-    });
+    };
+    // 実態=有料 のときは金額・支払方法も実態値として記録（会計内訳と一致させる）
+    if (actualType === 'paid') {
+      ciPayload.amount = Number(document.getElementById('eg-amount').value || 0);
+      ciPayload.payment_method = document.getElementById('eg-payment-method').value;
+    }
+    ciRes = await apiPost(ciPayload);
   }
   if (btn) btn.disabled = false;
 
@@ -2972,16 +2997,34 @@ function showCamOverlay(d, status) {
 
 // ── チェックイン結果画面の実態訂正＋備考（scope: 'ok'=新規完了 / 'dup'=入場済み）──
 let ciCurrentGuest = null;   // オーバーレイで編集中の guest_id（同時に1名のみ）
+let ciDirty = false;         // 未保存の編集があるか（next時に警告）
+let ciPopulating = false;    // populate中のプログラム変更をdirty扱いしないためのガード
+
+function ciMarkDirty() { if (!ciPopulating) ciDirty = true; }
 
 function setCiType(scope, v) {
   const norm = (v === 'paid' || v === 'free') ? v : '';
   document.querySelectorAll('#cam-ci-type-btns-' + scope + ' .cam-ci-type').forEach(b => {
     b.classList.toggle('active', (b.getAttribute('data-v') || '') === norm);
   });
+  // 実態=有料 のときだけ金額・支払方法の入力欄を表示
+  const pay = document.getElementById('cam-ci-pay-' + scope);
+  if (pay) pay.style.display = (norm === 'paid') ? 'block' : 'none';
+  ciMarkDirty();
 }
 function ciReadType(scope) {
   const a = document.querySelector('#cam-ci-type-btns-' + scope + ' .cam-ci-type.active');
   return a ? (a.getAttribute('data-v') || '') : '';
+}
+function setCiMethod(scope, m) {
+  document.querySelectorAll('#cam-ci-method-btns-' + scope + ' .cam-ci-method').forEach(b => {
+    b.classList.toggle('active', (b.getAttribute('data-m') || '') === m);
+  });
+  ciMarkDirty();
+}
+function ciReadMethod(scope) {
+  const a = document.querySelector('#cam-ci-method-btns-' + scope + ' .cam-ci-method.active');
+  return a ? (a.getAttribute('data-m') || '') : '';
 }
 
 // d（checkIn応答）を受け、指定scopeのエディタを表示・初期化。VIP/guest_id無しは非表示。
@@ -2994,13 +3037,21 @@ function populateCiEditor(scope, d) {
     if (scope === 'ok') ciCurrentGuest = null;
     return;
   }
+  ciPopulating = true;
   ciCurrentGuest = String(d.guest_id);
-  setCiType(scope, (d.actual_pay_type || '').toLowerCase());
+  const act = (d.actual_pay_type || '').toLowerCase();
+  setCiType(scope, act);        // 有料なら金額欄も表示される
+  // 金額・支払方法の初期値（既存の実態値 or 原本）
+  const amtEl = document.getElementById('cam-ci-amount-' + scope);
+  if (amtEl) amtEl.value = Number(d.amount || 0) || '';
+  setCiMethod(scope, (d.payment_method || '').toLowerCase());
   const note = document.getElementById('cam-ci-note-' + scope);
   if (note) note.value = d.staff_note || '';
   const sv = document.getElementById('cam-ci-save-' + scope);
   if (sv) { sv.disabled = false; sv.textContent = '備考・訂正を保存'; }
   editor.style.display = 'block';
+  ciDirty = false;
+  ciPopulating = false;
 }
 
 async function saveCheckinInfoFromOverlay(scope, btn) {
@@ -3008,26 +3059,41 @@ async function saveCheckinInfoFromOverlay(scope, btn) {
   const noteEl = document.getElementById('cam-ci-note-' + scope);
   const note = noteEl ? (noteEl.value || '') : '';
   const actualType = ciReadType(scope);
-  if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
-  const eventId = document.getElementById('scan-event-sel').value;
-  const res = await apiPost({
+  const payload = {
     action: 'saveGuestCheckinInfo',
     guest_id: ciCurrentGuest,
-    event_id: eventId,
+    event_id: document.getElementById('scan-event-sel').value,
     actual_pay_type: actualType,
     staff_note: note,
     editor: 'reception'
-  });
+  };
+  let ovAmount, ovMethod;
+  if (actualType === 'paid') {
+    const amtEl = document.getElementById('cam-ci-amount-' + scope);
+    ovAmount = Number(amtEl && amtEl.value || 0);
+    ovMethod = ciReadMethod(scope);
+    payload.amount = ovAmount;
+    payload.payment_method = ovMethod;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
+  const eventId = payload.event_id;
+  const res = await apiPost(payload);
   if (res.ok) {
     // ローカルキャッシュへ反映（一覧・レポートへ即時反映）
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(ciCurrentGuest));
     if (idx >= 0) {
       allGuests[idx].actual_pay_type = actualType;
       allGuests[idx].staff_note      = note;
+      if (actualType === 'paid') {
+        allGuests[idx].amount         = ovAmount;
+        allGuests[idx].payment_method = ovMethod;
+        allGuests[idx].pay_confirmed  = 'TRUE';
+      }
     }
     if (eventId) invalidateGuestCache(eventId);
     if (currentEventId === eventId) { updateGuestStats(); renderGuestTable(); }
     if (btn) { btn.disabled = false; btn.textContent = '✓ 保存しました'; }
+    ciDirty = false;
     toast('✓ 備考・実態訂正を保存しました');
   } else {
     if (btn) { btn.disabled = false; btn.textContent = '備考・訂正を保存'; }
@@ -3037,6 +3103,9 @@ async function saveCheckinInfoFromOverlay(scope, btn) {
 
 // カメラを再起動して次の読み取りへ
 async function resumeCamera() {
+  // 未保存の実態訂正・備考があれば破棄前に確認
+  if (ciDirty && !confirm('実態訂正・備考が未保存です。保存せずに次の読み取りへ進みますか？')) return;
+  ciDirty = false;
   camHideAll();
   checkinBusy = false;
   lastScanned = '';
@@ -3425,9 +3494,10 @@ function buildReportRow(name, members, confirmed) {
   const fArrived = arrived.filter(g => g.gender === 'female').length;
   const free     = members.filter(g => effPT(g) === 'free').length;
   const paid     = members.filter(g => effPT(g) === 'paid').length;
-  const cash     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'cash').length;
-  const card     = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'card').length;
-  const paypay   = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'paypay').length;
+  // 実態が有料の来場者のみ支払方法内訳に計上（有料→無料訂正で method が残っても除外＝合計と一致）
+  const cash     = arrived.filter(g => effPT(g) === 'paid' && (g.payment_method||'').toLowerCase() === 'cash').length;
+  const card     = arrived.filter(g => effPT(g) === 'paid' && (g.payment_method||'').toLowerCase() === 'card').length;
+  const paypay   = arrived.filter(g => effPT(g) === 'paid' && (g.payment_method||'').toLowerCase() === 'paypay').length;
   // 有料/無料 × 男/女 内訳（実態訂正を優先）
   const paidM  = members.filter(g => effPT(g) === 'paid' && g.gender === 'male').length;
   const paidF  = members.filter(g => effPT(g) === 'paid' && g.gender === 'female').length;

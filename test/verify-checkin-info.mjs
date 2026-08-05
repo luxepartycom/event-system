@@ -81,5 +81,37 @@ const freeCount = guests.filter(g => effPT(g) === 'free').length;
 A('(F8) 有効有料件数=2（1件目＋3件目）', paidCount === 2);
 A('(F9) 有効無料件数=1（2件目）', freeCount === 1);
 
+// ───────────────────────────────────────────────
+// 会計内訳ゲート（buildReportRow の cash/card/paypay を effPT paid で絞る＝重大2修正）
+// 「現金で有料入場したが実は無料」訂正で、現金件数が残らないことを検証。
+const arrived = [
+  { pay_type: 'paid', actual_pay_type: '',     payment_method: 'cash', arrived: 'TRUE' }, // 実有料現金
+  { pay_type: 'paid', actual_pay_type: 'free', payment_method: 'cash', arrived: 'TRUE' }, // 有料→無料訂正（methodは残存）
+  { pay_type: 'free', actual_pay_type: 'paid', payment_method: 'card', arrived: 'TRUE' }, // 無料→有料訂正
+];
+const cashCount = arrived.filter(g => effPT(g) === 'paid' && (g.payment_method||'').toLowerCase() === 'cash').length;
+const cardCount = arrived.filter(g => effPT(g) === 'paid' && (g.payment_method||'').toLowerCase() === 'card').length;
+A('(G1) 現金件数=1（訂正無料のcash残存は除外＝合計と一致）', cashCount === 1);
+A('(G2) カード件数=1（無料→有料訂正が計上）', cardCount === 1);
+const badCash = arrived.filter(g => (g.payment_method||'').toLowerCase() === 'cash').length; // 旧ロジック
+A('(G3) 旧ロジック(method基準のみ)なら現金2件で会計矛盾＝修正の必要性を裏付け', badCash === 2 && badCash !== cashCount);
+
+// ───────────────────────────────────────────────
+// backend: amount/payment_method は actual='paid' のときだけ適用（コード.js の wantAmount/wantMethod を再現）
+function applyPay(actVal, amount, method) {
+  const wantAmount = (actVal === 'paid' && amount !== undefined && amount !== null && String(amount) !== '')
+                   ? (Number(amount) || 0) : undefined;
+  const pm = (actVal === 'paid' && method) ? String(method).trim().toLowerCase() : '';
+  const wantMethod = (pm === 'cash' || pm === 'card' || pm === 'paypay' || pm === 'stripe') ? pm : undefined;
+  return { wantAmount, wantMethod };
+}
+A('(P1) actual=paid で金額適用', applyPay('paid', 5000, 'cash').wantAmount === 5000);
+A('(P2) actual=paid で支払方法適用', applyPay('paid', 5000, 'cash').wantMethod === 'cash');
+A('(P3) actual=free なら金額を触らない(undefined)', applyPay('free', 5000, 'cash').wantAmount === undefined);
+A('(P4) actual=free なら支払方法を触らない(undefined)', applyPay('free', 5000, 'cash').wantMethod === undefined);
+A('(P5) actual="" なら金額を触らない', applyPay('', 5000, 'cash').wantAmount === undefined);
+A('(P6) actual=paid で不正methodは無視(undefined)', applyPay('paid', 5000, 'venmo').wantMethod === undefined);
+A('(P7) actual=paid amount未指定は触らない', applyPay('paid', undefined, 'cash').wantAmount === undefined);
+
 console.log('\n=== checkin-info 層1 結果: ' + pass + ' 合格 / ' + fail + ' 不合格 ===');
 process.exit(fail === 0 ? 0 : 1);

@@ -151,6 +151,15 @@ function testLptWriteSafety() {
     chk('備考: staff_note が保存される', String(g.getRange(ciRow, noteColT+1).getValue()) === '有料タグだが実際は無料');
     chk('種別訂正: actual_pay_type=free が保存される', String(g.getRange(ciRow, actColT+1).getValue()) === 'free');
     chk('原本保持: 元 pay_type は paid のまま（監査可能）', String(g.getRange(ciRow, ptColT+1).getValue()) === 'paid');
+    // 実態=有料 の金額・支払方法反映（無料→有料徴収ケース）: amount/payment_method を実態値へ
+    var amtColT = ensureCol_(g, 'amount'), pmColT = ensureCol_(g, 'payment_method');
+    g.getRange(ciRow, actColT+1).setValue('paid');
+    g.getRange(ciRow, amtColT+1).setValue(3000);
+    g.getRange(ciRow, pmColT+1).setValue('cash');
+    SpreadsheetApp.flush();
+    chk('実態有料: 金額=3000 が保存される', Number(g.getRange(ciRow, amtColT+1).getValue()) === 3000);
+    chk('実態有料: 支払方法=cash が保存される', String(g.getRange(ciRow, pmColT+1).getValue()) === 'cash');
+    chk('実態有料でも原本 pay_type は保持（監査可能）', String(g.getRange(ciRow, ptColT+1).getValue()) === 'paid');
     // 訂正解除（空文字上書き）が効くこと
     g.getRange(ciRow, actColT+1).setValue('');
     SpreadsheetApp.flush();
@@ -1406,6 +1415,13 @@ function doPost(e) {
         var noteVal = body.staff_note === undefined || body.staff_note === null
                     ? undefined : String(body.staff_note);
 
+        // 実態=有料 のときだけ、金額・支払方法も実態値へ更新できる（会計の内訳と合計を一致させるため）。
+        // 実態=無料/申込どおり のときは金額・支払方法は原本を触らない（effPTゲートで売上から除外されるため実害なし）。
+        var wantAmount = (actVal === 'paid' && body.amount !== undefined && body.amount !== null && String(body.amount) !== '')
+                       ? (Number(body.amount) || 0) : undefined;
+        var pmRaw = (actVal === 'paid' && body.payment_method) ? String(body.payment_method).trim().toLowerCase() : '';
+        var wantMethod = (pmRaw === 'cash' || pmRaw === 'card' || pmRaw === 'paypay' || pmRaw === 'stripe') ? pmRaw : undefined;
+
         var gciLock = LockService.getScriptLock();
         var gciLocked = false;
         try { gciLocked = gciLock.tryLock(10000); } catch (eGciLk) { gciLocked = false; }
@@ -1435,6 +1451,11 @@ function doPost(e) {
           var actCol  = ensureCol_(gs, 'actual_pay_type');
           var beforeNote = String(gs.getRange(gRow, noteCol + 1).getValue() || '');
           var beforeAct  = String(gs.getRange(gRow, actCol + 1).getValue() || '');
+          // 金額・支払方法の原本（列が無ければ後で ensureCol）
+          function colIdxGci(name){ return ensureCol_(gs, name); }
+          var amtCol = colIdxGci('amount'), pmCol = colIdxGci('payment_method'), pcCol = colIdxGci('pay_confirmed');
+          var beforeAmt = Number(gs.getRange(gRow, amtCol + 1).getValue() || 0);
+          var beforePm  = String(gs.getRange(gRow, pmCol + 1).getValue() || '');
 
           var changedGci = [];
           if (noteVal !== undefined) {
@@ -1443,6 +1464,22 @@ function doPost(e) {
           }
           gs.getRange(gRow, actCol + 1).setValue(actVal);
           if (beforeAct !== actVal) changedGci.push('actual_pay_type: ' + (beforeAct || '—') + ' → ' + (actVal || '—'));
+
+          // 実態=有料 の金額・支払方法反映
+          var afterAmt = beforeAmt, afterPm = beforePm;
+          if (wantAmount !== undefined) {
+            gs.getRange(gRow, amtCol + 1).setValue(wantAmount);
+            afterAmt = wantAmount;
+            if (beforeAmt !== wantAmount) changedGci.push('amount: ' + beforeAmt + ' → ' + wantAmount);
+          }
+          if (wantMethod !== undefined) {
+            gs.getRange(gRow, pmCol + 1).setValue(wantMethod);
+            afterPm = wantMethod;
+            if (beforePm !== wantMethod) changedGci.push('payment_method: ' + (beforePm || '—') + ' → ' + wantMethod);
+          }
+          if (actVal === 'paid' && (wantAmount !== undefined || wantMethod !== undefined)) {
+            gs.getRange(gRow, pcCol + 1).setValue('TRUE');  // 実態有料として金額/方法を確定＝確認済み
+          }
           SpreadsheetApp.flush();
 
           // 監査ログ（既存 guest_edit_log を再利用。備考/種別訂正は changes 列に記す）
@@ -1459,7 +1496,8 @@ function doPost(e) {
             body.event_id || '',
             body.editor || 'staff',
             'checkin_info: ' + changedGci.join(' / ') + (noteVal !== undefined ? ' | note="' + noteVal + '"' : ''),
-            '', '', '', '', '', ''
+            '(原本保持)', beforePm, beforeAmt,
+            actVal || '(訂正なし)', afterPm, afterAmt
           ]);
           SpreadsheetApp.flush();
 
@@ -1467,7 +1505,9 @@ function doPost(e) {
             ok: true,
             changed: changedGci,
             staff_note: noteVal !== undefined ? noteVal : beforeNote,
-            actual_pay_type: actVal
+            actual_pay_type: actVal,
+            amount: afterAmt,
+            payment_method: afterPm
           });
         } finally { try { gciLock.releaseLock(); } catch (eGciUl) {} }
       }
