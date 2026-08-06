@@ -862,6 +862,12 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <span id="scan-msg">① イベントを選択 → ② スキャンボタンを押す</span>
       </div>
 
+      <!-- 通信が落ちたときの再試行（同じ checkin_token で再送するため二重チェックインにならない） -->
+      <div id="ci-retry-area" style="display:none;margin-bottom:12px;padding:14px;border:1px solid rgba(207,68,68,0.4);border-radius:4px;background:rgba(207,68,68,0.08);">
+        <div id="ci-retry-msg" style="font-size:0.6rem;color:#FF9A9A;line-height:1.8;margin-bottom:10px;"></div>
+        <button class="btn-manual-submit" id="ci-retry-btn" onclick="retryLastCheckin()" style="width:100%;">🔄 同じQRで再試行</button>
+      </div>
+
       <!-- 手動入力 -->
       <div id="manual-input-area" style="display:none;margin-bottom:12px;">
         <div style="font-size:0.52rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;margin-bottom:8px;">手動でゲストIDを入力</div>
@@ -1174,13 +1180,91 @@ let lastScanned    = '';
 let pendingGuest   = null;
 
 async function apiGet(p)  { const r = await fetch(API + '?' + new URLSearchParams(p)); return r.json(); }
-async function apiPost(b) {
-  const r = await fetch(API, {
-    method:  'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body:    JSON.stringify(b)
-  });
-  return r.json();
+async function apiPost(b, opt) {
+  opt = opt || {};
+  let ctrl = null, timer = null;
+  if (opt.timeoutMs && typeof AbortController !== 'undefined') {
+    ctrl  = new AbortController();
+    timer = setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, opt.timeoutMs);
+  }
+  let r, txt;
+  try {
+    r = await fetch(API, {
+      method:  'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body:    JSON.stringify(b),
+      signal:  ctrl ? ctrl.signal : undefined
+    });
+    // r.json() だと「HTTPエラー」と「JSONでない応答（Googleのエラーページ等）」を区別できず、
+    // 現場では両方まとめて「通信エラー」に潰れて原因が分からなくなる。一度 text で受けて切り分ける。
+    // ヘッダーだけ来て本文が止まる回線があるため、本文の読み取りまでタイマーの内側に置く。
+    txt = await r.text();
+  } finally { if (timer) clearTimeout(timer); }
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' / ' + txt.slice(0, 120));
+  try { return JSON.parse(txt); }
+  catch (e) { throw new Error('応答が不正（JSONではありません）: ' + txt.slice(0, 120)); }
+}
+
+// ══ チェックイン専用の通信層（サーバ成功・画面失敗の「割れ」を収束させる）══════
+// GASの応答は「POST /exec → 302 → googleusercontent の echo を GET」の2ホップで、
+// シート書き込みは1ホップ目で確定する。2ホップ目が落ちると
+// 「SSは入場済みなのに画面は通信エラー」になる。これが今回の障害の正体。
+// 対策：1スキャン＝1 checkin_token を発行し、失敗時は同じトークンで再送する。
+// サーバは同一トークンの再送を replay として扱い、二重処理せず同じ結果を返す。
+const CI_TIMEOUTS = [20000, 25000, 35000];   // cold start 実測 約12秒 を吸収できる幅
+let ciElapsedH = null;
+
+// トークンはスキャン単位。再試行・画面リロードをまたいでも同じ値を使う必要があるため
+// sessionStorage に置く（新しいトークンで再送すると VIP で頭数が二重加算される）。
+function ciTokenFor(guestId, eventId) {
+  const k = 'lpt_ci_token_' + (eventId || '-') + '_' + guestId;
+  let t = null;
+  try { t = sessionStorage.getItem(k); } catch (e) {}
+  if (!t) {
+    // guest_id を値に混ぜない。サーバ側は [A-Za-z0-9_-] 80文字以内しか受け付けず、
+    // 想定外の文字を含む guest_id が来るとトークンごと捨てられて冪等性が黙って無効化される。
+    t = 'CI' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    try { sessionStorage.setItem(k, t); } catch (e) {}
+  }
+  return t;
+}
+function ciTokenClear(guestId, eventId) {
+  try { sessionStorage.removeItem('lpt_ci_token_' + (eventId || '-') + '_' + guestId); } catch (e) {}
+}
+
+// 待機中に経過秒を出す。無反応に見えると受付が連打してしまうため。
+function ciStartElapsed(label, attempt) {
+  const t0 = Date.now();
+  ciStopElapsed();
+  const tick = () => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    setScanMsg('🔍 照会中… ' + label + '（' + s + '秒' + (attempt > 1 ? ' ・再試行' + attempt + '回目' : '') + '）', 'scanning');
+  };
+  tick();
+  ciElapsedH = setInterval(tick, 1000);
+}
+function ciStopElapsed() { if (ciElapsedH) { clearInterval(ciElapsedH); ciElapsedH = null; } }
+
+// タイムアウト付きで最大3回。業務上の応答（not_found / duplicate / payment_required 等）は
+// 再試行しない。再試行するのは通信失敗・タイムアウト・busy だけ。
+async function apiPostCheckIn(payload, onAttempt) {
+  let lastErr = null;
+  for (let i = 0; i < CI_TIMEOUTS.length; i++) {
+    if (onAttempt) onAttempt(i + 1);
+    try {
+      const d = await apiPost(payload, { timeoutMs: CI_TIMEOUTS[i] });
+      // busy（ロック取得失敗）と internal_error（途中で落ちて結果不明）は
+      // 「結果が確定していない」応答なので、同じトークンで投げ直して結果を確定させる。
+      if (d && d.retryable === true) { lastErr = new Error(d.message || 'サーバ側で処理が確定しませんでした'); }
+      else return d;
+    } catch (e) {
+      lastErr = e;
+    }
+    if (i < CI_TIMEOUTS.length - 1) {
+      await new Promise(res => setTimeout(res, 500 + Math.random() * 1500));
+    }
+  }
+  throw lastErr || new Error('チェックインに失敗しました');
 }
 
 let toastT;
@@ -1699,6 +1783,11 @@ async function startZXingLiveScan() {
   stopScan();
   setScanMsg('カメラを起動中…', 'scanning');
 
+  // GASのcold startは実測で約12秒（warm時は約2秒）。カメラ起動の裏で軽いpingを撃って
+  // インスタンスを温めておき、最初の1人目のスキャンが長時間待ちになるのを防ぐ。
+  // 失敗しても本処理には影響させない（fire and forget）。
+  try { apiGet({ action: 'ping' }).catch(() => {}); } catch (e) {}
+
   // ZXingを遅延ロード（初回のみダウンロード）
   try { await loadZXing(); } catch(e) {
     setScanMsg('ライブラリ読み込みに失敗しました', 'err');
@@ -1831,8 +1920,10 @@ async function manualCheckInFromList(guestId) {
   }
   if (!confirm((g.name || guestId) + ' 様を来場済みにします。よろしいですか？')) return;
   try {
-    const res = await apiPost({ action: 'checkIn', guest_id: guestId });
+    // event_id を必ず送る（同一 guest_id が別イベントに在るときの取り違え防止）
+    const res = await apiPostCheckIn({ action: 'checkIn', guest_id: guestId, event_id: g.event_id, checkin_token: ciTokenFor(guestId, g.event_id) });
     if (res.ok && res.status === 'checked_in') {
+      ciTokenClear(guestId, g.event_id);
       const idx = allGuests.findIndex(x => String(x.guest_id) === String(guestId));
       if (idx >= 0) allGuests[idx].arrived = 'TRUE';
       updateGuestStats();
@@ -1880,6 +1971,7 @@ async function processCheckIn(guestId) {
   const eventId = document.getElementById('scan-event-sel').value;
   if (!eventId) { setScanMsg('イベントを選択してください', 'err'); checkinBusy = false; return; }
 
+  ciHideRetry();
   // ① 即座にローディング表示・カメラ停止
   showCamOverlay({ guest_id: guestId }, 'loading');
   setScanMsg('🔍 照会中… ' + guestId, 'scanning');
@@ -1901,42 +1993,63 @@ async function processCheckIn(guestId) {
   }
 
   // ③ checkInを直接呼ぶ（GAS1回で照会+登録を完結）
+  //    同じスキャンには同じ checkin_token を使う。通信が落ちて再送しても
+  //    サーバ側は replay として扱い、二重チェックイン・VIPの二重加算にならない。
+  const ciToken = ciTokenFor(guestId, eventId);
   try {
-    const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: eventId });
+    const d = await apiPostCheckIn(
+      { action: 'checkIn', guest_id: guestId, event_id: eventId, checkin_token: ciToken },
+      (attempt) => ciStartElapsed(guestId, attempt)
+    );
+    ciStopElapsed();
 
     if (!d.ok) {
       if (d.status === 'not_found') {
+        ciTokenClear(guestId, eventId);
         setScanMsg('❌ 登録されていません: ' + guestId, 'err');
         camHideAll();
         const frame = document.getElementById('scan-frame-overlay');
         if (frame) frame.style.display = 'flex';
-        checkinBusy = false; return;
+        return;
+      }
+      if (d.status === 'wrong_event') {
+        // 別イベントの古いQRをかざされたケース。従来は黙って別イベントの行を入場済みにしていた。
+        ciTokenClear(guestId, eventId);
+        setScanMsg('❌ 別イベントのQRコードです — ' + (d.name || guestId), 'err');
+        camHideAll();
+        const frameW = document.getElementById('scan-frame-overlay');
+        if (frameW) frameW.style.display = 'flex';
+        return;
       }
       if (d.status === 'not_confirmed') {
+        ciTokenClear(guestId, eventId);
         setScanMsg('⚠️ 入金未確認のVIPです — 管理者に確認してください', 'err');
         camHideAll();
-        checkinBusy = false; return;
+        return;
       }
       if (d.status === 'duplicate') {
+        ciTokenClear(guestId, eventId);
         setScanMsg('⚠️ 入場済みです — ' + (d.name || ''), 'err');
         showCamOverlay(d, 'duplicate');
-        checkinBusy = false; return;
+        return;
       }
       if (d.status === 'payment_required') {
-        // GASから支払い未済と返ってきた場合
+        // GASから支払い未済と返ってきた場合（トークンは確定操作まで持ち越す）
         pendingGuest = guestId;
         showCamOverlay(d, 'payment_required');
         setScanMsg('💴 支払い受付 — ' + (d.name || ''), 'warn');
-        checkinBusy = false; return;
+        return;
       }
       setScanMsg('❌ ' + (d.message || 'エラー'), 'err');
       camHideAll();
-      checkinBusy = false; return;
+      return;
     }
 
-    // ④ チェックイン成功
+    // ④ チェックイン成功（replay=true は「再送で結果を回収できた」＝実質成功）
+    ciTokenClear(guestId, eventId);
     const isStripe = (d.payment_method || '').toLowerCase() === 'stripe';
-    setScanMsg((isStripe ? '✅ 事前決済済み・完了 — ' : '✅ チェックイン完了 — ') + d.name, 'ok');
+    setScanMsg((isStripe ? '✅ 事前決済済み・完了 — ' : '✅ チェックイン完了 — ') + d.name +
+               (d.replay ? '（再送で確認）' : ''), 'ok');
     showCamOverlay(d, 'ok');
 
     // ローカルキャッシュ更新
@@ -1945,64 +2058,136 @@ async function processCheckIn(guestId) {
     invalidateGuestCache(eventId);
 
   } catch(err) {
-    setScanMsg('❌ 通信エラー', 'err');
-    camHideAll();
+    // 3回とも応答を回収できなかった。サーバ側は入場済みになっている可能性があるので
+    // 「失敗」と断定せず、同じトークンで再試行できる導線を出す。
+    ciShowRetry(guestId, err, eventId, '');
+  } finally {
+    ciStopElapsed();
+    checkinBusy = false;
   }
-  checkinBusy = false;
+}
+
+// ── 通信が落ちたときの再試行導線 ───────────────────────────────
+// 新しいトークンを作らず、失敗した要求とまったく同じ内容で再送する。
+// guest_id だけを覚えて再試行時にイベント選択を読み直すと、
+// 受付が待っている間にイベントを切り替えたとき「別イベントへ別トークンで送信」になり、
+// 冪等性（＝同じ受付として結果を回収する）が壊れる。失敗時のコンテキストごと保持する。
+let ciRetryCtx = null;   // { guestId, eventId, paymentMethod }
+function ciShowRetry(guestId, err, eventId, paymentMethod) {
+  ciRetryCtx = { guestId: guestId, eventId: eventId || '', paymentMethod: paymentMethod || '' };
+  camHideAll();
+  setScanMsg('❌ サーバの応答を確認できませんでした — 再試行してください', 'err');
+  const msg = document.getElementById('ci-retry-msg');
+  if (msg) msg.textContent =
+    '「' + guestId + '」の応答を確認できませんでした（' + ((err && err.message) || '通信エラー') + '）。' +
+    'サーバ側では既に入場済みになっている可能性があります。下のボタンで再試行すると同じ受付として結果を確認でき、二重チェックインにはなりません。';
+  const area = document.getElementById('ci-retry-area');
+  if (area) area.style.display = 'block';
+}
+function ciHideRetry() {
+  ciRetryCtx = null;
+  const area = document.getElementById('ci-retry-area');
+  if (area) area.style.display = 'none';
+}
+async function retryLastCheckin() {
+  const ctx = ciRetryCtx;
+  if (!ctx) return;
+  ciHideRetry();
+  // 失敗時に選ばれていたイベントへ戻してから再送する（トークンのキーもこのイベントに紐づく）
+  const sel = document.getElementById('scan-event-sel');
+  if (sel && ctx.eventId && sel.value !== ctx.eventId) sel.value = ctx.eventId;
+  if (ctx.paymentMethod) {
+    // 支払方法まで確定していた受付は、同じ方法で送り直す
+    pendingGuest = ctx.guestId;
+    await confirmPayment(ctx.paymentMethod);
+  } else {
+    await processCheckIn(ctx.guestId);
+  }
 }
 
 async function confirmFree() {
   if (!pendingGuest) return;
+  if (checkinBusy) return;   // 多重タップ防止（同じトークンで2本飛ぶと表示と実態がずれる）
   checkinBusy = true;
+  const target  = pendingGuest;
   const eventId = document.getElementById('scan-event-sel').value;
-  const d = await apiPost({ action: 'checkIn', guest_id: pendingGuest, event_id: eventId });
-  if (d.ok) {
-    setScanMsg('✅ チェックイン完了 — ' + d.name, 'ok');
-    showCamOverlay(d, 'ok');
-    const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
-    if (idx >= 0) allGuests[idx].arrived = 'TRUE';
-    pendingGuest = null;
-    invalidateGuestCache(eventId); // キャッシュ無効化
-    if (currentEventId === eventId) {
-      updateGuestStats();
-      renderGuestTable();
+  try {
+    const d = await apiPostCheckIn(
+      { action: 'checkIn', guest_id: target, event_id: eventId, checkin_token: ciTokenFor(target, eventId) },
+      (attempt) => ciStartElapsed(target, attempt)
+    );
+    ciStopElapsed();
+    if (d.ok) {
+      ciTokenClear(target, eventId);
+      setScanMsg('✅ チェックイン完了 — ' + d.name, 'ok');
+      showCamOverlay(d, 'ok');
+      const idx = allGuests.findIndex(g => String(g.guest_id) === String(target));
+      if (idx >= 0) allGuests[idx].arrived = 'TRUE';
+      pendingGuest = null;
+      invalidateGuestCache(eventId); // キャッシュ無効化
+      if (currentEventId === eventId) {
+        updateGuestStats();
+        renderGuestTable();
+      }
+      toast('✅ ' + d.name + ' チェックイン完了');
+    } else {
+      setScanMsg('❌ ' + (d.message || 'チェックインに失敗しました'), 'err');
+      toast('❌ ' + (d.message || 'チェックインに失敗しました'));
     }
-    toast('✅ ' + d.name + ' チェックイン完了');
-  } else {
-    setScanMsg('❌ ' + (d.message || 'チェックインに失敗しました'), 'err');
-    toast('❌ ' + (d.message || 'チェックインに失敗しました'));
+  } catch (err) {
+    // 通信が落ちた（サーバ側は完了している可能性あり）→ 同じトークンで再試行できるようにする
+    ciShowRetry(target, err, eventId, '');
+  } finally {
+    ciStopElapsed();
+    checkinBusy = false;   // finally が無いと通信失敗時に checkinBusy=true のまま固まる
   }
-  checkinBusy = false;
 }
 
 async function confirmPayment(method) {
   if (!pendingGuest) return;
+  if (checkinBusy) return;   // 現金→カードと連打されると、シートは現金・画面はカードになる
   checkinBusy = true;
+  const target      = pendingGuest;
   const eventId     = document.getElementById('scan-event-sel').value;
   const methodLabel = { cash:'現金', card:'カード', paypay:'PayPay' }[method] || method;
-  const d = await apiPost({ action: 'checkIn', guest_id: pendingGuest, event_id: eventId, payment_method: method });
-  if (d.ok) {
-    setScanMsg('✅ チェックイン完了（' + methodLabel + '）— ' + d.name, 'ok');
-    d.payment_method = method;
-    d.pay_type = 'paid'; // バッジ表示のため
-    showCamOverlay(d, 'ok');
-    const idx = allGuests.findIndex(g => String(g.guest_id) === String(pendingGuest));
-    if (idx >= 0) {
-      allGuests[idx].arrived        = 'TRUE';
-      allGuests[idx].pay_confirmed  = 'TRUE';
-      allGuests[idx].payment_method = method;
+  try {
+    const d = await apiPostCheckIn(
+      { action: 'checkIn', guest_id: target, event_id: eventId, payment_method: method, checkin_token: ciTokenFor(target, eventId) },
+      (attempt) => ciStartElapsed(target, attempt)
+    );
+    ciStopElapsed();
+    if (d.ok) {
+      ciTokenClear(target, eventId);
+      // 再送(replay)ではサーバに保存済みの支払方法が正。ここで上書きすると
+      // 「シートは現金・画面はカード」のような嘘の表示になる。
+      const savedMethod = d.payment_method || method;
+      const savedLabel  = { cash:'現金', card:'カード', paypay:'PayPay' }[savedMethod] || savedMethod;
+      setScanMsg('✅ チェックイン完了（' + savedLabel + '）— ' + d.name, 'ok');
+      d.payment_method = savedMethod;
+      d.pay_type = 'paid'; // バッジ表示のため
+      showCamOverlay(d, 'ok');
+      const idx = allGuests.findIndex(g => String(g.guest_id) === String(target));
+      if (idx >= 0) {
+        allGuests[idx].arrived        = 'TRUE';
+        allGuests[idx].pay_confirmed  = 'TRUE';
+        allGuests[idx].payment_method = savedMethod;
+      }
+      pendingGuest = null;
+      invalidateGuestCache(eventId);
+      if (currentEventId === eventId) {
+        updateGuestStats();
+        renderGuestTable();
+      }
+    } else {
+      setScanMsg('❌ ' + (d.message || 'チェックインに失敗しました'), 'err');
+      toast('❌ ' + (d.message || 'チェックインに失敗しました'));
     }
-    pendingGuest = null;
-    invalidateGuestCache(eventId);
-    if (currentEventId === eventId) {
-      updateGuestStats();
-      renderGuestTable();
-    }
-  } else {
-    setScanMsg('❌ ' + (d.message || 'チェックインに失敗しました'), 'err');
-    toast('❌ ' + (d.message || 'チェックインに失敗しました'));
+  } catch (err) {
+    ciShowRetry(target, err, eventId, method);
+  } finally {
+    ciStopElapsed();
+    checkinBusy = false;
   }
-  checkinBusy = false;
 }
 
 // ── カメラオーバーレイ制御 ──────────────────────────────
@@ -3356,7 +3541,17 @@ async function confirmVipTransferPaymentE(guestId, guestName) {
 
 async function manualVipCheckInE(guestId, guestName) {
   if (!confirm(guestName + ' 様の来場を記録しますか？')) return;
-  const d = await apiPost({ action: 'checkIn', guest_id: guestId, event_id: vipEventIdE });
+  // VIPはスキャン毎に頭数を+1する仕様。通信失敗時に素の再送をすると二重加算になるため、
+  // この操作にも冪等トークンを付けて apiPostCheckIn 経由で送る。
+  let d;
+  try {
+    d = await apiPostCheckIn({ action: 'checkIn', guest_id: guestId, event_id: vipEventIdE, checkin_token: ciTokenFor(guestId, vipEventIdE) });
+  } catch (err) {
+    toast('❌ 応答を確認できませんでした（' + ((err && err.message) || '通信エラー') + '）。もう一度押すと同じ受付として再確認します');
+    await loadVipDataE();
+    return;
+  }
+  if (d.ok) ciTokenClear(guestId, vipEventIdE);
   if (d.ok && d.vip_info) {
     const v = d.vip_info;
     const over = v.is_over ? `⚠️ 定員超過 ${v.checked_count}/${v.capacity}名` : `${v.checked_count}/${v.capacity}名入場`;

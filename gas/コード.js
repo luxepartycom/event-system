@@ -334,6 +334,33 @@ function todayStr() {
   return Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
 }
 
+// ── チェックイン冪等キーの正規化 ──────────────────────────────
+// クライアントが送ってくる checkin_token をそのままセルへ書かない。
+//  ・VIPの履歴は CSV なので「,」が混ざると履歴が壊れる
+//  ・「=」等で始まる値はスプレッドシートの式として解釈される（式インジェクション）
+//  ・長すぎる値はセル上限や処理エラーの原因になる
+// 英数字と _ - のみ・80文字までとし、条件を満たさなければ「トークン無し」として扱う。
+function sanitizeToken_(v) {
+  var t = String(v == null ? '' : v);
+  if (!t) return '';
+  if (!/^[A-Za-z0-9_-]{1,80}$/.test(t)) return '';
+  return t;
+}
+
+// VIPの checkin_tokens セルは "件数|tok1,tok2,…" 形式。頭数の正本もこのセルに持たせ、
+// 1回の書き込みで「加算」と「トークン記録」が同時に確定するようにしている
+// （別セルに分けると片方だけ書けた瞬間に数え落とし／二重加算が起きる）。
+// 旧形式（トークンだけ／空）の行は checked_count 列から件数を引き継ぐ。
+function parseVipCheckinCell_(cellVal, legacyCount) {
+  var raw = String(cellVal == null ? '' : cellVal);
+  var legacy = Number(legacyCount || 0) || 0;
+  var bar = raw.indexOf('|');
+  var toks = function(x){ return x ? x.split(',').filter(function(t){ return !!t; }) : []; };
+  if (bar < 0) return { count: legacy, tokens: toks(raw) };
+  var n = Number(raw.slice(0, bar));
+  return { count: isNaN(n) ? legacy : n, tokens: toks(raw.slice(bar + 1)) };
+}
+
 // 指定シートに列(ヘッダー名)が無ければ末尾に追加し、0基点の列indexを返す
 function ensureCol_(sh, name) {
   var hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function(h){ return String(h).trim(); });
@@ -1140,57 +1167,114 @@ function doPost(e) {
         } finally { try { regLock.releaseLock(); } catch (eUl) {} }
       }
 
+      // ── チェックイン（QRスキャン／手動）──────────────────────────
+      // 【この処理の難所】GAS Web App の応答は「POST /exec → 302 → googleusercontent の echo を GET」
+      // という2ホップ構成で、シートへの書き込みは1ホップ目で確定する。
+      // よって2ホップ目が落ちると「サーバは入場済みにしたのに、画面は通信エラー」に割れる。
+      // これを収束させるため checkin_token（クライアント生成の冪等キー）を受け取り、
+      // 同一トークンの再送は「加算・再書き込みをせずに同じ結果を返す（replay）」を保証する。
+      // registerGuest の submission_id と同じ設計思想。
       case 'checkIn': {
         var payMethod = body.payment_method || '';
+        var ciToken   = sanitizeToken_(body.checkin_token);
+        var ciEventId = String(body.event_id || '');
+        var ciGuestId = String(body.guest_id || '');
+        if (!ciGuestId) return res({ ok: false, status: 'not_found', message: '登録が見つかりません' });
 
-        // VIP専用フロー（guest_idが「VIP-」始まりの場合はvip_tablesを参照）
-        if (String(body.guest_id).indexOf('VIP-') === 0) {
-          var vipLock = LockService.getScriptLock();
-          try { vipLock.tryLock(10000); } catch (eVipLk) {}
-          try {
+        // 「読む→判定→書く」を丸ごと排他にする。ロックを取れないまま進むと
+        // 並行スキャンでトークン判定をすり抜けて二重処理になるため、取得失敗は必ず busy で返す
+        // （フロントは retryable を見て自動再送する）。
+        var ciLock = LockService.getScriptLock();
+        var ciGotLock = false;
+        try { ciGotLock = ciLock.tryLock(10000); } catch (eCiLk) { ciGotLock = false; }
+        if (!ciGotLock) {
+          return res({ ok: false, status: 'busy', retryable: true, message: '混み合っています。もう一度お試しください' });
+        }
+        try {
+
+        // ── VIP専用フロー（guest_idが「VIP-」始まり＝1テーブル1QRを同席者で共有）──
+        if (ciGuestId.indexOf('VIP-') === 0) {
           var vtsChk = sheet('vip_tables');
           if (!vtsChk) return res({ ok: false, status: 'not_found', message: '登録が見つかりません' });
-          var vtChkRows = vtsChk.getRange(1,1,vtsChk.getLastRow(),vtsChk.getLastColumn()).getValues();
-          var vtChkH = vtChkRows[0].map(function(c){ return String(c).trim(); });
-          // checked_count列がなければ追加
-          var cntChkIdx = vtChkH.indexOf('checked_count');
-          if (cntChkIdx < 0) {
-            vtsChk.getRange(1, vtChkH.length + 1).setValue('checked_count');
-            vtChkH.push('checked_count');
-            cntChkIdx = vtChkH.length - 1;
-            vtChkRows = vtsChk.getRange(1,1,vtsChk.getLastRow(),vtsChk.getLastColumn()).getValues();
+          // 列の確保はロック内で行う（ensureCol_ 自体は排他でないため、外でやると同名列を二重に作り得る）
+          var cntChkIdx = ensureCol_(vtsChk, 'checked_count');
+          var arrChkIdx = ensureCol_(vtsChk, 'arrived');
+          var tokChkIdx = ensureCol_(vtsChk, 'checkin_tokens');
+          var vtChkRows = vtsChk.getRange(1, 1, vtsChk.getLastRow(), vtsChk.getLastColumn()).getValues();
+          var vtChkH    = vtChkRows[0].map(function(c){ return String(c).trim(); });
+          var vGidIdx   = vtChkH.indexOf('guest_id');
+          var vEvIdx    = vtChkH.indexOf('event_id');
+
+          // 通常ゲストと同じく (event_id, guest_id) 完全一致を優先。
+          // guest_id だけで引くと、別イベントのVIP QRで今回のテーブルの頭数を積んでしまう。
+          var vipChkRow = -1, vipLooseRow = -1;
+          for (var vi = 1; vi < vtChkRows.length; vi++) {
+            if (String(vtChkRows[vi][vGidIdx]) !== ciGuestId) continue;
+            if (vipLooseRow < 0) vipLooseRow = vi;
+            if (!ciEventId || vEvIdx < 0 || String(vtChkRows[vi][vEvIdx]) === ciEventId) { vipChkRow = vi; break; }
           }
-          // arrived列がなければ追加（二重チェックイン防止フラグ）
-          var arrChkIdx = vtChkH.indexOf('arrived');
-          if (arrChkIdx < 0) {
-            vtsChk.getRange(1, vtChkH.length + 1).setValue('arrived');
-            vtChkH.push('arrived');
-            arrChkIdx = vtChkH.length - 1;
-            vtChkRows = vtsChk.getRange(1,1,vtsChk.getLastRow(),vtsChk.getLastColumn()).getValues();
+          if (vipChkRow < 0) {
+            if (vipLooseRow < 0) return res({ ok: false, status: 'not_found', message: '登録が見つかりません' });
+            return res({
+              ok: false, status: 'wrong_event', message: '別イベントのQRコードです',
+              guest_id: ciGuestId,
+              name: String(vtChkRows[vipLooseRow][vtChkH.indexOf('reserved_by')] || ''),
+              guest_event_id: vEvIdx >= 0 ? String(vtChkRows[vipLooseRow][vEvIdx]) : ''
+            });
           }
-          var vipChkRow = -1;
-          for (var vi=1; vi<vtChkRows.length; vi++) {
-            if (String(vtChkRows[vi][vtChkH.indexOf('guest_id')]) === String(body.guest_id)) { vipChkRow = vi; break; }
-          }
-          if (vipChkRow < 0) return res({ ok: false, status: 'not_found', message: '登録が見つかりません' });
           var vipChkR = vtChkRows[vipChkRow];
-          var vipSt = String(vipChkR[vtChkH.indexOf('status')] || '');
+          var vipSt   = String(vipChkR[vtChkH.indexOf('status')] || '');
           if (vipSt !== 'confirmed') return res({ ok: false, status: 'not_confirmed', message: 'ご予約がまだ確定していません' });
           var capChk = Number(vipChkR[vtChkH.indexOf('capacity')] || 0);
-          // VIPは1テーブル=1QRを同席者で共有し、受付が各人をスキャンして頭数(checked_count)を積む運用。
-          // よってスキャン毎に必ず+1する（arrivedで加算を止めない）。LockServiceで並行スキャンの数え落としのみ防止。
-          // ボタンの多重タップはフロントのrunBusyで防止済み。
-          var cntChk = Number(vipChkR[cntChkIdx] || 0) + 1;
-          vtsChk.getRange(vipChkRow+1, cntChkIdx+1).setValue(cntChk);
-          vtsChk.getRange(vipChkRow+1, arrChkIdx+1).setValue('TRUE');  // 1名以上来場の情報フラグ（加算条件には使わない）
-          SpreadsheetApp.flush();
+
+          // 頭数の正本は checkin_tokens セル1つ（"件数|tok1,tok2,…" 形式）。
+          // 件数とトークン履歴を別セルに分けると、片方だけ書けた時点で落ちたときに
+          // 数え落とし／二重加算のどちらかが必ず起きる。1セル＝1回の書き込みを確定点にする。
+          var vipState   = parseVipCheckinCell_(vipChkR[tokChkIdx], vipChkR[cntChkIdx]);
+          var cntChk     = vipState.count;
+          var vipTokList = vipState.tokens;
+          var vipReplay  = !!(ciToken && vipTokList.indexOf(ciToken) >= 0);
+
+          if (!vipReplay) {
+            // VIPは1テーブル=1QRを同席者で共有し、受付が各人をスキャンして頭数を積む運用。
+            // よってスキャン毎に+1する（arrivedで加算を止めない）。再送だけをトークンで止める。
+            cntChk = cntChk + 1;
+            if (ciToken) {
+              vipTokList = vipTokList.concat([ciToken]);
+              // 履歴が短いと「遅延再送が届くまでに履歴から溢れて再加算」が起きる。
+              // 1テーブルのスキャン回数の現実的上限より十分大きく取る。
+              if (vipTokList.length > 200) vipTokList = vipTokList.slice(vipTokList.length - 200);
+            }
+            // ① 正本セルを書く＝ここが確定点
+            vtsChk.getRange(vipChkRow + 1, tokChkIdx + 1).setValue(cntChk + '|' + vipTokList.join(','));
+            // ② 以下は人が読むためのミラー（落ちても①から復元できる）
+            vtsChk.getRange(vipChkRow + 1, cntChkIdx + 1).setValue(cntChk);
+            vtsChk.getRange(vipChkRow + 1, arrChkIdx + 1).setValue('TRUE');
+            SpreadsheetApp.flush();
+          } else {
+            // 再送(replay)のとき：前回どこまで書けたか分からないので、
+            // ミラーは1列ずつ独立に正本と突き合わせて直す。
+            // （checked_count だけ見て直す作りだと、count は書けたが arrived で落ちた行が永久に空のまま残る）
+            var vipRepaired = false;
+            if (Number(vipChkR[cntChkIdx] || 0) !== cntChk) {
+              vtsChk.getRange(vipChkRow + 1, cntChkIdx + 1).setValue(cntChk);
+              vipRepaired = true;
+            }
+            if (cntChk > 0 && String(vipChkR[arrChkIdx] || '').toUpperCase() !== 'TRUE') {
+              vtsChk.getRange(vipChkRow + 1, arrChkIdx + 1).setValue('TRUE');
+              vipRepaired = true;
+            }
+            if (vipRepaired) SpreadsheetApp.flush();
+          }
+
           return res({
-            ok: true, status: 'checked_in',
-            name:           String(vipChkR[vtChkH.indexOf('reserved_by')]     || ''),
+            ok: true, status: 'checked_in', replay: vipReplay,
+            guest_id:       ciGuestId,
+            name:           String(vipChkR[vtChkH.indexOf('reserved_by')] || ''),
             gender:         '',
             invited_by:     '',
             pay_type:       'paid',
-            amount:         Number(vipChkR[vtChkH.indexOf('price')]           || 0),
+            amount:         Number(vipChkR[vtChkH.indexOf('price')] || 0),
             payment_method: String(vipChkR[vtChkH.indexOf('payment_method')] || ''),
             vip_info: {
               table_name:    String(vipChkR[vtChkH.indexOf('table_name')] || ''),
@@ -1200,11 +1284,13 @@ function doPost(e) {
               is_over:       capChk > 0 && cntChk > capChk
             }
           });
-          } finally { try { vipLock.releaseLock(); } catch (eVipUl) {} }
         }
 
-        // 通常ゲスト: guests + guests_archive 両方を検索
-        function findGuestRow(sheetName) {
+        // ── 通常ゲスト: guests → guests_archive の順に検索 ──
+        // event_id が指定されていれば (event_id, guest_id) の完全一致を優先する。
+        // guest_id だけで引くと、別イベントの古いQRをかざされたときに
+        // そのイベントの行を黙って入場済みにしてしまう。
+        function findGuestRow(sheetName, requireEvent) {
           var s = sheet(sheetName);
           if (!s) return null;
           var lastRow = s.getLastRow();
@@ -1214,16 +1300,36 @@ function doPost(e) {
           var headers = rows[0].map(function(h){ return String(h).trim(); });
           function ci(h){ return headers.indexOf(h); }
           var gCol = ci('guest_id');
+          var eCol = ci('event_id');
           for (var i = 1; i < rows.length; i++) {
-            if (String(rows[i][gCol]) === String(body.guest_id)) {
-              return { sheet: s, rows: rows, headers: headers, rowNum: i+1, row: rows[i], ci: ci };
-            }
+            if (String(rows[i][gCol]) !== ciGuestId) continue;
+            if (requireEvent && eCol >= 0 && String(rows[i][eCol]) !== ciEventId) continue;
+            return { sheet: s, sheetName: sheetName, rows: rows, headers: headers,
+                     rowNum: i + 1, row: rows[i], ci: ci,
+                     event_id: eCol >= 0 ? String(rows[i][eCol]) : '' };
           }
           return null;
         }
 
-        var found = findGuestRow('guests') || findGuestRow('guests_archive');
-        if (!found) return res({ ok: false, status: 'not_found', message: '登録が見つかりません' });
+        var found = null;
+        if (ciEventId) {
+          found = findGuestRow('guests', true) || findGuestRow('guests_archive', true);
+        }
+        if (!found) {
+          var loose = findGuestRow('guests', false) || findGuestRow('guests_archive', false);
+          if (!loose) return res({ ok: false, status: 'not_found', message: '登録が見つかりません' });
+          // guest_id は実在するが、受付中のイベントとは別イベントの申込
+          if (ciEventId && loose.event_id && loose.event_id !== ciEventId) {
+            return res({
+              ok: false, status: 'wrong_event',
+              message: '別イベントのQRコードです',
+              guest_id: ciGuestId,
+              name: loose.row[loose.ci('name')] || '',
+              guest_event_id: loose.event_id
+            });
+          }
+          found = loose;
+        }
 
         var r = found.row, ci = found.ci, s = found.sheet, rowNum = found.rowNum;
         var gName    = r[ci('name')]           || '';
@@ -1237,78 +1343,77 @@ function doPost(e) {
         var gStaffNote = ci('staff_note')      >= 0 ? String(r[ci('staff_note')]      || '') : '';
         var gActualPT  = ci('actual_pay_type') >= 0 ? String(r[ci('actual_pay_type')] || '') : '';
 
-        // 入場済み（備考・種別訂正の既存値も返し、結果画面で再編集できるようにする）
-        if (gArrived) return res({
-          ok: false, status: 'duplicate', message: '入場済みです',
-          guest_id: String(body.guest_id),
-          name: gName, gender: gGender, invited_by: gInvBy,
-          pay_type: gPayType, amount: gAmount, payment_method: gPayMeth,
-          staff_note: gStaffNote, actual_pay_type: gActualPT
-        });
+        // 冪等キー列を確保（ロック内・ヘッダーは追加後に取り直す）
+        var ciTokIdx  = ensureCol_(s, 'checkin_token');
+        var gCiToken  = String(s.getRange(rowNum, ciTokIdx + 1).getValue() || '');
 
-        // 当日払い未決済（payment_methodが指定されていない場合）
+        // 既に入場済み
+        if (gArrived) {
+          // 保存済みトークンが今回と同じ＝「自分が投げた要求の応答が届かず再送された」
+          // → 二重来場ではないので、初回と同じ成功応答を返して画面と実態を一致させる。
+          if (ciToken && gCiToken === ciToken) {
+            return res({
+              ok: true, status: 'checked_in', replay: true,
+              guest_id: ciGuestId,
+              name: gName, gender: gGender, invited_by: gInvBy,
+              pay_type: gPayType, amount: gAmount, payment_method: gPayMeth,
+              staff_note: gStaffNote, actual_pay_type: gActualPT,
+              vip_info: null
+            });
+          }
+          return res({
+            ok: false, status: 'duplicate', message: '入場済みです',
+            guest_id: ciGuestId,
+            name: gName, gender: gGender, invited_by: gInvBy,
+            pay_type: gPayType, amount: gAmount, payment_method: gPayMeth,
+            staff_note: gStaffNote, actual_pay_type: gActualPT
+          });
+        }
+
+        // 当日払い未決済（payment_methodが指定されていない場合）＝まだ書き込まない
         if (gPayType === 'paid' && !gPayConf && !payMethod) return res({
           ok: false, status: 'payment_required',
+          guest_id: ciGuestId,
           name: gName, gender: gGender, invited_by: gInvBy,
           pay_type: gPayType, amount: gAmount
         });
 
-        // チェックイン処理（一括セット）
+        // チェックイン確定。
+        // 【書き込み順序が仕様】setValue は個別のセル書き込みでトランザクションではないため、
+        // 途中で落ちたときにどこまで書けているかで結果が変わる。
+        // そこで「replay判定に必要なもの（トークン）→ 付随情報 → arrived」の順にし、
+        // 最後の arrived=TRUE を確定点にする。
+        //   ・arrived の手前で落ちた → 再送時は未入場として普通にやり直す（同じ値を書く）
+        //   ・arrived まで書けた     → トークンは既に在るので再送は replay になる
+        // どちらでも二重計上にならない。
+        // （離れた列をまとめて setValues すると範囲内の他列を古い値で巻き戻すため使わない）
         var now = nowStr();
+        if (ciToken) s.getRange(rowNum, ciTokIdx + 1).setValue(ciToken);
         if (payMethod) {
-          if (ci('payment_method') >= 0) s.getRange(rowNum, ci('payment_method')+1).setValue(payMethod);
-          s.getRange(rowNum, ci('pay_confirmed')+1).setValue('TRUE');
+          if (ci('payment_method') >= 0) s.getRange(rowNum, ci('payment_method') + 1).setValue(payMethod);
+          s.getRange(rowNum, ci('pay_confirmed') + 1).setValue('TRUE');
         }
-        s.getRange(rowNum, ci('arrived')+1).setValue('TRUE');
-        s.getRange(rowNum, ci('arrived_at')+1).setValue(now);
+        s.getRange(rowNum, ci('arrived_at') + 1).setValue(now);
+        s.getRange(rowNum, ci('arrived') + 1).setValue('TRUE');   // ← 確定点
         SpreadsheetApp.flush();
 
-        // VIPテーブル判定
-        var vipInfo = null;
-        if (String(body.guest_id).indexOf('VIP-') === 0) {
-          var vtsCI = sheet('vip_tables');
-          if (vtsCI) {
-            var vtCIRows = vtsCI.getRange(1,1,vtsCI.getLastRow(),vtsCI.getLastColumn()).getValues();
-            var vtCIH = vtCIRows[0].map(function(c){ return String(c).trim(); });
-            var gidCIIdx = vtCIH.indexOf('guest_id');
-            var capCIIdx = vtCIH.indexOf('capacity');
-            var cntCIIdx = vtCIH.indexOf('checked_count');
-            var tnCIIdx  = vtCIH.indexOf('table_name');
-            var ttCIIdx  = vtCIH.indexOf('table_type');
-            for (var vi=1; vi<vtCIRows.length; vi++) {
-              if (String(vtCIRows[vi][gidCIIdx]) === guestId) {
-                var capCI  = Number(vtCIRows[vi][capCIIdx] || 0);
-                var cntCI  = Number(vtCIRows[vi][cntCIIdx] || 0) + 1;
-                // checked_count列がなければ追加
-                if (cntCIIdx < 0) {
-                  vtsCI.getRange(1, vtsCI.getLastColumn()+1).setValue('checked_count');
-                  cntCIIdx = vtsCI.getLastColumn() - 1;
-                  SpreadsheetApp.flush();
-                }
-                vtsCI.getRange(vi+1, cntCIIdx+1).setValue(cntCI);
-                SpreadsheetApp.flush();
-                vipInfo = {
-                  table_name:    String(vtCIRows[vi][tnCIIdx] || ''),
-                  table_type:    String(vtCIRows[vi][ttCIIdx] || ''),
-                  capacity:      capCI,
-                  checked_count: cntCI,
-                  is_over:       capCI > 0 && cntCI > capCI
-                };
-                break;
-              }
-            }
-          }
-        }
-
         return res({
-          ok: true, status: 'checked_in',
-          guest_id: String(body.guest_id),
+          ok: true, status: 'checked_in', replay: false,
+          guest_id: ciGuestId,
           name: gName, gender: gGender, invited_by: gInvBy,
           pay_type: gPayType, amount: gAmount,
           payment_method: payMethod || gPayMeth,
           staff_note: gStaffNote, actual_pay_type: gActualPT,
-          vip_info: vipInfo
+          vip_info: null
         });
+
+        } catch (eCi) {
+          // 途中で落ちた＝「書けたのか書けていないのか分からない」状態。
+          // doPost の外側catchに任せると ok:false のただのエラーになり、フロントが再送してくれない。
+          // retryable を立てて、同じトークンでの再送＝結果照会に持ち込む。
+          return res({ ok: false, status: 'internal_error', retryable: true,
+                       message: 'サーバ側で処理が中断しました: ' + (eCi && eCi.message ? eCi.message : eCi) });
+        } finally { try { ciLock.releaseLock(); } catch (eCiUl) {} }
       }
 
       // ── 来場後の登録内容修正（支払まわり：区分/支払方法/金額）──
@@ -2038,11 +2143,33 @@ function doPost(e) {
           archSheet.appendRow(srcRows[0]);
         }
 
+        // アーカイブ先はヘッダー名で突き合わせて貼る。
+        // guests に後から列が増える（checkin_token 等）と、位置合わせのまま貼った瞬間に
+        // guests_archive のヘッダーとデータが1列ずつずれ、以後の検索が壊れる。
+        var archHdr = archSheet.getRange(1, 1, 1, Math.max(archSheet.getLastColumn(), 1))
+                               .getValues()[0].map(function(h){ return String(h).trim(); });
+        for (var ah = 0; ah < srcHeaders.length; ah++) {
+          if (srcHeaders[ah] && archHdr.indexOf(srcHeaders[ah]) < 0) {
+            archHdr.push(srcHeaders[ah]);
+            archSheet.getRange(1, archHdr.length).setValue(srcHeaders[ah]);
+          }
+        }
+        SpreadsheetApp.flush();
+        var archMapped = [];
+        for (var am = 0; am < toArchive.length; am++) {
+          var outRow = [];
+          for (var oc = 0; oc < archHdr.length; oc++) outRow.push('');
+          for (var sc = 0; sc < srcHeaders.length; sc++) {
+            var tgt = archHdr.indexOf(srcHeaders[sc]);
+            if (tgt >= 0) outRow[tgt] = toArchive[am][sc];
+          }
+          archMapped.push(outRow);
+        }
         // 「一括書き込み」アーカイブ先に全行まとめて追記
         archSheet.getRange(
           archSheet.getLastRow() + 1, 1,
-          toArchive.length, srcRows[0].length
-        ).setValues(toArchive);
+          archMapped.length, archHdr.length
+        ).setValues(archMapped);
 
         // 「一括書き込み」guestsシートをヘッダー+残行で丸ごと書き直し
         srcSheet.clearContents();
