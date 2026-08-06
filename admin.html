@@ -1903,23 +1903,24 @@ async function init() {
     sessionStorage.setItem('lpt_migrated', '1');
   }
 
-  // ── STEP1: イベント一覧を取得 ──────────────────────
-  const [evResult, puResult] = await Promise.all([
-    apiGet({ action: 'getEvents' }),
-    apiGet({ action: 'getPromoUrls' })
-  ]);
-  allEvents    = evResult.events || [];
-  allPromoUrls = puResult.urls   || [];
+  // ── STEP1: イベント一覧だけ先に取得して即表示（クリティカルパス最短化）──
+  // GASは executeAs=USER_DEPLOYING で同時実行が直列化されるため、
+  // 表示に必須な getEvents のみ await し、他はバックグラウンドに回す。
+  const evResult = await apiGet({ action: 'getEvents' });
+  allEvents = evResult.events || [];
   populateEventSelectors();
-  renderEventGrid();
+  renderEventGrid();   // この時点では指定URLは空（下で取得後に再描画）
 
-  // ── STEP2: 最新イベントのゲストをバックグラウンドで先読み ──
-  // → ユーザーがタブを開いた時には既にキャッシュに入っている
+  // ── STEP2: 指定URLはバックグラウンド取得→到着したら再描画（冪等）──
+  apiGet({ action: 'getPromoUrls' }).then(function(pu) {
+    allPromoUrls = pu.urls || [];
+    renderEventGrid();
+  }).catch(function(){});
+
+  // ── STEP3: 最新イベントのゲストをバックグラウンドで先読み ──
   const sorted = sortedEvents();
   if (sorted.length > 0) {
-    const latestId = sorted[0].event_id;
-    // バックグラウンドで先読み（awaitしない）
-    prefetchGuests(latestId);
+    prefetchGuests(sorted[0].event_id);   // awaitしない
   }
 }
 
@@ -3185,9 +3186,6 @@ document.querySelectorAll('.modal-overlay').forEach(o =>
 );
 
 window.addEventListener('load', async () => {
-  // GASを暖機（ログイン前から）
-  fetch(API + '?action=ping').catch(() => {});
-
   // 単発決済から戻った場合の復元処理
   const urlParams   = new URLSearchParams(location.search);
   const chargeResult = urlParams.get('charge'); // 'success' or 'cancel' or null
@@ -3215,11 +3213,11 @@ window.addEventListener('load', async () => {
   // セッションキャッシュ確認 → 自動ログイン
   const cached = sessionStorage.getItem('lpt_auth');
   if (cached) {
-    const d = await apiGet({ action: 'auth', password: cached });
-    if (d.ok) {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app').style.display          = 'block';
-      await init();
+    // 楽観表示：cachedパスワードがある＝本人のセッションなので、即appを表示してinitを開始。
+    // authは待たずバックグラウンド検証し、失敗時のみログアウト（auth往復をクリティカルパスから除去）。
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display          = 'block';
+    init().then(function() {
       // 単発決済から戻った場合: 単発決済タブを開いて履歴を表示
       if (isChargeReturn || chargeResult) {
         showTab('charge');
@@ -3227,10 +3225,12 @@ window.addEventListener('load', async () => {
         if (chargeResult === 'success') toast('✅ 決済が完了しました');
         if (chargeResult === 'cancel')  toast('⚠️ 決済をキャンセルしました');
       }
-      return;
-    } else {
-      sessionStorage.removeItem('lpt_auth');
-    }
+    });
+    // バックグラウンドで認証検証（失敗＝パスワード変更等なら破棄して再ログイン）
+    apiGet({ action: 'auth', password: cached }).then(function(d) {
+      if (!d.ok) { sessionStorage.removeItem('lpt_auth'); location.reload(); }
+    }).catch(function(){});
+    return;
   }
 });
 
