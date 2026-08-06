@@ -323,10 +323,8 @@ window.addEventListener('load', async () => {
   const planId=params.get('plan')||''; // プランID
   if(!eventId){showError('URLにイベントIDが含まれていません');return;}
   try {
-    const [data] = await Promise.all([
-      apiGet({action:'getEvents'}),
-      fetch(API+'?action=ping').catch(()=>{})
-    ]);
+    // 暖機pingは廃止（GAS側の自己ウォームアップでdoGetは常時温いため不要）。getEventsのみで即取得。
+    const data = await apiGet({action:'getEvents'});
     const ev=(data.events||[]).find(e=>e.event_id===eventId);
     if(!ev){showError('イベントが見つかりません');return;}
     if(String(ev.status)==='closed'){showError('このイベントの受付は終了しました');return;}
