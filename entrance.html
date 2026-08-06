@@ -1217,7 +1217,7 @@ function logout() {
 
 // ── 初期化 ───────────────────────────────────────────
 async function init() {
-  fetch(API + '?action=ping').catch(() => {});
+  // 暖機pingは削除（auth/getEventsが起動を兼ねる）。getEventsのみawaitで即表示。
   const evResult = await apiGet({ action: 'getEvents' });
   allEvents = evResult.events || [];
   populateEventSelectors();
@@ -2313,9 +2313,6 @@ document.querySelectorAll('.modal-overlay').forEach(o =>
 );
 
 window.addEventListener('load', async () => {
-  // GASを暖機（ログイン前から）
-  fetch(API + '?action=ping').catch(() => {});
-
   // 単発決済から戻った場合の復元処理
   const urlParams   = new URLSearchParams(location.search);
   const chargeResult = urlParams.get('charge'); // 'success' or 'cancel' or null
@@ -2343,11 +2340,11 @@ window.addEventListener('load', async () => {
   // セッションキャッシュ確認 → 自動ログイン
   const cached = sessionStorage.getItem('lpt_auth');
   if (cached) {
-    const d = await apiGet({ action: 'auth', password: cached, mode: 'entrance' });
-    if (d.ok && d.role === 'entrance') {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app').style.display          = 'block';
-      await init();
+    // 楽観表示：cachedパスワードは本人セッション。即appを表示しinit開始、
+    // authは裏で検証し、失敗/role不一致のみログアウト（auth往復をクリティカルパスから除去）。
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display          = 'block';
+    init().then(function() {
       showTab('scan');
       // 単発決済から戻った場合: 単発決済タブを開いて履歴を表示
       if (isChargeReturn || chargeResult) {
@@ -2356,10 +2353,11 @@ window.addEventListener('load', async () => {
         if (chargeResult === 'success') toast('✅ 決済が完了しました');
         if (chargeResult === 'cancel')  toast('⚠️ 決済をキャンセルしました');
       }
-      return;
-    } else {
-      sessionStorage.removeItem('lpt_auth');
-    }
+    });
+    apiGet({ action: 'auth', password: cached, mode: 'entrance' }).then(function(d) {
+      if (!d.ok || d.role !== 'entrance') { sessionStorage.removeItem('lpt_auth'); location.reload(); }
+    }).catch(function(){});
+    return;
   }
 });
 
