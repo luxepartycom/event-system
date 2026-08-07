@@ -2255,13 +2255,19 @@ function showCamOverlay(d, status) {
         vipElE.style.background = 'rgba(207,68,68,0.15)';
         vipElE.style.border = '1px solid rgba(207,68,68,0.5)';
         vipElE.style.color = '#FF6666';
-        vipElE.innerHTML = '⚠️ ' + v.table_name + ' / ' + v.table_type + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong> — 定員超過';
+        vipElE.innerHTML =
+          '<div style="font-family:\'Hiragino Mincho ProN\',\'Yu Mincho\',serif;font-size:1.3rem;line-height:1.25;">⚠️ ' + escH(v.table_name) + '</div>' +
+          '<div style="font-size:0.62rem;opacity:0.85;margin-top:2px;">' + escH(v.table_type) + '</div>' +
+          '<div style="font-size:0.95rem;font-weight:700;margin-top:6px;">' + v.checked_count + ' / ' + v.capacity + '名 — 定員超過</div>';
         document.getElementById('cam-ok-icon').textContent = '⚠️';
       } else {
         vipElE.style.background = 'rgba(201,168,76,0.1)';
         vipElE.style.border = '1px solid rgba(201,168,76,0.3)';
         vipElE.style.color = '#C9A84C';
-        vipElE.innerHTML = '✦ ' + v.table_name + ' / ' + v.table_type + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong>';
+        vipElE.innerHTML =
+          '<div style="font-family:\'Hiragino Mincho ProN\',\'Yu Mincho\',serif;font-size:1.3rem;line-height:1.25;">✦ ' + escH(v.table_name) + '</div>' +
+          '<div style="font-size:0.62rem;opacity:0.85;margin-top:2px;">' + escH(v.table_type) + '</div>' +
+          '<div style="font-size:0.95rem;font-weight:700;margin-top:6px;">' + v.checked_count + ' / ' + v.capacity + '名</div>';
       }
     } else {
       if (vipElE) vipElE.style.display = 'none';
