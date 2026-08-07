@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="robots" content="noindex,nofollow">
+<title>LUXE PARTY TOKYO — ご招待</title>
+<style>
+:root{
+  --gold:#C9A84C;--gold-light:#E8D08A;--gold-dim:#7a6230;
+  --black:#080808;--dark:#111111;--dark2:#191919;
+  --white:#F5F0E8;--gray:#888880;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--black);color:var(--white);font-family:-apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif;font-weight:300;min-height:100vh;padding:0 20px 60px;}
+.wrap{max-width:520px;margin:0 auto;}
+header{text-align:center;padding:48px 0 28px;}
+.logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.5rem;color:var(--gold);letter-spacing:0.4em;margin-bottom:8px;}
+.logo-sub{font-size:0.52rem;letter-spacing:0.35em;color:var(--gray);text-transform:uppercase;}
+.by{margin:26px auto 0;max-width:420px;border:1px solid rgba(201,168,76,0.3);background:rgba(201,168,76,0.06);padding:16px 18px;}
+.by-label{font-size:0.5rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin-bottom:8px;}
+.by-name{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.15rem;color:var(--gold-light);letter-spacing:0.08em;word-break:break-word;}
+.sec-title{font-size:0.52rem;letter-spacing:0.3em;color:var(--gray);text-transform:uppercase;margin:38px 0 14px;text-align:center;}
+.ev{border:1px solid rgba(255,255,255,0.1);background:var(--dark);margin-bottom:20px;}
+.ev-head{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.ev-name{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.05rem;color:var(--gold);line-height:1.5;margin-bottom:6px;}
+.ev-date{font-size:0.7rem;color:var(--gray);letter-spacing:0.08em;}
+.ev-body{padding:16px 20px 20px;display:flex;flex-direction:column;gap:10px;}
+.btn{display:block;text-align:center;text-decoration:none;padding:16px 12px;font-size:0.74rem;letter-spacing:0.14em;transition:opacity .25s;}
+.btn:active{opacity:.7;}
+.btn-entry{background:var(--white);color:var(--black);font-weight:600;}
+.btn-vip{background:transparent;color:var(--gold);border:1px solid var(--gold);}
+.btn-note{font-size:0.56rem;color:var(--gray);text-align:center;letter-spacing:0.06em;margin-top:-2px;}
+.msg{text-align:center;color:var(--gray);font-size:0.75rem;line-height:2;padding:40px 0;}
+.err{color:#FF9A9A;}
+footer{text-align:center;margin-top:44px;font-size:0.55rem;color:var(--gold-dim);letter-spacing:0.2em;}
+.spin{display:inline-block;width:22px;height:22px;border:2px solid rgba(201,168,76,0.25);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">LUXE PARTY TOKYO</div>
+    <div class="logo-sub">Invitation</div>
+    <div class="by" id="by" style="display:none;">
+      <div class="by-label">Introduced by</div>
+      <div class="by-name" id="by-name"></div>
+    </div>
+  </header>
+
+  <div id="content">
+    <div class="msg"><span class="spin"></span></div>
+  </div>
+
+  <footer>LUXE PARTY TOKYO</footer>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  プロモーター専用ページ
+//  URL例: /promoter.html?p=山田太郎
+//         /promoter.html?p=山田太郎&e=EV-XXXXXXX   （1イベントだけ出す場合）
+//
+//  このページから辿った申込は、一般・VIPとも ?promoter= が付くため
+//  スプレッドシートの invited_by に自動記録される。
+//  プロモーターごとにページを作る必要はなく、URLの p= を変えるだけでよい。
+// ═══════════════════════════════════════════════════════════
+const _PROD_API = 'https://script.google.com/macros/s/AKfycbwlEtY2RZahMNrr6d5cYIcG8p3sXtNDh7_uC-79hC2G4H87Vy9k_cp_yFywmNc1Ogfe/exec';
+const _STG_API  = 'https://script.google.com/macros/s/AKfycbwYH2RFU4G2RYF6XyYn9-kv5CPSoNREKj52N5-WnKLn7kIAE3KFaEK0Ubn0OQQdvlDJ/exec';
+const API = /localhost|\.vercel\.app/.test(location.hostname) ? _STG_API : _PROD_API;
+
+const params   = new URLSearchParams(location.search);
+// p= を正とし、promoter= でも受け付ける（配布済みURLの表記ゆれ対策）
+const PROMOTER = (params.get('p') || params.get('promoter') || '').trim();
+const ONLY_EV  = (params.get('e') || '').trim();
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function fmtDate(v){
+  if(!v) return '';
+  const d = new Date(v);
+  if(isNaN(d.getTime())) return String(v);
+  const w = ['日','月','火','水','木','金','土'][d.getDay()];
+  return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0') + '（' + w + '）';
+}
+
+// 申込URLを組み立てる。promoter は必ず付ける＝この経路の申込は全てこのプロモーターに帰属する。
+function linkEntry(evId){
+  return 'index.html?e=' + encodeURIComponent(evId) + '&type=paid'
+       + (PROMOTER ? '&promoter=' + encodeURIComponent(PROMOTER) : '');
+}
+function linkVip(evId){
+  return 'vip-plan.html?e=' + encodeURIComponent(evId)
+       + (PROMOTER ? '&promoter=' + encodeURIComponent(PROMOTER) : '');
+}
+
+function show(html){ document.getElementById('content').innerHTML = html; }
+
+window.addEventListener('load', async () => {
+  if (PROMOTER) {
+    document.getElementById('by-name').textContent = PROMOTER;
+    document.getElementById('by').style.display = 'block';
+  }
+
+  let events = [];
+  try {
+    const r = await fetch(API + '?action=getEvents');
+    const txt = await r.text();
+    let d;
+    try { d = JSON.parse(txt); }
+    catch(e){ throw new Error('応答が不正です'); }
+    events = (d.events || []);
+  } catch (e) {
+    show('<div class="msg err">イベント情報を取得できませんでした。<br>通信環境をご確認のうえ、再読み込みしてください。</div>');
+    return;
+  }
+
+  // 受付中のみ。e= 指定があればそれだけに絞る。
+  let list = events.filter(ev => String(ev.status) !== 'closed');
+  if (ONLY_EV) list = list.filter(ev => String(ev.event_id) === ONLY_EV);
+  // 開催日の近い順
+  list.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  if (!list.length) {
+    show('<div class="msg">現在ご案内できるイベントはございません。<br>次回開催をお待ちください。</div>');
+    return;
+  }
+
+  show(
+    '<div class="sec-title">Upcoming Events</div>' +
+    list.map(ev =>
+      '<div class="ev">' +
+        '<div class="ev-head">' +
+          '<div class="ev-name">' + esc(ev.name) + '</div>' +
+          '<div class="ev-date">' + esc(fmtDate(ev.date)) + '</div>' +
+        '</div>' +
+        '<div class="ev-body">' +
+          '<a class="btn btn-entry" href="' + esc(linkEntry(ev.event_id)) + '">入場チケットを申し込む</a>' +
+          '<a class="btn btn-vip"   href="' + esc(linkVip(ev.event_id))   + '">VIPテーブルを申し込む</a>' +
+          '<div class="btn-note">お申し込みは各ページよりお進みください</div>' +
+        '</div>' +
+      '</div>'
+    ).join('')
+  );
+});
+</script>
+</body>
+</html>

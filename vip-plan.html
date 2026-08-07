@@ -645,6 +645,17 @@ const VERCEL  = 'https://event-system-kappa.vercel.app/api/checkout';
 const params    = new URLSearchParams(location.search);
 const EVENT_ID  = params.get('e') || '';
 const PAY_FIXED = params.get('pay') || null;
+// プロモーター専用URL（?promoter=◯◯）。指定時は紹介者を固定し、お客様には入力欄を見せない。
+// 入場チケット(index.html)と同じ挙動に揃えている。
+const PROMOTER  = (params.get('promoter') || '').trim();
+function applyFixedPromoter() {
+  if (!PROMOTER) return;
+  const inp = document.getElementById('inp-promoter');
+  if (!inp) return;
+  inp.value = PROMOTER;
+  const grp = inp.closest('.form-group');
+  if (grp) grp.style.display = 'none';
+}
 
 // ===== 動的スタイル基盤 =====
 // table_type は毎回自由に作られるため、固定表に依存せず取得データから
@@ -1018,6 +1029,8 @@ function openModal(plan) {
   ['inp-name','inp-email','inp-phone','inp-promoter'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  // ↑のリセットで紹介者も消えるため、プロモーター固定URLの場合はここで必ず入れ直す
+  applyFixedPromoter();
   // 利用規約リセット
   vipTermsAgreed = false;
   document.getElementById('vip-terms-checkbox').classList.remove('checked');
