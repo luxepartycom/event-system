@@ -338,6 +338,7 @@ const RANK_KEYS = ['Secret VIP', 'VVIP', 'GOLD VIP', 'Diamond VIP'];
 let selectedRank = null;
 let selectedPay = 'stripe';
 let vipTables = [];
+let VIP_PROMOTER = '';
 let payFixed = null; // URLパラメータで固定された支払い方法
 
 async function apiPost(b){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)});return r.json();}
@@ -352,6 +353,9 @@ window.addEventListener('load', async () => {
   const params = new URLSearchParams(location.search);
   const eventId = params.get('e') || '';
   payFixed = params.get('pay') || null; // 'stripe' | 'transfer' | null
+  // プロモーター専用URL（?promoter=◯◯）。指定時はその紹介者に固定して申込へ渡す。
+  // 従来ここは invited_by:'' 固定で、VIP経由の紹介者が一切記録されていなかった。
+  VIP_PROMOTER = (params.get('promoter') || '').trim();
 
   // 支払い方法固定の設定
   if (payFixed === 'stripe' || payFixed === 'transfer') {
@@ -481,6 +485,7 @@ async function submitReservation() {
       rank_type: selectedRank,
       event_id: eventId,
       name, email, phone,
+      invited_by: VIP_PROMOTER,
       payment_method: selectedPay
     });
 
@@ -502,7 +507,7 @@ async function submitReservation() {
           event_name: 'LUXE PARTY TOKYO VIP - ' + selectedRank,
           name, email,
           gender: 'male',
-          invited_by: '',
+          invited_by: VIP_PROMOTER,
           amount: d.price || info.minPrice,
           plan_id: '',
           cancel_url: location.href
