@@ -1184,9 +1184,17 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   <!-- フロアマップ + テーブル一覧 -->
   <div id="vip-content" style="display:none;">
 
+    <!-- 予約一覧 -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;"><div style="font-size:0.55rem;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;">📋 予約一覧</div><button class="copy-btn" style="font-size:0.55rem;padding:6px 14px;" onclick="refreshVipReservations(this)">↻ 更新</button></div>
+      <div id="vip-reservation-list">
+        <div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">予約データを読み込み中...</div>
+      </div>
+    </div>
+
     <!-- 座席画像 -->
     <div style="margin-bottom:24px;">
-      <div style="font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);margin-bottom:10px;text-transform:uppercase;">座席表（座席画像）</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;"><div style="font-size:0.48rem;letter-spacing:0.2em;color:var(--gray);text-transform:uppercase;">座席表（座席画像）</div><button class="copy-btn" style="font-size:0.55rem;padding:6px 14px;" onclick="refreshVipSeat(this)">↻ 更新</button></div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
         <input class="form-input" id="vip-seat-url" placeholder="座席画像のURL（Google Drive 共有URL可）" style="flex:1;min-width:240px;">
         <button class="copy-btn" style="font-size:0.6rem;padding:8px 18px;" onclick="saveVipSeatImageUrl(this)">保存</button>
@@ -1199,7 +1207,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 
     <!-- テーブル管理 -->
     <div style="margin-bottom:24px;">
-      <div style="font-size:0.55rem;letter-spacing:0.2em;color:var(--gold);margin-bottom:12px;text-transform:uppercase;">🪑 テーブル一覧</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;"><div style="font-size:0.55rem;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;">🪑 テーブル一覧</div><button class="copy-btn" style="font-size:0.55rem;padding:6px 14px;" onclick="refreshVipTables(this)">↻ 更新</button></div>
 
       <!-- 前回イベントから複製 -->
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
@@ -1296,14 +1304,6 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       </div>
       <div id="vip-reg-error" style="display:none;font-size:0.62rem;color:#CF4444;margin-bottom:12px;padding:10px;background:rgba(207,68,68,0.1);border:1px solid rgba(207,68,68,0.3);"></div>
       <button class="btn-confirm" id="vip-reg-submit" style="width:100%;" onclick="submitVipRegistration()">📨 メールを送信して登録</button>
-    </div>
-
-    <!-- 予約一覧 -->
-    <div>
-      <div style="font-size:0.55rem;letter-spacing:0.2em;color:var(--gold);margin-bottom:12px;text-transform:uppercase;">📋 予約一覧</div>
-      <div id="vip-reservation-list">
-        <div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">予約データを読み込み中...</div>
-      </div>
     </div>
   </div>
 </div>
@@ -3149,13 +3149,21 @@ function showCamOverlay(d, status) {
         vipEl.style.background = 'rgba(207,68,68,0.15)';
         vipEl.style.border = '1px solid rgba(207,68,68,0.5)';
         vipEl.style.color = '#FF6666';
-        vipEl.innerHTML = '⚠️ ' + escH(v.table_name) + ' / ' + escH(v.table_type) + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong><br>上限超過 — 追加料金 ¥50,000 が発生します';
+        // 受付が最初に見るのは「どの卓か」。名前と同じ 1.3rem で主役に置く。
+        vipEl.innerHTML =
+          '<div style="font-family:\'Hiragino Mincho ProN\',\'Yu Mincho\',serif;font-size:1.3rem;line-height:1.25;">⚠️ ' + escH(v.table_name) + '</div>' +
+          '<div style="font-size:0.62rem;opacity:0.85;margin-top:2px;">' + escH(v.table_type) + '</div>' +
+          '<div style="font-size:0.95rem;font-weight:700;margin-top:6px;">' + v.checked_count + ' / ' + v.capacity + '名</div>' +
+          '<div style="font-size:0.6rem;margin-top:4px;">上限超過 — 追加料金 ¥50,000 が発生します</div>';
         document.getElementById('cam-ok-icon').textContent = '⚠️';
       } else {
         vipEl.style.background = 'rgba(201,168,76,0.1)';
         vipEl.style.border = '1px solid rgba(201,168,76,0.3)';
         vipEl.style.color = '#C9A84C';
-        vipEl.innerHTML = '✦ ' + escH(v.table_name) + ' / ' + escH(v.table_type) + '<br><strong style="font-size:0.9rem;">' + v.checked_count + ' / ' + v.capacity + '名</strong>';
+        vipEl.innerHTML =
+          '<div style="font-family:\'Hiragino Mincho ProN\',\'Yu Mincho\',serif;font-size:1.3rem;line-height:1.25;">✦ ' + escH(v.table_name) + '</div>' +
+          '<div style="font-size:0.62rem;opacity:0.85;margin-top:2px;">' + escH(v.table_type) + '</div>' +
+          '<div style="font-size:0.95rem;font-weight:700;margin-top:6px;">' + v.checked_count + ' / ' + v.capacity + '名</div>';
       }
     } else {
       if (vipEl) vipEl.style.display = 'none';
@@ -5190,22 +5198,18 @@ async function onVipEventChange() {
   const content = document.getElementById('vip-content');
   if (!vipEventId) { if(content) content.style.display = 'none'; return; }
   if (content) content.style.display = 'block';
+  // GASのcold startで初回が数秒かかるため、取得と並行して温めておく
+  try { apiGet({ action: 'ping' }).catch(() => {}); } catch (e) {}
   await loadVipData();
 }
 
-async function loadVipData() {
-  try {
-    const [tRes, rRes] = await Promise.all([
-      apiGet({ action: 'getVipTables', event_id: vipEventId }),
-      apiGet({ action: 'getVipReservations', event_id: vipEventId })
-    ]);
-    vipTables       = (tRes && tRes.tables)       ? tRes.tables       : [];
-    vipReservations = (rRes && rRes.reservations) ? rRes.reservations : [];
-  } catch(e) {
-    console.warn('VIPデータ取得エラー:', e);
-    vipTables       = [];
-    vipReservations = [];
-  }
+// ── VIPデータのイベント別キャッシュ ─────────────────────────────
+// GASの往復は実測で数秒かかる。タブを開き直すたびに待たせないよう、
+// 一度取ったデータは保持して即表示し、裏で最新へ差し替える。
+const vipCache = {};        // { [eventId]: { tables, reservations, ts } }
+let vipFetching = null;     // 取得中Promise（同時呼び出しを1本に相乗り）
+
+function vipRenderAll() {
   renderVipSeatImage();
   renderVipCopySrcSelect();
   renderVipTableList();
@@ -5213,6 +5217,72 @@ async function loadVipData() {
   renderVipReservations();
   resetVipTableForm();
 }
+
+/* force=false（既定）… キャッシュがあれば即表示し、裏で最新を取り直す
+   force=true         … キャッシュを捨てて取り直す（更新ボタン） */
+async function loadVipData(force) {
+  const evId = vipEventId;
+  const cached = vipCache[evId];
+
+  if (!force && cached) {
+    vipTables       = cached.tables;      // まず手元のデータで描く（待たせない）
+    vipReservations = cached.reservations;
+    vipRenderAll();
+    refreshVipDataInBackground(evId);     // 裏で最新化
+    return;
+  }
+  await fetchVipData(evId);
+  if (evId === vipEventId) vipRenderAll();
+}
+
+async function fetchVipData(evId) {
+  if (vipFetching) return vipFetching;    // 同時呼び出しは1本にまとめる
+  vipFetching = (async () => {
+    try {
+      const [tRes, rRes] = await Promise.all([
+        apiGet({ action: 'getVipTables', event_id: evId }),
+        apiGet({ action: 'getVipReservations', event_id: evId })
+      ]);
+      const tables       = (tRes && tRes.tables)       ? tRes.tables       : [];
+      const reservations = (rRes && rRes.reservations) ? rRes.reservations : [];
+      vipCache[evId] = { tables, reservations, ts: Date.now() };
+      if (evId === vipEventId) { vipTables = tables; vipReservations = reservations; }
+    } catch (e) {
+      console.warn('VIPデータ取得エラー:', e);
+      // 取得に失敗しても手元のキャッシュは消さない（画面を空にしない）
+      if (!vipCache[evId] && evId === vipEventId) { vipTables = []; vipReservations = []; }
+      throw e;
+    } finally {
+      vipFetching = null;
+    }
+  })();
+  return vipFetching;
+}
+
+function refreshVipDataInBackground(evId) {
+  fetchVipData(evId)
+    .then(() => { if (evId === vipEventId) vipRenderAll(); })
+    .catch(() => {});   // 裏の更新が落ちても表示は壊さない
+}
+
+// ── 各セクションの「↻ 更新」ボタン ────────────────────────────
+// 中身は同じ再取得。押した場所が更新されたと分かるようボタン表示だけ切り替える。
+async function vipRefreshWith(btn, label) {
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '更新中…'; }
+  try {
+    await loadVipData(true);
+    if (btn) btn.textContent = '✓ 更新しました';
+    setTimeout(() => { if (btn) { btn.textContent = orig; btn.disabled = false; } }, 1200);
+  } catch (e) {
+    if (btn) btn.textContent = '✗ 失敗';
+    toast('❌ ' + label + 'の更新に失敗しました（' + ((e && e.message) || '通信エラー') + '）');
+    setTimeout(() => { if (btn) { btn.textContent = orig; btn.disabled = false; } }, 1600);
+  }
+}
+async function refreshVipReservations(btn) { await vipRefreshWith(btn, '予約一覧'); }
+async function refreshVipTables(btn)       { await vipRefreshWith(btn, 'テーブル一覧'); }
+async function refreshVipSeat(btn)         { await vipRefreshWith(btn, '座席表'); }
 
 // onclick属性用のJS文字列エスケープ（バックスラッシュ・シングルクォート）
 function escJs(s) {
@@ -5567,8 +5637,31 @@ async function manualVipCheckIn(guestId, guestName, btn) {
     } else {
       toast('❌ ' + (d.message || 'エラー'));
     }
-    await loadVipData();
+    // 受付は連続して押す。ここで再取得を待たせると1件ごとに数秒止まるため、
+    // サーバが返した頭数で手元を書き換えて即座に描き直し、最新化は裏で行う。
+    if (d.ok) {
+      applyVipCheckInLocally(guestId, d.vip_info);
+      renderVipTableList();
+      renderVipReservations();
+      refreshVipDataInBackground(vipEventId);
+    } else {
+      await loadVipData(true);
+    }
   });
+}
+
+// checkIn の応答を手元のVIPデータへ反映する（再取得を待たずに画面を正しくする）
+function applyVipCheckInLocally(guestId, vipInfo) {
+  const cnt = vipInfo ? vipInfo.checked_count : undefined;
+  const touch = arr => (arr || []).forEach(x => {
+    if (String(x.guest_id) !== String(guestId)) return;
+    x.arrived = 'TRUE';
+    if (cnt !== undefined) x.checked_count = cnt;
+  });
+  touch(vipTables);
+  touch(vipReservations);
+  const c = vipCache[vipEventId];
+  if (c) { touch(c.tables); touch(c.reservations); }
 }
 
 </script>
