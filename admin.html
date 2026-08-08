@@ -5355,7 +5355,12 @@ function onVipSeatImgError() {
   const img = document.getElementById('vip-seat-img');
   const ph  = document.getElementById('vip-seat-placeholder');
   if (img) img.style.display = 'none';
-  if (ph)  { ph.textContent = '画像を読み込めませんでした（URLを確認してください）'; ph.style.display = 'block'; }
+  // 読み込めない原因はほぼ「Driveの共有設定」。実際に非公開のまま設定され表示できない事例があったため、
+  // URLを疑わせるのではなく、何をすれば直るかを書く。
+  if (ph)  {
+    ph.innerHTML = '座席画像を読み込めませんでした。<br>Google Drive の共有設定を「リンクを知っている全員」にしてください。';
+    ph.style.display = 'block';
+  }
 }
 
 async function saveVipSeatImageUrl(btn) {
