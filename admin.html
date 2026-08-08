@@ -905,6 +905,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 
           <!-- 実態訂正＋備考（通常ゲストのみ表示） -->
           <div id="cam-ci-editor-ok" style="display:none;width:100%;max-width:320px;margin:14px auto 0;background:rgba(255,255,255,0.05);border:1px solid rgba(201,168,76,0.25);border-radius:6px;padding:12px;">
+            <div id="cam-inviter-warn-ok" style="display:none;background:rgba(201,168,76,0.16);border:1px solid rgba(201,168,76,0.55);border-radius:5px;padding:10px 12px;margin-bottom:10px;text-align:left;"><div style="font-size:0.78rem;font-weight:700;color:#E8D08A;line-height:1.4;">⚠️ 招待者を確認してください</div><div style="font-size:0.58rem;color:#C9A84C;line-height:1.7;margin-top:4px;">この方は申込データの復旧対象で、招待者が不明です。<br>ご本人に伺い、下の備考欄へ記入して保存してください。</div></div>
             <div style="font-size:0.6rem;letter-spacing:0.1em;color:#C9A84C;margin-bottom:8px;">実態訂正・備考</div>
             <div style="display:flex;gap:6px;margin-bottom:8px;" id="cam-ci-type-btns-ok">
               <button type="button" class="cam-ci-type" data-v=""     onclick="setCiType('ok','')">申込どおり</button>
@@ -949,6 +950,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 
           <!-- 入場済みでも実態訂正＋備考を編集可（通常ゲストのみ） -->
           <div id="cam-ci-editor-dup" style="display:none;width:100%;max-width:320px;margin:14px auto 0;background:rgba(255,255,255,0.05);border:1px solid rgba(201,168,76,0.25);border-radius:6px;padding:12px;">
+            <div id="cam-inviter-warn-dup" style="display:none;background:rgba(201,168,76,0.16);border:1px solid rgba(201,168,76,0.55);border-radius:5px;padding:10px 12px;margin-bottom:10px;text-align:left;"><div style="font-size:0.78rem;font-weight:700;color:#E8D08A;line-height:1.4;">⚠️ 招待者を確認してください</div><div style="font-size:0.58rem;color:#C9A84C;line-height:1.7;margin-top:4px;">この方は申込データの復旧対象で、招待者が不明です。<br>ご本人に伺い、下の備考欄へ記入して保存してください。</div></div>
             <div style="font-size:0.6rem;letter-spacing:0.1em;color:#C9A84C;margin-bottom:8px;">実態訂正・備考</div>
             <div style="display:flex;gap:6px;margin-bottom:8px;" id="cam-ci-type-btns-dup">
               <button type="button" class="cam-ci-type" data-v=""     onclick="setCiType('dup','')">申込どおり</button>
@@ -2923,7 +2925,8 @@ async function processCheckIn(guestId) {
       }
       if (d.status === 'duplicate') {
         ciTokenClear(guestId, eventId);
-        setScanMsg('⚠️ 入場済みです — ' + (d.name || ''), 'err');
+        setScanMsg('⚠️ 入場済みです — ' + (d.name || '') +
+          (isInviterUnknown(d) ? ' ／ 招待者を確認してください' : ''), 'err');
         showCamOverlay(d, 'duplicate');
         return;
       }
@@ -2942,8 +2945,12 @@ async function processCheckIn(guestId) {
     // ④ チェックイン成功（replay=true は「再送で結果を回収できた」＝実質成功）
     ciTokenClear(guestId, eventId);
     const isStripe = (d.payment_method || '').toLowerCase() === 'stripe';
-    setScanMsg((isStripe ? '✅ 事前決済済み・完了 — ' : '✅ チェックイン完了 — ') + d.name +
-               (d.replay ? '（再送で確認）' : ''), 'ok');
+    // 復旧対象は招待者が不明。受付が見落とさないよう状態行にも出す。
+    setScanMsg(isInviterUnknown(d)
+      ? ('⚠️ 招待者を確認してください — ' + d.name)
+      : ((isStripe ? '✅ 事前決済済み・完了 — ' : '✅ チェックイン完了 — ') + d.name +
+         (d.replay ? '（再送で確認）' : '')),
+      isInviterUnknown(d) ? 'warn' : 'ok');
     showCamOverlay(d, 'ok');
 
     // ローカルキャッシュ更新
@@ -3222,15 +3229,27 @@ function ciReadMethod(scope) {
 }
 
 // d（checkIn応答）を受け、指定scopeのエディタを表示・初期化。VIP/guest_id無しは非表示。
+// 申込データの復旧対象（invited_by が「[復旧]」）は招待者が分かっていない。
+// 受付でご本人に伺って備考へ残してもらうため、結果画面に確認を促す表示を出す。
+function isInviterUnknown(d) {
+  return String((d && d.invited_by) || '').indexOf('[復旧]') >= 0;
+}
+function showInviterWarn(scope, d) {
+  const w = document.getElementById('cam-inviter-warn-' + scope);
+  if (w) w.style.display = isInviterUnknown(d) ? 'block' : 'none';
+}
+
 function populateCiEditor(scope, d) {
   const editor = document.getElementById('cam-ci-editor-' + scope);
   if (!editor) return;
   const isVip = String(d.guest_id || '').indexOf('VIP-') === 0;
   if (isVip || !d.guest_id) {
     editor.style.display = 'none';
+    showInviterWarn(scope, null);
     if (scope === 'ok') ciCurrentGuest = null;
     return;
   }
+  showInviterWarn(scope, d);
   ciPopulating = true;
   ciCurrentGuest = String(d.guest_id);
   const act = (d.actual_pay_type || '').toLowerCase();
