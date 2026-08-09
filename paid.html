@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="robots" content="noindex,nofollow">
+<title>お支払い完了 — LUXE PARTY TOKYO</title>
+<style>
+:root{
+  --gold:#C9A84C;--gold-light:#E8D08A;--gold-dim:#7a6230;
+  --black:#080808;--dark:#111111;--white:#F5F0E8;--gray:#888880;--ok:#4CAF82;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--black);color:var(--white);font-family:-apple-system,'Hiragino Sans','Yu Gothic UI',sans-serif;
+     font-weight:300;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+.wrap{width:100%;max-width:420px;text-align:center;}
+.logo{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.15rem;color:var(--gold);
+      letter-spacing:0.35em;margin-bottom:44px;}
+.mark{width:76px;height:76px;border-radius:50%;border:2px solid var(--ok);margin:0 auto 26px;
+      display:flex;align-items:center;justify-content:center;font-size:2.1rem;color:var(--ok);}
+h1{font-family:'Hiragino Mincho ProN','Yu Mincho',serif;font-size:1.45rem;color:var(--white);
+   font-weight:400;letter-spacing:0.08em;margin-bottom:14px;}
+.lead{font-size:0.72rem;color:var(--gray);line-height:2.1;margin-bottom:32px;}
+.card{border:1px solid rgba(201,168,76,0.28);background:rgba(201,168,76,0.05);padding:18px 20px;margin-bottom:28px;}
+.card-note{font-size:0.62rem;color:var(--gold-light);line-height:1.9;}
+.foot{font-size:0.55rem;color:var(--gold-dim);letter-spacing:0.2em;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">LUXE PARTY TOKYO</div>
+    <div class="mark" id="mark">✓</div>
+    <h1 id="title">お支払いが完了しました</h1>
+    <p class="lead" id="lead">
+      ご決済ありがとうございました。<br>
+      この画面をスタッフにお見せください。
+    </p>
+    <div class="card">
+      <div class="card-note" id="note">
+        画面を閉じていただいて構いません。<br>
+        領収書はご登録のメールアドレス宛に<br>Stripe より送信されます。
+      </div>
+    </div>
+    <div class="foot">LUXE PARTY TOKYO</div>
+  </div>
+<script>
+// このページは「お客様の端末」で開かれる決済完了画面。
+// 以前は単発決済の完了時に admin.html へ戻していたため、
+// お客様の端末に管理画面が表示されてしまう導線になっていた。
+// ここは行き止まりにする（管理画面へのリンクも自動遷移も置かない）。
+(function () {
+  if (!/[?&]canceled=1/.test(location.search)) return;
+  // 決済を中断して戻ってきた場合。完了と誤解させない。
+  var mark = document.getElementById('mark');
+  mark.textContent = '!';
+  mark.style.borderColor = '#C9A84C';
+  mark.style.color = '#C9A84C';
+  document.getElementById('title').textContent = 'お支払いは完了していません';
+  document.getElementById('lead').innerHTML =
+    'お手続きが中断されました。<br>お手数ですがスタッフにお声がけください。';
+  document.getElementById('note').innerHTML =
+    'もう一度QRコードを読み取っていただくか、<br>スタッフが再発行いたします。';
+})();
+</script>
+</body>
+</html>
