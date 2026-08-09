@@ -983,6 +983,45 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         </div>
       </div>
 
+      <!-- 新規VIP登録（当日その場での販売用。admin と同じ内容） -->
+      <div style="background:var(--dark2);border:1px solid rgba(201,168,76,0.2);padding:20px;margin-bottom:24px;">
+        <div style="font-size:0.55rem;letter-spacing:0.2em;color:var(--gold);margin-bottom:16px;text-transform:uppercase;">👑 新規VIP登録</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">テーブル</label>
+            <select class="charge-input" id="vip-reg-table-e" style="width:100%;padding:10px 0;cursor:pointer;">
+              <option value="">選択してください</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">決済方法</label>
+            <select class="charge-input" id="vip-reg-pay-e" style="width:100%;padding:10px 0;cursor:pointer;">
+              <option value="qr">📱 その場でカード決済（QRを表示）</option>
+              <option value="cash">💴 その場で現金を受け取る</option>
+              <option value="stripe">💳 支払いリンクをメール送信</option>
+              <option value="transfer">🏦 振込案内をメール送信</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">氏名（請求先名）</label>
+            <input class="charge-input" id="vip-reg-name-e" placeholder="田中 太郎" style="width:100%;">
+          </div>
+          <div>
+            <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">電話番号</label>
+            <input class="charge-input" id="vip-reg-phone-e" placeholder="09012345678" style="width:100%;">
+          </div>
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="font-size:0.48rem;color:var(--gray);letter-spacing:0.1em;display:block;margin-bottom:6px;">メールアドレス（任意）</label>
+          <input class="charge-input" id="vip-reg-email-e" placeholder="その場販売なら空欄でOK" style="width:100%;">
+        </div>
+        <div id="vip-reg-error-e" style="display:none;font-size:0.62rem;color:#CF4444;margin-bottom:12px;padding:10px;background:rgba(207,68,68,0.1);border:1px solid rgba(207,68,68,0.3);"></div>
+        <button class="btn-charge" id="vip-reg-submit-e" style="width:100%;" onclick="submitVipRegistrationE()">登録する</button>
+      </div>
+
+
       <!-- 座席表（admin と同じ Drive 画像。旧SVGフロアマップは廃止） -->
       <div style="margin-bottom:24px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
@@ -1005,6 +1044,44 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     <h1 class="page-title">単発 <span>決済</span></h1>
 
     <div class="charge-wrap">
+      <!-- QRコード決済 -->
+      <div class="charge-card" style="margin-bottom:20px;">
+        <div style="font-size:0.52rem;letter-spacing:0.25em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;">QR CODE PAYMENT</div>
+        <div class="charge-group">
+          <label class="charge-label">QR決済 — イベント（任意）</label>
+          <select class="charge-input" id="qr-event-sel" style="padding:11px 0;cursor:pointer;color:var(--white);">
+            <option value="">選択なし</option>
+          </select>
+        </div>
+        <div class="charge-group">
+          <label class="charge-label">内容（任意）</label>
+          <input class="charge-input" id="qr-desc" placeholder="例: ドリンク、ボトル など" maxlength="40">
+        </div>
+        <div class="charge-group">
+          <label class="charge-label">金額</label>
+          <div class="charge-amount-wrap">
+            <span class="charge-yen">¥</span>
+            <input class="charge-input charge-amount-input" id="qr-amount"
+              type="number" min="1" max="999999" placeholder="0"
+              oninput="updateQrBtn()">
+          </div>
+        </div>
+
+        <button class="btn-charge" id="btn-qr-charge" onclick="generateQrPayment()" disabled
+          style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);">
+          <span class="btn-charge-icon">📱</span>
+          <span id="btn-qr-label">金額を入力してください</span>
+        </button>
+        <div class="charge-note">顧客のスマホでQRを読み取って決済してもらいます。</div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.08);margin-top:18px;padding-top:16px;">
+          <div class="charge-note" style="margin-bottom:10px;">現金でお受け取りした場合はこちら。売上レポートに計上されます。</div>
+          <button class="btn-charge" id="btn-charge-cash" onclick="recordCashCharge(this)" style="width:100%;background:transparent;border:1px solid var(--gold);color:var(--gold);">
+            💴 現金で受け取った
+          </button>
+        </div>
+      </div>
+
       <div class="charge-card">
 
         <div class="charge-group">
@@ -1046,37 +1123,6 @@ td.muted{color:var(--gray);font-size:0.62rem;}
         <div class="charge-note">
           決済完了後、Stripeの管理画面から履歴を確認できます。
         </div>
-      </div>
-
-      <!-- QRコード決済 -->
-      <div class="charge-card" style="margin-bottom:20px;">
-        <div style="font-size:0.52rem;letter-spacing:0.25em;color:var(--gold);text-transform:uppercase;margin-bottom:16px;">QR CODE PAYMENT</div>
-        <div class="charge-group">
-          <label class="charge-label">QR決済 — イベント（任意）</label>
-          <select class="charge-input" id="qr-event-sel" style="padding:11px 0;cursor:pointer;color:var(--white);">
-            <option value="">選択なし</option>
-          </select>
-        </div>
-        <div class="charge-group">
-          <label class="charge-label">内容（任意）</label>
-          <input class="charge-input" id="qr-desc" placeholder="例: ドリンク、ボトル など" maxlength="40">
-        </div>
-        <div class="charge-group">
-          <label class="charge-label">金額</label>
-          <div class="charge-amount-wrap">
-            <span class="charge-yen">¥</span>
-            <input class="charge-input charge-amount-input" id="qr-amount"
-              type="number" min="1" max="999999" placeholder="0"
-              oninput="updateQrBtn()">
-          </div>
-        </div>
-
-        <button class="btn-charge" id="btn-qr-charge" onclick="generateQrPayment()" disabled
-          style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);">
-          <span class="btn-charge-icon">📱</span>
-          <span id="btn-qr-label">金額を入力してください</span>
-        </button>
-        <div class="charge-note">顧客のスマホでQRを読み取って決済してもらいます。</div>
       </div>
 
       <!-- QRコード表示モーダル -->
@@ -3401,6 +3447,7 @@ async function loadVipDataE() {
     vipReservationsE = [];
   }
   renderVipReservationsE();
+  renderVipRegTableSelectE();
   renderVipSeatImageE();
 }
 
@@ -3459,6 +3506,77 @@ async function refreshVipE(btn) {
     if (btn) btn.textContent = "✗ 失敗";
   }
   setTimeout(() => { if (btn) { btn.textContent = orig; btn.disabled = false; } }, 1200);
+}
+
+// ── 新規VIP登録（entrance版。admin と同じ4方式）──────────────
+// qr=その場でカード決済（QR表示） / cash=その場で現金 /
+// stripe=リンクをメール送信 / transfer=振込案内をメール送信
+// メールアドレスは任意。その場販売では空欄で運用する。
+function renderVipRegTableSelectE() {
+  const sel = document.getElementById("vip-reg-table-e");
+  if (!sel) return;
+  const cur = sel.value;
+  const avail = (vipTablesE || []).filter(t => String(t.status) === "available");
+  sel.innerHTML = '<option value="">選択してください</option>' +
+    avail.map(t => '<option value="' + escH(t.table_id) + '">' +
+      escH(t.table_name) + ' / ' + escH(t.table_type) +
+      '（¥' + Number(t.price || 0).toLocaleString() + '）</option>').join("");
+  if (cur && avail.some(t => String(t.table_id) === cur)) sel.value = cur;
+}
+
+function vipTablePriceE(tableId) {
+  const t = (vipTablesE || []).find(x => String(x.table_id) === String(tableId));
+  return t ? Number(t.price || 0) : 0;
+}
+
+async function submitVipRegistrationE() {
+  const tableId = document.getElementById("vip-reg-table-e").value;
+  const pay     = document.getElementById("vip-reg-pay-e").value;
+  const name    = document.getElementById("vip-reg-name-e").value.trim();
+  const email   = document.getElementById("vip-reg-email-e").value.trim();
+  const phone   = document.getElementById("vip-reg-phone-e").value.trim();
+  const errEl   = document.getElementById("vip-reg-error-e");
+  const show = m => { errEl.textContent = m; errEl.style.display = "block"; };
+
+  if (!tableId) { show("テーブルを選択してください"); return; }
+  if (!name)    { show("氏名を入力してください"); return; }
+  if ((pay === "stripe" || pay === "transfer") && !email) {
+    show("この決済方法ではメールアドレスが必要です（その場販売なら「QRを表示」か「現金」を選んでください）"); return;
+  }
+  errEl.style.display = "none";
+
+  const action = (pay === "cash")     ? "createVipCash"
+               : (pay === "transfer") ? "createVipTransfer"
+               : "createVipStripeLink";
+
+  const btn = document.getElementById("vip-reg-submit-e");
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "処理中...";
+  let d;
+  try {
+    d = await apiPost({ action, table_id: tableId, event_id: vipEventIdE, name, email, phone });
+  } catch (e) {
+    btn.disabled = false; btn.textContent = orig;
+    show("通信エラー: " + ((e && e.message) || e) + "（重複登録を避けるため、予約一覧を更新して結果をご確認ください）");
+    return;
+  }
+  btn.disabled = false; btn.textContent = orig;
+  if (!d.ok) { show(d.message || "登録に失敗しました"); return; }
+
+  if (pay === "qr") {
+    if (!d.checkout_url) { show("決済リンクを取得できませんでした"); return; }
+    showQrModal(d.checkout_url, "VIP " + (d.table_name || "") + " / " + name, vipTablePriceE(tableId));
+    toast("📱 QRコードを表示しました — お客様に読み取っていただいてください");
+  } else if (pay === "cash") {
+    toast("✅ 現金受領で確定しました — " + (d.table_name || "") + " / " + name);
+  } else {
+    toast("✅ " + (pay === "stripe" ? "支払いリンクを送信しました" : "振込案内を送信しました"));
+  }
+
+  ["vip-reg-name-e","vip-reg-email-e","vip-reg-phone-e","vip-reg-table-e"].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = "";
+  });
+  await loadVipDataE();
 }
 
 function renderVipReservationsE() {
@@ -3626,6 +3744,42 @@ function toggleEvQr(id, url) {
 let qrCurrentUrl = '';
 let qrCurrentDesc = '';
 let qrCurrentAmount = 0;
+
+// ── 現金でお受け取りした分の記録 ───────────────────────────────
+// 単発決済はシートに記録がなく、売上レポートは画面の履歴(chargeHistory)を集計している。
+// そのため status:"ok" で履歴へ積めば、Stripe決済と同じようにレポートへ計上される。
+// 端末をまたいだ共有はされない（従来の単発決済と同じ制約）。
+async function recordCashCharge(btn) {
+  const amount  = Number(document.getElementById("qr-amount").value);
+  const desc    = document.getElementById("qr-desc").value.trim() || "現金受取";
+  const eventId = (document.getElementById("qr-event-sel") || {}).value || "";
+  if (!amount || amount <= 0) { toast("金額を入力してください"); return; }
+  if (!confirm("¥" + amount.toLocaleString() + " を現金で受け取ったものとして記録します。\nよろしいですか？")) return;
+
+  const orig = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "記録中…"; }
+  try {
+    chargeHistory.unshift({
+      desc:            "[現金] " + desc,
+      amount:          amount,
+      status:          "ok",          // レポート集計の対象になる
+      type:            "cash",
+      charge_event_id: eventId,
+      at:              new Date().toISOString()
+    });
+    try { localStorage.setItem("lpt_charge_history", JSON.stringify(chargeHistory)); } catch (e) {}
+    renderChargeHistory();
+    document.getElementById("qr-amount").value = "";
+    document.getElementById("qr-desc").value   = "";
+    if (typeof updateQrBtn === "function") updateQrBtn();
+    toast("✅ 現金 ¥" + amount.toLocaleString() + " を記録しました");
+    if (btn) btn.textContent = "✓ 記録しました";
+  } catch (e) {
+    toast("❌ 記録に失敗しました: " + ((e && e.message) || e));
+    if (btn) btn.textContent = "✗ 失敗";
+  }
+  setTimeout(function () { if (btn) { btn.textContent = orig; btn.disabled = false; } }, 1400);
+}
 
 function updateQrBtn() {
   const amount = Number(document.getElementById('qr-amount').value);

@@ -15,12 +15,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, message: 'パラメータ不足' });
   }
   const isQuickCharge = String(event_id).startsWith('CHARGE-');
+  // 単発決済はQRを表示し、お客様ご自身の端末で決済していただく運用。
+  // 完了時に admin.html へ戻すと、お客様の端末に管理画面が開いてしまうため、
+  // 行き止まりの完了画面(paid.html)へ送る。キャンセル時も同様に管理画面へは戻さない。
   const successUrl = isQuickCharge
-    ? 'https://entry.luxepartytokyo.com/admin.html?charge=success'
+    ? 'https://entry.luxepartytokyo.com/paid.html'
     : 'https://entry.luxepartytokyo.com/checkout.html?session_id={CHECKOUT_SESSION_ID}';
   // cancelUrlは渡された値を優先（プロモーター・プラン情報を保持）
   const cancelUrl = isQuickCharge
-    ? 'https://entry.luxepartytokyo.com/admin.html?charge=cancel'
+    ? 'https://entry.luxepartytokyo.com/paid.html?canceled=1'
     : (cancel_url || 'https://entry.luxepartytokyo.com/index.html?e=' + event_id + '&type=paid');
   const params = new URLSearchParams();
   params.append('mode', 'payment');
