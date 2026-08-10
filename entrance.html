@@ -2399,7 +2399,18 @@ async function saveCheckinInfoFromOverlay(scope, btn) {
   }
   if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
   const eventId = payload.event_id;
-  const res = await apiPost(payload);
+  // 保存は同じ値を上書きするだけなので何度送っても結果は変わらない。
+  // GASの往復は落ちることがあるため、チェックインと同じくタイムアウト付きで再送する。
+  // ここに try/finally が無く、通信が落ちるとボタンが「保存中…」のまま固まって
+  // 受付が次のスキャンへ進めなくなっていた（2026-08-10 現場報告）。
+  let res;
+  try {
+    res = await apiPostCheckIn(payload);
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = '備考・訂正を保存'; }
+    toast('❌ 保存できませんでした（' + ((e && e.message) || '通信エラー') + '）。もう一度お試しください');
+    return;   // ciDirty は残す（未保存であることを次の読み取り時に警告する）
+  }
   if (res.ok) {
     // ローカルキャッシュへ反映（一覧・レポートへ即時反映）
     const idx = allGuests.findIndex(g => String(g.guest_id) === String(ciCurrentGuest));
@@ -2413,7 +2424,8 @@ async function saveCheckinInfoFromOverlay(scope, btn) {
       }
     }
     if (eventId && typeof invalidateGuestCache === 'function') invalidateGuestCache(eventId);
-    if (currentEventId === eventId) { updateGuestStats(); renderGuestTable(); }
+    // 一覧の再描画で万一エラーが出ても、保存自体は完了しているのでボタンは必ず戻す
+    try { if (currentEventId === eventId) { updateGuestStats(); renderGuestTable(); } } catch (e) {}
     if (btn) { btn.disabled = false; btn.textContent = '✓ 保存しました'; }
     ciDirty = false;
     toast('✓ 備考・実態訂正を保存しました');
@@ -2428,11 +2440,22 @@ async function resumeCamera() {
   // 未保存の実態訂正・備考があれば破棄前に確認
   if (ciDirty && !confirm('実態訂正・備考が未保存です。保存せずに次の読み取りへ進みますか？')) return;
   ciDirty = false;
+  // 保存が通信で落ちるとボタンが「保存中…」で止まる。次へ進むときは必ず戻す。
+  ['ok', 'dup'].forEach(function (sc) {
+    const sv = document.getElementById('cam-ci-save-' + sc);
+    if (sv) { sv.disabled = false; sv.textContent = '備考・訂正を保存'; }
+  });
   camHideAll();
+  ciHideRetry();
   checkinBusy = false;
   lastScanned = '';
   setScanMsg('QRコードをカメラにかざしてください', 'scanning');
-  await startZXingLiveScan();
+  // カメラ起動に失敗しても、上の状態リセットは済んでいるので手動入力で受付を継続できる
+  try { await startZXingLiveScan(); } catch (e) {
+    setScanMsg('カメラを起動できませんでした。手動入力をご利用ください', 'err');
+    const mi = document.getElementById('manual-input-area');
+    if (mi) mi.style.display = 'block';
+  }
 }
 
 function setScanMsg(msg, type) {
