@@ -708,6 +708,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
       <button class="nav-tab"        onclick="showTab('report')"    id="tab-report">レポート</button>
       <button class="nav-tab"        onclick="showTab('charge')"    id="tab-charge">単発決済</button>
       <button class="nav-tab"        onclick="showTab('vip')"       id="tab-vip">VIP</button>
+      <button class="nav-tab"        onclick="showTab('members')"   id="tab-members">メンバー</button>
       <button class="nav-tab"        onclick="showTab('mailmag')"   id="tab-mailmag">配信</button>
     </div>
     <button class="btn-logout" onclick="logout()">ログアウト</button>
@@ -1319,6 +1320,49 @@ td.muted{color:var(--gray);font-size:0.62rem;}
     </div>
   </div>
 </div>
+
+  <!-- ═══ LUXE メンバー ═══════════════════════════════════════════
+       女性に一度だけ登録してもらい、ここで確認してランクを決める。
+       確認結果は本人に伝えない（設計書 design-member-screening.md）。 -->
+  <div class="page" id="page-members">
+    <div class="page-eyebrow">Members</div>
+    <h1 class="page-title">LUXE <span>メンバー</span></h1>
+
+    <div id="mb-overdue" style="display:none;background:rgba(207,68,68,0.12);border:1px solid rgba(207,68,68,0.4);padding:14px 16px;margin-bottom:20px;">
+      <div style="font-size:0.7rem;color:#FF9A9A;line-height:1.8;" id="mb-overdue-text"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,0.05);margin-bottom:20px;">
+      <div style="background:var(--dark);padding:14px 16px;">
+        <div class="stat-label">確認待ち</div><div class="stat-value sv-gold" id="mb-n-pending">0</div>
+      </div>
+      <div style="background:var(--dark);padding:14px 16px;">
+        <div class="stat-label">招待枠</div><div class="stat-value sv-green" id="mb-n-invited">0</div>
+      </div>
+      <div style="background:var(--dark);padding:14px 16px;">
+        <div class="stat-label">メンバー</div><div class="stat-value" id="mb-n-member">0</div>
+      </div>
+      <div style="background:var(--dark);padding:14px 16px;">
+        <div class="stat-label">対象外</div><div class="stat-value" style="color:var(--gray);" id="mb-n-minor">0</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="mb-filter-btns">
+        <button class="copy-btn mb-filter" data-r="pending" onclick="setMemberFilter('pending')" style="font-size:0.55rem;padding:7px 16px;">確認待ち</button>
+        <button class="copy-btn mb-filter" data-r="" onclick="setMemberFilter('')"        style="font-size:0.55rem;padding:7px 16px;">すべて</button>
+        <button class="copy-btn mb-filter" data-r="INVITED" onclick="setMemberFilter('INVITED')" style="font-size:0.55rem;padding:7px 16px;">招待枠</button>
+        <button class="copy-btn mb-filter" data-r="MEMBER" onclick="setMemberFilter('MEMBER')"  style="font-size:0.55rem;padding:7px 16px;">メンバー</button>
+        <button class="copy-btn mb-filter" data-r="minor" onclick="setMemberFilter('minor')"   style="font-size:0.55rem;padding:7px 16px;">対象外</button>
+      </div>
+      <button class="copy-btn" style="font-size:0.55rem;padding:7px 16px;" onclick="refreshMembers(this)">↻ 更新</button>
+    </div>
+
+    <div id="mb-list">
+      <div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">読み込み中…</div>
+    </div>
+  </div>
+
 
 <div class="page" id="page-mailmag">
     <div class="page-eyebrow">Email Marketing</div>
@@ -2047,6 +2091,7 @@ function showTab(id) {
   if (id === 'sales')     onSalesTabOpen();
   if (id === 'mailmag')   onMailmagTabOpen();
   if (id === 'vip')       onVipTabOpen();
+  if (id === 'members')   onMembersTabOpen();
 
   // タブ切替時: 選択済みイベントがあればバックグラウンドで先読み
   const selMap = {
@@ -5789,6 +5834,173 @@ function applyVipCheckInLocally(guestId, vipInfo) {
   touch(vipReservations);
   const c = vipCache[vipEventId];
   if (c) { touch(c.tables); touch(c.reservations); }
+}
+
+// ═══ LUXE メンバー（2026-08-14 追加）═════════════════════════════
+// 女性の登録内容を確認し、会員ランクを決める画面。
+// 確認結果は本人に伝えない。ここでの操作が、以後のイベント案内（無料/有料）を決める。
+// 設計書: lpt-gas/design-member-screening.md
+let allMembers   = [];
+let mbFilter     = 'pending';   // 既定は確認待ち。開いた瞬間にやるべきことが見える
+let mbFetching   = null;
+
+async function onMembersTabOpen() {
+  // GASのcold startを避けるため、取得と並行して温めておく
+  try { apiGet({ action: 'ping' }).catch(() => {}); } catch (e) {}
+  if (allMembers.length) { renderMembers(); }      // 手元があれば即描く
+  await loadMembers(!allMembers.length);
+}
+
+async function loadMembers(showLoading) {
+  if (mbFetching) return mbFetching;
+  if (showLoading) {
+    const el = document.getElementById('mb-list');
+    if (el) el.innerHTML = '<div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">読み込み中…</div>';
+  }
+  mbFetching = (async () => {
+    try {
+      const d = await apiPost({ action: 'getMembers' });
+      allMembers = (d && d.members) ? d.members : [];
+    } catch (e) {
+      // 取得に失敗しても手元は消さない（画面を空にしない）
+      if (!allMembers.length) allMembers = [];
+      throw e;
+    } finally { mbFetching = null; }
+  })();
+  try { await mbFetching; } catch (e) { toast('❌ メンバーの取得に失敗しました（' + ((e && e.message) || '通信エラー') + '）'); }
+  renderMembers();
+}
+
+async function refreshMembers(btn) {
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '更新中…'; }
+  try {
+    allMembers = [];
+    await loadMembers(true);
+    if (btn) btn.textContent = '✓ 更新しました';
+  } catch (e) { if (btn) btn.textContent = '✗ 失敗'; }
+  setTimeout(() => { if (btn) { btn.textContent = orig; btn.disabled = false; } }, 1200);
+}
+
+function setMemberFilter(rank) { mbFilter = rank; renderMembers(); }
+
+const MB_RANK = {
+  pending: { label:'確認待ち', color:'#C9A84C' },
+  INVITED: { label:'招待枠',   color:'#4CAF82' },
+  MEMBER:  { label:'メンバー', color:'#6AABFF' },
+  minor:   { label:'対象外',   color:'#888880' }
+};
+
+// 提出物の表示。写真はDriveのURL、SNSはアカウント名。どちらか片方しか無い。
+function mbProofHtml(m) {
+  const t = String(m.proof_type || '');
+  const v = String(m.proof_value || '');
+  if (!v) return '<span style="color:var(--gray);">提出なし</span>';
+  if (t === 'photo') {
+    return '<a href="' + escH(v) + '" target="_blank" rel="noopener" style="color:var(--gold);">📷 写真を開く</a>';
+  }
+  // SNSはURLならリンク、@名ならそのまま表示（誤ったリンクを作らない）
+  return /^https?:\/\//.test(v)
+    ? '<a href="' + escH(v) + '" target="_blank" rel="noopener" style="color:var(--gold);">🔗 ' + escH(v) + '</a>'
+    : '<span>🔗 ' + escH(v) + '</span>';
+}
+
+function mbAge(birthday) {
+  const m = String(birthday || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '—';
+  const d = new Date();
+  let age = d.getFullYear() - (+m[1]);
+  const before = (d.getMonth() + 1) < (+m[2]) || ((d.getMonth() + 1) === (+m[2]) && d.getDate() < (+m[3]));
+  if (before) age--;
+  return age + '歳';
+}
+
+function renderMembers() {
+  // 集計
+  const n = { pending:0, INVITED:0, MEMBER:0, minor:0 };
+  allMembers.forEach(m => { if (n[m.rank] !== undefined) n[m.rank]++; });
+  const put = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  put('mb-n-pending', n.pending); put('mb-n-invited', n.INVITED);
+  put('mb-n-member', n.MEMBER);   put('mb-n-minor', n.minor);
+
+  // 3営業日を超えた確認待ちを警告。約束した期限を過ぎると信用に直結する
+  const overdue = allMembers.filter(m => m.rank === 'pending' && Number(m.waiting_days || 0) >= 3);
+  const ov = document.getElementById('mb-overdue');
+  if (ov) {
+    if (overdue.length) {
+      document.getElementById('mb-overdue-text').textContent =
+        '⚠️ 3営業日を超えている確認待ちが ' + overdue.length + '名います。ご登録時に「3営業日以内にご連絡します」とお伝えしています。';
+      ov.style.display = 'block';
+    } else ov.style.display = 'none';
+  }
+
+  // フィルタボタンの見た目
+  document.querySelectorAll('.mb-filter').forEach(b => {
+    const on = (b.getAttribute('data-r') || '') === mbFilter;
+    b.style.background = on ? 'rgba(201,168,76,0.2)' : '';
+    b.style.borderColor = on ? 'var(--gold)' : '';
+  });
+
+  const list = mbFilter ? allMembers.filter(m => String(m.rank) === mbFilter) : allMembers.slice();
+  // 待たせている順。先に登録した人から捌く
+  list.sort((a, b) => Number(b.waiting_days || 0) - Number(a.waiting_days || 0));
+
+  const el = document.getElementById('mb-list');
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div style="font-size:0.62rem;color:var(--gray);padding:12px 0;">該当する方はいません</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(m => {
+    const r = MB_RANK[m.rank] || { label:String(m.rank||''), color:'#888' };
+    const isMinor = m.rank === 'minor';
+    const wait = Number(m.waiting_days || 0);
+    const waitHtml = m.rank === 'pending'
+      ? '<span style="font-size:0.55rem;color:' + (wait >= 3 ? '#CF4444' : 'var(--gray)') + ';">' + wait + '営業日待ち</span>'
+      : '';
+    // 未成年には上位ランクのボタンを出さない。押せてしまう時点で事故の元
+    const btns = isMinor
+      ? '<span style="font-size:0.55rem;color:var(--gray);">20歳未満のためご案内対象外</span>'
+      : '<button class="copy-btn" style="font-size:0.55rem;padding:7px 16px;border-color:#4CAF82;color:#4CAF82;" onclick="decideMember(\'' + escJs(m.member_id) + '\',\'INVITED\',this)">招待枠にする</button>' +
+        '<button class="copy-btn" style="font-size:0.55rem;padding:7px 16px;" onclick="decideMember(\'' + escJs(m.member_id) + '\',\'MEMBER\',this)">メンバーにする</button>';
+    return '' +
+      '<div style="background:var(--dark);border:1px solid rgba(255,255,255,0.07);padding:14px 16px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">' +
+          '<span style="font-size:0.9rem;">' + escH(m.name || '—') + '</span>' +
+          '<span style="font-size:0.55rem;padding:3px 10px;border:1px solid ' + r.color + ';color:' + r.color + ';">' + r.label + '</span>' +
+          '<span style="font-size:0.6rem;color:var(--gray);">' + escH(mbAge(m.birthday)) + '</span>' +
+          waitHtml +
+        '</div>' +
+        '<div style="font-size:0.62rem;color:var(--gray);line-height:2;">' +
+          '提出: ' + mbProofHtml(m) + '<br>' +
+          '紹介者: ' + (m.invited_by ? escH(m.invited_by) : '<span style="color:var(--gray);">なし</span>') +
+          (m.reviewed_at ? '<br>確定: ' + escH(String(m.reviewed_at)) + '（' + escH(String(m.reviewer || '')) + '）' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">' + btns + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+// ランク確定。押した瞬間に手元へ反映し、最新化は裏で行う（受付と同じ考え方）
+async function decideMember(memberId, rank, btn) {
+  const m = allMembers.find(x => String(x.member_id) === String(memberId));
+  const label = rank === 'INVITED' ? '招待枠（無料でご案内）' : 'メンバー（有料でご案内）';
+  if (!confirm((m ? m.name : memberId) + ' 様を「' + label + '」にします。\nよろしいですか？')) return;
+
+  const orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
+  try {
+    const d = await apiPostCheckIn({ action: 'setMemberRank', member_id: memberId, rank: rank, reviewer: 'admin' });
+    if (!d.ok) { toast('❌ ' + (d.message || '変更できませんでした')); return; }
+    if (m) { m.rank = rank; m.reviewed_at = '（保存しました）'; m.reviewer = 'admin'; }
+    renderMembers();
+    toast('✓ ' + (m ? m.name : '') + ' を' + label + 'にしました');
+  } catch (e) {
+    toast('❌ 保存できませんでした（' + ((e && e.message) || '通信エラー') + '）。もう一度お試しください');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
+  }
 }
 
 </script>
