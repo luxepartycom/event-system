@@ -5844,6 +5844,11 @@ let allMembers   = [];
 let mbFilter     = 'pending';   // 既定は確認待ち。開いた瞬間にやるべきことが見える
 let mbFetching   = null;
 
+// 会員の情報はサーバ側で管理者に限定されている。ログイン時のパスワードを添えて呼ぶ
+function mbAuth() {
+  try { return sessionStorage.getItem('lpt_auth') || ''; } catch (e) { return ''; }
+}
+
 async function onMembersTabOpen() {
   // GASのcold startを避けるため、取得と並行して温めておく
   try { apiGet({ action: 'ping' }).catch(() => {}); } catch (e) {}
@@ -5859,7 +5864,9 @@ async function loadMembers(showLoading) {
   }
   mbFetching = (async () => {
     try {
-      const d = await apiPost({ action: 'getMembers' });
+      // お名前・生年月日・本人確認資料を受け取るので、ログイン中のパスワードを添える
+      const d = await apiPost({ action: 'getMembers', password: mbAuth() });
+      if (d && d.status === 'forbidden') throw new Error('ログインし直してください');
       allMembers = (d && d.members) ? d.members : [];
     } catch (e) {
       // 取得に失敗しても手元は消さない（画面を空にしない）
@@ -5991,7 +5998,8 @@ async function decideMember(memberId, rank, btn) {
   const orig = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
   try {
-    const d = await apiPostCheckIn({ action: 'setMemberRank', member_id: memberId, rank: rank, reviewer: 'admin' });
+    const d = await apiPostCheckIn({ action: 'setMemberRank', member_id: memberId, rank: rank,
+                                     reviewer: 'admin', password: mbAuth() });
     if (!d.ok) { toast('❌ ' + (d.message || '変更できませんでした')); return; }
     if (m) { m.rank = rank; m.reviewed_at = '（保存しました）'; m.reviewer = 'admin'; }
     renderMembers();

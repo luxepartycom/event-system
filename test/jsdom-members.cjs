@@ -37,6 +37,8 @@ function boot(state) {
     beforeParse(w) {
       w.navigator.mediaDevices = w.navigator.mediaDevices || { getUserMedia: () => Promise.reject(new Error('x')) };
       w.confirm = () => { w.__asked = true; return true; };
+      // ログイン済みの状態を作る。会員の閲覧・変更はサーバ側で管理者に限定されている
+      try { w.sessionStorage.setItem('lpt_auth', 'pw-test-1234'); } catch (e) {}
       const R = o => Promise.resolve({ ok:true, status:200, text:()=>Promise.resolve(JSON.stringify(o)), json:()=>Promise.resolve(o) });
       w.fetch = (u, i) => {
         if (i && i.method === 'POST') {
@@ -74,6 +76,8 @@ function boot(state) {
   await sleep(200);
   A('ページが表示される', d.getElementById('page-members').classList.contains('active'));
   A('会員を取得する', state.posts.some(p => p.action === 'getMembers'));
+  A('取得にパスワードを添える',
+    state.posts.filter(p => p.action === 'getMembers').every(p => p.password === 'pw-test-1234'));
   A('暖機pingを撃つ', true);
 
   console.log('\n── 集計 ────────────────────────────────────');
@@ -132,6 +136,7 @@ function boot(state) {
     const req = state.posts.find(p => p.action === 'setMemberRank');
     A('確認ダイアログを出す', w.__asked === true);
     A('サーバへ送る', !!req && req.member_id === 'M-1' && req.rank === 'INVITED');
+    A('変更にパスワードを添える', !!req && req.password === 'pw-test-1234');
     A('手元が即時に変わる', w.eval('allMembers.find(m=>m.member_id==="M-1").rank') === 'INVITED');
     A('確認待ちから消える', !d.getElementById('mb-list').innerHTML.includes('確認待ち A子'));
     A('集計が更新される', d.getElementById('mb-n-pending').textContent === '1');
