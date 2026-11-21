@@ -1,4 +1,4 @@
-// 壊して落ちることを確かめる（E0 画面側）
+// 壊して落ちることを確かめる（E0・E0b 画面側）
 // admin.html / entrance.html の写しを1か所ずつ壊し、jsdom-e0-auth.cjs が「落ちる」ことを確かめる。
 // 落ちない改変が1つでもあれば、その検査は飾り＝終了コード1。実ファイルは触らない。
 // 実行: NODE_PATH=~/.cache/claude-node/node_modules node test/mutation-e0-auth.cjs
@@ -22,7 +22,7 @@ const MUTANTS = [
   ['admin: 裏の確認で role を見ない', 'admin', "if (!d.ok || d.role !== 'admin') bounceToLogin_();", 'if (!d.ok) bounceToLogin_();'],
   ['admin: 決済前に localStorage へ退避', 'admin', "if (pw) sessionStorage.setItem('lpt_charge_auth', pw);", "if (pw) localStorage.setItem('lpt_charge_auth', pw);"],
   ['admin: 旧版の残りを消さない', 'admin', "  try { localStorage.removeItem('lpt_charge_auth'); } catch (e) {}\n  // E0: 断られて", '  // E0: 断られて'],
-  ['admin: 版の印を消す', 'admin', '>E0-2026-11-21</div>', '></div>'],
+  ['admin: 版の印を消す', 'admin', '>E0b-2026-11-21</div>', '></div>'],
   ['entrance: 管理の操作を見分けない', 'entrance', "function needsAdmin_(o) { return !!o && typeof o.action === 'string' && !E0_ENTRANCE_OK.has(o.action); }", 'function needsAdmin_(o) { return false; }'],
   ['entrance: 受付で通す一覧に archiveEvent を足す', 'entrance', "'createVipCash','createVipStripeLink','createVipTransfer','getPromoUrls','getPromoGroups'", "'createVipCash','createVipStripeLink','createVipTransfer','getPromoUrls','getPromoGroups','archiveEvent'"],
   ['entrance: 受付で通す一覧から checkIn を外す', 'entrance', "  'checkIn','getGuests',", "  'getGuests',"],
@@ -35,7 +35,11 @@ const MUTANTS = [
   ['entrance: ログインへ戻すガードを外す', 'entrance', '  if (_authBounced) return;\n', ''],
   ['entrance: やめても送る', 'entrance', '    if (!_adminPwE && !(await askAdminPw_())) return null;', '    if (!_adminPwE) await askAdminPw_();'],
   ['entrance: 決済前に localStorage へ退避', 'entrance', "if (pw) sessionStorage.setItem('lpt_charge_auth', pw);", "if (pw) localStorage.setItem('lpt_charge_auth', pw);"],
-  ['entrance: 版の印を消す', 'entrance', '>E0-2026-11-21</div>', '></div>']
+  ['admin: apiGet を GET（URL）に戻す', 'admin', 'async function apiGet(p)  { return apiPost(getAsPostBody_(p)); }', "async function apiGet(p)  { const r = await fetch(API + '?' + new URLSearchParams(withPw_(p))); return checkForbidden_(await r.json()); }"],
+  ['admin: 値を文字列にしない', 'admin', 'function getAsPostBody_(p) { return Object.fromEntries(new URLSearchParams(p)); }', 'function getAsPostBody_(p) { return Object.assign({}, p); }'],
+  ['entrance: apiGet を GET（URL）に戻す', 'entrance', 'async function apiGet(p) { return apiPost(getAsPostBody_(p)); }', "async function apiGet(p) { const q = await withPwE_(p); if (!q) return e0Cancelled_(); const r = await fetch(API + '?' + new URLSearchParams(q)); return checkForbiddenE_(await r.json(), p); }"],
+  ['entrance: 値を文字列にしない', 'entrance', 'function getAsPostBody_(p) { return Object.fromEntries(new URLSearchParams(p)); }', 'function getAsPostBody_(p) { return Object.assign({}, p); }'],
+  ['entrance: 版の印を消す', 'entrance', '>E0b-2026-11-21</div>', '></div>']
 ];
 
 let caught = 0, missed = 0, broken = 0;

@@ -27,8 +27,10 @@ function boot(counter) {
       w.navigator.mediaDevices = w.navigator.mediaDevices || { getUserMedia: () => Promise.reject(new Error('no cam')) };
       w.confirm = () => true;
       w.fetch = (url, init) => {
-        const u = String(url);
-        const isPost = init && init.method === 'POST';
+        let u = String(url);
+        let isPost = init && init.method === 'POST';
+        // E0b: 読み取り（apiGet）は POST の本文で来る（GAS の橋）。GET と同じ扱いにする
+        if (isPost) { const rb = JSON.parse(init.body); if (['auth','ping','getEvents','getGuests','getPromoUrls','getPromoGroups','getVipTables','getVipReservations','migrateEventPlans'].includes(rb.action)) { u += '?action=' + rb.action; isPost = false; } }
         if (!isPost) {
           if (/getVipTables/.test(u))       { counter.tables++;  return resp(TABLES); }
           if (/getVipReservations/.test(u)) { counter.resv++;    return resp(RESV); }

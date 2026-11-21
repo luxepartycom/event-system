@@ -697,7 +697,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 </div>
 
 <!-- 版の印（反映の確認用。押せない・読むだけ） -->
-<div id="e0-ver" style="position:fixed;right:6px;bottom:4px;font-size:10px;color:#888;opacity:.6;pointer-events:none;z-index:99999;">E0-2026-11-21</div>
+<div id="e0-ver" style="position:fixed;right:6px;bottom:4px;font-size:10px;color:#888;opacity:.6;pointer-events:none;z-index:99999;">E0b-2026-11-21</div>
 
 <!-- APP -->
 <div id="app" style="display:none">
@@ -1862,7 +1862,7 @@ let pendingGuest   = null;
 // ══ E0 認可（設計：event-operations/ops/design-E0-auth.md）══════════════════
 // GAS は合言葉（_pw）の無い要求を断る。ログイン時の合言葉を全要求に自動で付ける。
 // 断られたら（合言葉の変更・期限切れ）ログインへ戻す。同時に何本断られても戻すのは1回だけ。
-const E0_VERSION = 'E0-2026-11-21';
+const E0_VERSION = 'E0b-2026-11-21';
 function authPw_() { try { return sessionStorage.getItem('lpt_auth') || ''; } catch (e) { return ''; } }
 function withPw_(o) {
   if (!o || o.action === 'auth' || o._pw !== undefined) return o;
@@ -1881,7 +1881,10 @@ function checkForbidden_(d) {
   return d;
 }
 
-async function apiGet(p)  { const r = await fetch(API + '?' + new URLSearchParams(withPw_(p))); return checkForbidden_(await r.json()); }
+// E0b: 読み取りも POST で送る（合言葉を URL に載せない）。GAS の doPost が GET と同じ処理へ渡す。
+// 値は URLSearchParams と同じ文字列化（GAS は文字列以外を断る）
+function getAsPostBody_(p) { return Object.fromEntries(new URLSearchParams(p)); }
+async function apiGet(p)  { return apiPost(getAsPostBody_(p)); }
 async function apiPost(b, opt) {
   opt = opt || {};
   let ctrl = null, timer = null;

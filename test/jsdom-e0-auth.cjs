@@ -11,6 +11,7 @@
 //  - entrance.html：受付の流れ（getGuests・checkIn・saveGuestCheckinInfo・VIP受付）は受付の合言葉で送る。
 //    管理の操作は管理者の合言葉を別に聞いて送り、この画面の間だけ覚える
 //  - 合言葉を localStorage に残さない。版の印が出ている
+//  - E0b: 読み取り（apiGet）も POST で送り、URL に合言葉（_pw・password）を載せない。値は文字列で送る
 // データはすべて架空。
 const fs = require('fs');
 const path = require('path');
@@ -18,7 +19,8 @@ const { JSDOM, VirtualConsole } = require('jsdom');
 
 const ADMIN_PW = 'test-admin-pw-0001';
 const ENT_PW   = 'test-entrance-pw-0001';
-const VERSION  = 'E0-2026-11-21';
+const VERSION  = 'E0b-2026-11-21';
+const ALL_REQS = [];   // E0b: 全ページの要求（URL に合言葉が載っていないかを最後にまとめて見る）
 
 let pass = 0, fail = 0;
 const A = (n, c) => { if (c) { pass++; console.log('✅ ' + n); } else { fail++; console.log('❌ ' + n); } };
@@ -60,7 +62,7 @@ function makePage(which, opts) {
           u.searchParams.forEach((v, k) => { params[k] = v; });
         }
         const rec = { method, url: String(url), params };
-        reqs.push(rec);
+        reqs.push(rec); ALL_REQS.push(rec);
         let resp = state.handler(params.action, params, method);
         if (resp === undefined) resp = { ok: true };
         return Promise.resolve({ ok: true, status: 200,
@@ -306,6 +308,62 @@ const fatalErrors = (page) => page.errors.filter(e => !/navigation|getUserMedia|
     await sleep(600);
     A('entrance: 保存済みの合言葉が受付用でなければ追い出す', p.w.sessionStorage.getItem('lpt_auth') === null && p.reloads() === 1);
   }
+
+  // ════════════════ E0b 読み取りも POST（URL に合言葉を載せない） ════════════════
+  console.log('\n── E0b 読み取りの送り方 ─────────────────────────');
+  for (const which of ['admin', 'entrance']) {
+    const pw = which === 'admin' ? ADMIN_PW : ENT_PW;
+    const p = makePage(which, { handler: entHandler });
+    await sleep(500);
+    const w = p.w;
+    w.sessionStorage.setItem('lpt_auth', pw);
+    const n0 = p.reqs.length;
+    await w.apiGet({ action: 'auth', password: pw });
+    await w.apiGet({ action: 'getGuests', event_id: 'EV-T1', include_archive: true });
+    await w.apiGet({ action: 'getEvents' });
+    await w.apiGet({ action: 'ping' });
+    await w.apiGet({ action: 'getVipReservations', event_id: 'EV-T1' });
+    const rs = p.reqs.slice(n0);
+    A(which + ': apiGet は5本とも POST で送る', rs.length === 5 && rs.every(r => r.method === 'POST'));
+    A(which + ': apiGet の URL に合言葉・password・_pw が載らない', rs.every(r => !r.url.includes(pw) && !/[?&](_pw|password)=/.test(r.url) && !r.url.includes('?')));
+    const ag = rs.find(r => r.params.action === 'auth') || { params: {} };
+    A(which + ': auth は本文で password を送る（_pw は付けない）', ag.params.password === pw && !('_pw' in ag.params));
+    const gg = rs.find(r => r.params.action === 'getGuests') || { params: {} };
+    A(which + ': getGuests は本文で受付/管理の合言葉を送る', gg.params._pw === pw && gg.params.event_id === 'EV-T1');
+    A(which + ': 値は文字列で送る（true → "true"）', gg.params.include_archive === 'true');
+    A(which + ': 本文の値はすべて文字列', rs.every(r => Object.values(r.params).every(v => typeof v === 'string')));
+  }
+  {
+    // entrance：管理者の合言葉を聞く小窓の auth も POST
+    const p = makePage('entrance', { handler: entHandler });
+    await sleep(500);
+    const w = p.w;
+    w.sessionStorage.setItem('lpt_auth', ENT_PW);
+    const pr = w.apiPost({ action: 'getMailList' });
+    await sleep(30);
+    if (w.document.getElementById('e0-admin-pw')) {
+      w.document.getElementById('e0-admin-pw-input').value = ADMIN_PW;
+      w.document.getElementById('e0-admin-pw-ok').click();
+    }
+    await pr;
+    const au = p.reqs.filter(r => r.params.action === 'auth' && r.params.password === ADMIN_PW);
+    A('entrance: 管理者の合言葉の確認（auth）も POST・URL に載らない', au.length === 1 && au[0].method === 'POST' && !au[0].url.includes(ADMIN_PW));
+  }
+  {
+    // ログインの入口（doLogin）から：admin・entrance とも URL に合言葉が載らない
+    for (const which of ['admin', 'entrance']) {
+      const pw = which === 'admin' ? ADMIN_PW : ENT_PW;
+      const p = makePage(which, { handler: (a, prm) => a === 'auth' ? entHandler(a, prm) : { ok: true, events: [], guests: [] } });
+      await sleep(400);
+      p.w.document.getElementById('login-pw').value = pw;
+      await p.w.doLogin();
+      await sleep(100);
+      const au = p.reqs.filter(r => r.params.action === 'auth');
+      A(which + ' 配線: ログイン（doLogin）の auth は POST で URL に載らない', au.length >= 1 && au.every(r => r.method === 'POST' && !r.url.includes(pw)));
+    }
+  }
+  A('全ページ：合言葉を URL に載せた要求が1本も無い（' + ALL_REQS.length + '本）',
+    ALL_REQS.every(r => ![ADMIN_PW, ENT_PW].some(x => r.url.includes(x)) && !/[?&](_pw|password)=/.test(r.url)));
 
   // ════════════════ 合言葉を localStorage に置かない（両画面の源） ════════════════
   ['admin', 'entrance'].forEach(k => {

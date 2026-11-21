@@ -35,7 +35,9 @@ function boot(counter) {
       w.navigator.mediaDevices = w.navigator.mediaDevices || { getUserMedia: () => Promise.reject(new Error('x')) };
       const R = o => Promise.resolve({ ok:true, status:200, text:()=>Promise.resolve(JSON.stringify(o)), json:()=>Promise.resolve(o) });
       w.fetch = (url, init) => {
-        const u = String(url);
+        let u = String(url);
+        // E0b: 読み取り（apiGet）は POST の本文で来る（GAS の橋）。GET と同じ扱いにする
+        if (init && init.method === 'POST') { const rb = JSON.parse(init.body); if (['auth','ping','getEvents','getGuests','getPromoUrls','getPromoGroups','getVipTables','getVipReservations','migrateEventPlans'].includes(rb.action)) { u += '?action=' + rb.action; init = null; } }
         if (init && init.method === 'POST') return R({ ok:true });
         if (/getVipTables/.test(u))       { counter.t++; return R(TABLES); }
         if (/getVipReservations/.test(u)) { counter.r++; return R(RESV); }
