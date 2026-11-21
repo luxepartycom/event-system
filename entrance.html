@@ -672,6 +672,9 @@ td.muted{color:var(--gray);font-size:0.62rem;}
   </div>
 </div>
 
+<!-- 版の印（反映の確認用。押せない・読むだけ） -->
+<div id="e0-ver" style="position:fixed;right:6px;bottom:4px;font-size:10px;color:#888;opacity:.6;pointer-events:none;z-index:99999;">E0-2026-11-21</div>
+
 <!-- APP -->
 
   <div class="toast" id="toast"></div>
@@ -1186,9 +1189,105 @@ let checkinBusy    = false;
 let lastScanned    = '';
 let pendingGuest   = null;
 
-async function apiGet(p)  { const r = await fetch(API + '?' + new URLSearchParams(p)); return r.json(); }
+// ══ E0 認可（設計：event-operations/ops/design-E0-auth.md）══════════════════
+// GAS は合言葉（_pw）の無い要求を断る。
+// ・受付の操作（当日の受付）と公開の操作 … ログイン時の受付の合言葉を自動で付ける
+// ・それ以外（イベント編集・一斉送信・紹介URL編集・レポート等）… 使う時に管理者の合言葉を
+//   別に聞き、この画面を開いている間だけ覚えておく（保存しない）。受付担当に一斉送信や
+//   イベント削除の権限は渡さない。
+// 受付の合言葉が断られたら（変更・期限切れ）ログインへ戻す。同時に何本断られても1回だけ。
+const E0_VERSION = 'E0-2026-11-21';
+// GAS の PUBLIC_ACTIONS ＋ ENTRANCE_ACTIONS と同じ。ここに無い操作は管理者の合言葉で送る
+const E0_ENTRANCE_OK = new Set([
+  'getEvents','checkPlan','registerGuest','sendQREmail','completeStripePayment','completeVipStripePayment',
+  'getVipTables','reserveVipByRank','getVipTicket','ping','auth','unsubscribe','memberDecide','memberRegister',
+  'checkIn','getGuests','saveGuestCheckinInfo','getVipReservations','confirmVipPayment',
+  'createVipCash','createVipStripeLink','createVipTransfer','getPromoUrls','getPromoGroups'
+]);
+let _adminPwE = '';          // 管理者の合言葉。この画面の間だけ（storage に置かない）
+let _adminPwAsking = null;   // 管理の操作が同時に来ても聞くのは1回
+function authPw_() { try { return sessionStorage.getItem('lpt_auth') || ''; } catch (e) { return ''; } }
+function needsAdmin_(o) { return !!o && typeof o.action === 'string' && !E0_ENTRANCE_OK.has(o.action); }
+
+// 管理者の合言葉を聞く小さな画面。確かめてから覚える。やめたら false
+function askAdminPw_() {
+  if (_adminPwAsking) return _adminPwAsking;
+  _adminPwAsking = new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.id = 'e0-admin-pw';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML =
+      '<div style="background:#151516;border:1px solid #2A2A2C;padding:22px 18px;width:100%;max-width:360px;">' +
+        '<div style="color:#F5F5F0;font-size:15px;margin-bottom:6px;">管理者のパスワード</div>' +
+        '<div style="color:#999;font-size:12px;line-height:1.7;margin-bottom:12px;">この操作は受付のパスワードでは使えません。管理者のパスワードを入れてください（この画面を閉じるまで覚えます）。</div>' +
+        '<input id="e0-admin-pw-input" type="password" autocomplete="off" class="form-input" style="width:100%;min-height:44px;box-sizing:border-box;">' +
+        '<div id="e0-admin-pw-err" style="color:#CF4444;font-size:12px;min-height:18px;margin-top:6px;"></div>' +
+        '<div style="display:flex;gap:10px;margin-top:8px;">' +
+          '<button id="e0-admin-pw-cancel" type="button" style="flex:1;min-height:44px;background:transparent;color:#ccc;border:1px solid #444;">やめる</button>' +
+          '<button id="e0-admin-pw-ok" type="button" style="flex:1;min-height:44px;background:#C9A84C;color:#000;border:none;font-weight:700;">確認</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    const input = ov.querySelector('#e0-admin-pw-input');
+    const err   = ov.querySelector('#e0-admin-pw-err');
+    const okBtn = ov.querySelector('#e0-admin-pw-ok');
+    const done = (v) => { try { ov.remove(); } catch (e) {} _adminPwAsking = null; resolve(v); };
+    const submit = async () => {
+      const pw = String(input.value || '').trim();
+      if (!pw) { err.textContent = 'パスワードを入れてください'; return; }
+      okBtn.disabled = true; err.textContent = '確認しています…';
+      let d = null;
+      try { d = await apiGet({ action: 'auth', password: pw }); } catch (e) { d = null; }
+      okBtn.disabled = false;
+      if (d && d.ok && d.role === 'admin') { _adminPwE = pw; done(true); }
+      else { err.textContent = d ? 'パスワードが違います' : '通信できませんでした。もう一度お試しください'; input.value = ''; }
+    };
+    okBtn.addEventListener('click', submit);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    ov.querySelector('#e0-admin-pw-cancel').addEventListener('click', () => done(false));
+    try { input.focus(); } catch (e) {}
+  });
+  return _adminPwAsking;
+}
+
+// 送る前に合言葉を付ける。管理者の合言葉を聞いてやめられたら null
+async function withPwE_(o) {
+  if (!o || o.action === 'auth' || o._pw !== undefined) return o;
+  if (needsAdmin_(o)) {
+    if (!_adminPwE && !(await askAdminPw_())) return null;
+    return Object.assign({}, o, { _pw: _adminPwE });
+  }
+  const pw = authPw_();
+  return pw ? Object.assign({}, o, { _pw: pw }) : o;
+}
+let _authBounced = false;
+function bounceToLogin_() {
+  if (_authBounced) return;
+  _authBounced = true;
+  try { sessionStorage.removeItem('lpt_auth'); sessionStorage.setItem('lpt_auth_expired', '1'); } catch (e) {}
+  location.reload();
+}
+// 管理者の合言葉で断られたら（変更された等）覚えた値を捨てて次に聞き直す。受付のログインは保つ
+function checkForbiddenE_(d, sent) {
+  if (d && d.status === 'forbidden') {
+    if (needsAdmin_(sent)) { _adminPwE = ''; try { toast('管理者のパスワードが違うか、変更されました。もう一度お試しください'); } catch (e) {} }
+    else bounceToLogin_();
+  }
+  return d;
+}
+function e0Cancelled_() { return { ok: false, status: 'admin_required', message: '管理者のパスワードが必要です' }; }
+
+async function apiGet(p) {
+  const q = await withPwE_(p);
+  if (!q) return e0Cancelled_();
+  const r = await fetch(API + '?' + new URLSearchParams(q));
+  return checkForbiddenE_(await r.json(), p);
+}
 async function apiPost(b, opt) {
   opt = opt || {};
+  // 合言葉を聞く間はタイマーを動かさない（聞き終えてから通信の時間を測る）
+  const sendBody = await withPwE_(b);
+  if (!sendBody) return e0Cancelled_();
   let ctrl = null, timer = null;
   if (opt.timeoutMs && typeof AbortController !== 'undefined') {
     ctrl  = new AbortController();
@@ -1199,7 +1298,7 @@ async function apiPost(b, opt) {
     r = await fetch(API, {
       method:  'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body:    JSON.stringify(b),
+      body:    JSON.stringify(sendBody),
       signal:  ctrl ? ctrl.signal : undefined
     });
     // r.json() だと「HTTPエラー」と「JSONでない応答（Googleのエラーページ等）」を区別できず、
@@ -1208,8 +1307,10 @@ async function apiPost(b, opt) {
     txt = await r.text();
   } finally { if (timer) clearTimeout(timer); }
   if (!r.ok) throw new Error('HTTP ' + r.status + ' / ' + txt.slice(0, 120));
-  try { return JSON.parse(txt); }
+  let d;
+  try { d = JSON.parse(txt); }
   catch (e) { throw new Error('応答が不正（JSONではありません）: ' + txt.slice(0, 120)); }
+  return checkForbiddenE_(d, b);
 }
 
 // ══ チェックイン専用の通信層（サーバ成功・画面失敗の「割れ」を収束させる）══════
@@ -1537,8 +1638,9 @@ async function saveEventDescription() {
   editDescEventId = null;
 }
 
-async function closeEvent(id)  { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'closed' }); await loadEvents(); toast('受付を終了しました'); }
-async function reopenEvent(id) { await apiPost({ action: 'updateEventStatus', event_id: id, status: 'active' }); await loadEvents(); toast('受付を再開しました'); }
+// E0: 管理者のパスワードを聞いてやめた・断られたときに「終了しました」と出さない
+async function closeEvent(id)  { const d = await apiPost({ action: 'updateEventStatus', event_id: id, status: 'closed' }); if (!d || !d.ok) { toast('エラー: ' + ((d && d.message) || '変更できませんでした')); return; } await loadEvents(); toast('受付を終了しました'); }
+async function reopenEvent(id) { const d = await apiPost({ action: 'updateEventStatus', event_id: id, status: 'active' }); if (!d || !d.ok) { toast('エラー: ' + ((d && d.message) || '変更できませんでした')); return; } await loadEvents(); toast('受付を再開しました'); }
 
 async function archiveEvent(eventId) {
   const ev = allEvents.find(e => e.event_id === eventId);
@@ -2551,6 +2653,16 @@ document.querySelectorAll('.modal-overlay').forEach(o =>
 );
 
 window.addEventListener('load', async () => {
+  // E0: 旧版が localStorage に残した合言葉を消す（タブを閉じても残るため）
+  try { localStorage.removeItem('lpt_charge_auth'); } catch (e) {}
+  // E0: 断られてログインへ戻ったときは理由を出す
+  try {
+    if (sessionStorage.getItem('lpt_auth_expired') === '1') {
+      sessionStorage.removeItem('lpt_auth_expired');
+      document.getElementById('login-err').textContent = 'パスワードが変更されたか、期限が切れました。もう一度ログインしてください';
+      document.getElementById('login-err').style.display = 'block';
+    }
+  } catch (e) {}
   // 単発決済から戻った場合の復元処理
   const urlParams   = new URLSearchParams(location.search);
   const chargeResult = urlParams.get('charge'); // 'success' or 'cancel' or null
@@ -2560,11 +2672,11 @@ window.addEventListener('load', async () => {
     try {
       const savedHistory = localStorage.getItem('lpt_charge_history');
       if (savedHistory) chargeHistory = JSON.parse(savedHistory);
-      const savedPw = localStorage.getItem('lpt_charge_auth');
+      const savedPw = sessionStorage.getItem('lpt_charge_auth');
       if (savedPw) sessionStorage.setItem('lpt_auth', savedPw);
       localStorage.removeItem('lpt_charge_return');
       localStorage.removeItem('lpt_charge_history');
-      localStorage.removeItem('lpt_charge_auth');
+      sessionStorage.removeItem('lpt_charge_auth');
       // URLパラメータをクリア（履歴に残さない）
       if (chargeResult) history.replaceState({}, '', location.pathname);
     } catch(e) {}
@@ -2593,7 +2705,7 @@ window.addEventListener('load', async () => {
       }
     });
     apiGet({ action: 'auth', password: cached, mode: 'entrance' }).then(function(d) {
-      if (!d.ok || d.role !== 'entrance') { sessionStorage.removeItem('lpt_auth'); location.reload(); }
+      if (!d.ok || d.role !== 'entrance') bounceToLogin_();
     }).catch(function(){});
     return;
   }
@@ -2969,9 +3081,9 @@ async function startQuickCharge() {
       chargeHistory.unshift({ desc, amount, status: 'pending', session_id: d.session_id });
       try {
         localStorage.setItem('lpt_charge_history', JSON.stringify(chargeHistory));
-        // 現在のパスワードをlocalStorageに退避（sessionStorageは遷移で消える場合がある）
+        // E0: 合言葉は sessionStorage に退避（同じタブの決済からの戻りでは残り、タブを閉じれば消える）
         const pw = sessionStorage.getItem('lpt_auth');
-        if (pw) localStorage.setItem('lpt_charge_auth', pw);
+        if (pw) sessionStorage.setItem('lpt_charge_auth', pw);
         localStorage.setItem('lpt_charge_return', '1'); // 単発決済からの戻りフラグ
       } catch(e) {}
 
