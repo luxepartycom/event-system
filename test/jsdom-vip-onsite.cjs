@@ -33,7 +33,9 @@ function boot(file, sent) {
       w.confirm = () => true;
       const R = o => Promise.resolve({ ok:true, status:200, text:()=>Promise.resolve(JSON.stringify(o)), json:()=>Promise.resolve(o) });
       w.fetch = (u, i) => {
-        const url = String(u);
+        let url = String(u);
+        // E0b: 読み取り（apiGet）は POST の本文で来る（GAS の橋）。GET と同じ扱いにする
+        if (i && i.method === 'POST') { const rb = JSON.parse(i.body); if (['auth','ping','getEvents','getGuests','getPromoUrls','getPromoGroups','getVipTables','getVipReservations','migrateEventPlans'].includes(rb.action)) { url += '?action=' + rb.action; i = null; } }
         if (i && i.method === 'POST' && /script\.google\.com/.test(url)) {
           const b = JSON.parse(i.body);
           sent.push(b);

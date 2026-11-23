@@ -673,7 +673,7 @@ td.muted{color:var(--gray);font-size:0.62rem;}
 </div>
 
 <!-- 版の印（反映の確認用。押せない・読むだけ） -->
-<div id="e0-ver" style="position:fixed;right:6px;bottom:4px;font-size:10px;color:#888;opacity:.6;pointer-events:none;z-index:99999;">E0-2026-11-21</div>
+<div id="e0-ver" style="position:fixed;right:6px;bottom:4px;font-size:10px;color:#888;opacity:.6;pointer-events:none;z-index:99999;">E0b-2026-11-21</div>
 
 <!-- APP -->
 
@@ -1196,7 +1196,7 @@ let pendingGuest   = null;
 //   別に聞き、この画面を開いている間だけ覚えておく（保存しない）。受付担当に一斉送信や
 //   イベント削除の権限は渡さない。
 // 受付の合言葉が断られたら（変更・期限切れ）ログインへ戻す。同時に何本断られても1回だけ。
-const E0_VERSION = 'E0-2026-11-21';
+const E0_VERSION = 'E0b-2026-11-21';
 // GAS の PUBLIC_ACTIONS ＋ ENTRANCE_ACTIONS と同じ。ここに無い操作は管理者の合言葉で送る
 const E0_ENTRANCE_OK = new Set([
   'getEvents','checkPlan','registerGuest','sendQREmail','completeStripePayment','completeVipStripePayment',
@@ -1277,12 +1277,10 @@ function checkForbiddenE_(d, sent) {
 }
 function e0Cancelled_() { return { ok: false, status: 'admin_required', message: '管理者のパスワードが必要です' }; }
 
-async function apiGet(p) {
-  const q = await withPwE_(p);
-  if (!q) return e0Cancelled_();
-  const r = await fetch(API + '?' + new URLSearchParams(q));
-  return checkForbiddenE_(await r.json(), p);
-}
+// E0b: 読み取りも POST で送る（合言葉を URL に載せない）。GAS の doPost が GET と同じ処理へ渡す。
+// 値は URLSearchParams と同じ文字列化（GAS は文字列以外を断る）。合言葉の付け方・断られたときの扱いは apiPost のもの
+function getAsPostBody_(p) { return Object.fromEntries(new URLSearchParams(p)); }
+async function apiGet(p) { return apiPost(getAsPostBody_(p)); }
 async function apiPost(b, opt) {
   opt = opt || {};
   // 合言葉を聞く間はタイマーを動かさない（聞き終えてから通信の時間を測る）
